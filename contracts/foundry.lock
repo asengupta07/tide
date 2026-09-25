@@ -1,0 +1,44 @@
+{
+  "lib/aqua": {
+    "tag": {
+      "name": "v1.0.0",
+      "rev": "81c26e4619ce21556ab02b3284ee2685de21fb18"
+    }
+  },
+  "lib/forge-std": {
+    "tag": {
+      "name": "v1.16.2",
+      "rev": "bf647bd6046f2f7da30d0c2bf435e5c76a780c1b"
+    }
+  },
+  "lib/hookmate": {
+    "tag": {
+      "name": "v0.6.0",
+      "rev": "ef3e9845e0b2bc9cd5810644d7d337b00c47bc75"
+    }
+  },
+  "lib/openzeppelin-contracts": {
+    "tag": {
+      "name": "v5.4.0",
+      "rev": "c64a1edb67b6e3f4a15cca8909c9482ad33a02b0"
+    }
+  },
+  "lib/solidity-utils": {
+    "tag": {
+      "name": "6.9.10",
+      "rev": "2d91bb67665467afc06907a69513b0fa66c46f0d"
+    }
+  },
+  "lib/swap-vm": {
+    "tag": {
+      "name": "v1.0.2",
+      "rev": "32c687c2b73101fc26549e48fa1ff8a4d73afbac"
+    }
+  },
+  "lib/uniswap-hooks": {
+    "tag": {
+      "name": "v1.2.1",
+      "rev": "acbd604c409a827f7f98c9517236da860c4fca1a"
+    }
+  }
+}

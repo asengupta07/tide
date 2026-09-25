@@ -1,0 +1,42 @@
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+libs = ["lib"]
+# Tide contracts pin 0.8.30 via pragma; Uniswap v4 PoolManager (test-only dependency) requires =0.8.26
+auto_detect_solc = true
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 700
+via_ir = true
+bytecode_hash = "none"
+ffi = false
+fs_permissions = [
+    { access = "read", path = "../research" },
+    { access = "read-write", path = "./deployments" },
+    { access = "read", path = "./out" },
+]
+
+# Uniswap v4 PoolManager (test-only dependency) needs its upstream optimizer settings to fit the stack.
+additional_compiler_profiles = [
+    { name = "v4core", via_ir = true, optimizer_runs = 44444444 },
+    { name = "router", via_ir = true, optimizer_runs = 200 },
+]
+compilation_restrictions = [
+    { paths = "lib/uniswap-hooks/lib/v4-core/src/PoolManager.sol", via_ir = true, optimizer_runs = 44444444 },
+    # TideRouter carries the full 1inch SwapVM plus three opcodes; 200 runs keeps it under EIP-170.
+    { paths = "src/aqua/TideRouter.sol", via_ir = true, optimizer_runs = 200 },
+]
+
+
+[fmt]
+line_length = 120
+tab_width = 4
+bracket_spacing = true
+int_types = "long"
+number_underscore = "thousands"
+
+[rpc_endpoints]
+mainnet = "${MAINNET_RPC_URL}"
+sepolia = "${SEPOLIA_RPC_URL}"
