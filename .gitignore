@@ -1,0 +1,15 @@
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+node_modules/
+dist/
+.next/
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+__pycache__/
+*.pyc
+contracts/deployments/31337.json
