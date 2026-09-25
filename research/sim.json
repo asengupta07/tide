@@ -1,0 +1,51 @@
+{
+  "sigma": 0.6,
+  "block_seconds": 12,
+  "blocks": 7200,
+  "paths": 10000,
+  "results": [
+    {
+      "lambda": 0.25,
+      "mean_pool_value": 2.000212404482935,
+      "mean_hodl_value": 2.000347588550609,
+      "mean_lvr": 0.00014083671649618812,
+      "lvr_pct_of_capital": 0.007041835824809406,
+      "wealth_vs_hodl_pct": -0.006749825179018288,
+      "lvr_reduction_vs_lambda1_pct": 42.87273315427449,
+      "closed_form_ratio": 0.5714285714285714,
+      "simulated_ratio": 0.5712726684572551,
+      "analytic_lvr_pct_per_day": 0.007045009784735812
+    },
+    {
+      "lambda": 0.5,
+      "mean_pool_value": 2.000188907101927,
+      "mean_hodl_value": 2.000347588550609,
+      "mean_lvr": 0.00016433344629182157,
+      "lvr_pct_of_capital": 0.008216672314591078,
+      "wealth_vs_hodl_pct": -0.007924478511507144,
+      "lvr_reduction_vs_lambda1_pct": 33.34180978122502,
+      "closed_form_ratio": 0.6666666666666666,
+      "simulated_ratio": 0.6665819021877498,
+      "analytic_lvr_pct_per_day": 0.00821917808219178
+    },
+    {
+      "lambda": 1.0,
+      "mean_pool_value": 2.000106716340268,
+      "mean_hodl_value": 2.000347588550609,
+      "mean_lvr": 0.00024653151511085477,
+      "lvr_pct_of_capital": 0.012326575755542739,
+      "wealth_vs_hodl_pct": -0.012033291482462887,
+      "lvr_reduction_vs_lambda1_pct": 0.0,
+      "closed_form_ratio": 1.0,
+      "simulated_ratio": 1.0,
+      "analytic_lvr_pct_per_day": 0.012328767123287671
+    }
+  ],
+  "retail_slippage_pct_by_n": {
+    "1": 0.990099009900991,
+    "2": 0.4975124378109319,
+    "4": 0.24937655860347852,
+    "8": 0.12484394506866517
+  },
+  "slippage_improvement_n4_vs_n1": 3.9702970297031768
+}
