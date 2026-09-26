@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { load } from "@/lib/store";
-import { Nav, Status } from "@/components/ui";
+import { Nav, Status, Bezel, Pill } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -12,13 +11,13 @@ export default async function Approved({ searchParams }: { searchParams: Promise
   return (
     <>
       <Nav current="app" />
-      <main className="mx-auto w-full max-w-xl flex-1 px-6 py-16">
+      <main className="mx-auto w-full max-w-xl flex-1 px-6 pb-16 pt-32">
         <h1 className={`text-3xl font-semibold tracking-tight ${ok ? "text-accent" : "text-bad"}`}>{ok ? "Approved" : "Blocked"}</h1>
         {q.purpose === "bind" && !q.error && (
           <p className="mt-3 text-fg-2">Owner bound to the manager agent. Proposals can now be approved with a fresh World ID authentication.</p>
         )}
         {p && (
-          <div className="panel mt-6 space-y-2 p-5 text-sm">
+          <Bezel small className="mt-6"><div className="space-y-2 p-5 text-sm">
             <div className="flex items-center justify-between">
               <span className="num text-fg-3">proposal {p.id}</span>
               <Status s={p.status} />
@@ -35,10 +34,10 @@ export default async function Approved({ searchParams }: { searchParams: Promise
                 <a className="text-accent" href={`https://sepolia.etherscan.io/tx/${p.txs.params}`}>TideParams.set {p.txs.params?.slice(0, 18)}…</a>
               </div>
             )}
-          </div>
+          </div></Bezel>
         )}
         {q.error && <p className="mt-4 text-sm text-bad">{q.error}. The records were not changed.</p>}
-        <Link className="btn btn-ghost mt-8" href="/app">Back to dashboard</Link>
+        <div className="mt-8"><Pill href="/app" variant="ghost">Back to dashboard</Pill></div>
       </main>
     </>
   );

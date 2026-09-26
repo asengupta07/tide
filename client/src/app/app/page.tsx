@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ArrowUpRight } from "@phosphor-icons/react";
 
-import { Nav, Panel, Status } from "@/components/ui";
+import { Nav, Panel, Status, Pill } from "@/components/ui";
 import { FrontierChart } from "@/components/FrontierChart";
 
 type Snapshot = {
@@ -54,7 +54,7 @@ export default function Dashboard() {
   return (
     <>
       <Nav current="app" />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-6 pb-16 pt-28">
         {!s ? (
           <Skeleton />
         ) : s.error ? (
@@ -90,7 +90,7 @@ function Body({ s, sigma, setSigma, propose, busy }: { s: Snapshot; sigma: numbe
               owner bound <span className="num text-fg-3">{s.bound.subject}</span>
             </span>
           ) : (
-            <a className="btn btn-ghost" href="/api/world/bind">Bind owner with World ID</a>
+            <Pill href="/api/world/bind" variant="ghost" size="sm" external>Bind owner with World ID</Pill>
           )}
         </div>
       </div>
@@ -114,8 +114,9 @@ function Body({ s, sigma, setSigma, propose, busy }: { s: Snapshot; sigma: numbe
           <label className="block text-xs text-fg-3">Realised volatility, annualised</label>
           <input type="range" min={0.2} max={1.2} step={0.05} value={sigma} onChange={(e) => setSigma(Number(e.target.value))} className="mt-2 w-full" />
           <div className="num mb-4 mt-1 text-sm">σ = {(sigma * 100).toFixed(0)} %</div>
-          <button onClick={propose} disabled={busy} className="btn btn-primary">
-            {busy ? "Proposing…" : "Agent: propose λ*"}
+          <button onClick={propose} disabled={busy} className="pill pill-primary pill-sm">
+            <span>{busy ? "Proposing…" : "Agent: propose λ*"}</span>
+            <span className="ico"><ArrowUpRight size={13} /></span>
           </button>
           <p className="mt-3 text-xs text-fg-3">The agent writes only after a fresh World ID authentication by the bound owner.</p>
         </Panel>
@@ -126,7 +127,7 @@ function Body({ s, sigma, setSigma, propose, busy }: { s: Snapshot; sigma: numbe
           {s.proposals.length === 0 && <Empty text="No proposals yet. Move the volatility slider and ask the agent." />}
           <div className="space-y-3">
             {s.proposals.map((p) => (
-              <div key={p.id} className="rounded-ctl border border-line bg-bg-2 p-4">
+              <div key={p.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                 <div className="flex items-center justify-between gap-3">
                   <span className="num text-sm">
                     λ {p.from.lambda} → <b className="text-fg">{p.to.lambda}</b> bps at σ {(p.sigma * 100).toFixed(0)} %
@@ -135,7 +136,7 @@ function Body({ s, sigma, setSigma, propose, busy }: { s: Snapshot; sigma: numbe
                 </div>
                 <div className="mt-1 text-xs text-fg-3">{p.reason}</div>
                 {p.status === "pending" && p.approvalUrl && (
-                  <a className="btn btn-primary mt-3 h-8 px-3 text-xs" href={p.approvalUrl}>Approve with World ID</a>
+                  <div className="mt-3"><Pill href={p.approvalUrl} size="sm" external>Approve with World ID</Pill></div>
                 )}
                 {p.blockedReason && <div className="mt-2 text-xs text-bad">{p.blockedReason}</div>}
                 {p.txs && (
@@ -204,26 +205,26 @@ function Bar({ label, active, total, digits }: { label: string; active: number; 
   const pct = total > 0 ? Math.min(100, (active / total) * 100) : 0;
   return (
     <div className="mb-3">
-      <div className="mb-1 flex justify-between text-xs">
+      <div className="mb-1.5 flex justify-between gap-3 text-xs">
         <span className="text-fg-2">{label}</span>
         <span className="num text-fg-2">
           active {active.toFixed(digits)} / {total.toFixed(digits)}
         </span>
       </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-panel-2">
-        <div className="h-full bg-accent transition-[width] duration-700" style={{ width: `${pct}%` }} />
+      <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+        <div className="absolute inset-y-0 left-0 rounded-full bg-accent shadow-[0_0_12px_rgba(88,201,182,0.35)]" style={{ width: `${pct}%`, transition: "width 900ms var(--ease-out)" }} />
       </div>
     </div>
   );
 }
 function Empty({ text }: { text: string }) {
-  return <div className="rounded-ctl border border-dashed border-line-2 p-4 text-sm text-fg-3">{text}</div>;
+  return <div className="rounded-2xl border border-dashed border-white/10 p-5 text-sm text-fg-3">{text}</div>;
 }
 function Skeleton() {
   return (
     <div className="grid gap-4 md:grid-cols-3">
       {[0, 1, 2, 3, 4].map((i) => (
-        <div key={i} className={`panel h-44 animate-pulse ${i > 2 ? "md:col-span-3 h-64" : ""}`} />
+        <div key={i} className={`h-44 animate-pulse rounded-3xl bg-white/[0.03] ${i > 2 ? "md:col-span-3 h-64" : ""}`} />
       ))}
     </div>
   );

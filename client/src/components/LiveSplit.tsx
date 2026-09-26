@@ -36,22 +36,22 @@ export function LiveSplit() {
   const lambda = s?.records ? s.records.lambda / 100 : null;
 
   return (
-    <div className="rounded-panel border border-line bg-bg/70 p-5 backdrop-blur-sm">
-      <div className="flex items-baseline justify-between">
-        <div className="text-sm text-fg-2">{s?.records?.name ?? "eth-usdc.tide.eth"}</div>
-        <div className="text-xs text-fg-3">Sepolia, block {s?.block?.blockNumber ?? (err ? "offline" : "…")}</div>
+    <div className="bezel"><div className="core p-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <div className="num text-sm text-fg">{s?.records?.name ?? "eth-usdc.tide.eth"}</div>
+        <div className="num text-xs text-fg-3">Sepolia · block {s?.block?.blockNumber ?? (err ? "offline" : "…")}</div>
       </div>
       <div className="mt-4 grid grid-cols-3 gap-4">
         <div>
-          <div className="num text-3xl font-semibold text-accent">{lambda === null ? "–" : `${lambda}%`}</div>
+          <div className="num text-4xl font-semibold tracking-tight text-accent">{lambda === null ? "–" : `${lambda}%`}</div>
           <div className="text-xs text-fg-3">exposed per block</div>
         </div>
         <div>
-          <div className="num text-3xl font-semibold">{s?.records ? `${s.records.N}×` : "–"}</div>
+          <div className="num text-4xl font-semibold tracking-tight">{s?.records ? `${s.records.N}×` : "–"}</div>
           <div className="text-xs text-fg-3">virtual depth</div>
         </div>
         <div>
-          <div className="num text-3xl font-semibold">{s?.records ? `${s.records.delta / 100}%` : "–"}</div>
+          <div className="num text-4xl font-semibold tracking-tight">{s?.records ? `${s.records.delta / 100}%` : "–"}</div>
           <div className="text-xs text-fg-3">drift bound</div>
         </div>
       </div>
@@ -59,8 +59,8 @@ export function LiveSplit() {
         <Bar label="WETH" active={w.a} total={w.t} digits={3} />
         <Bar label="USDC" active={u.a} total={u.t} digits={0} />
       </div>
-      <div className="mt-3 text-xs text-fg-3">Bright part is what this block can trade. The rest stays in the maker&apos;s wallet.</div>
-    </div>
+      <div className="mt-4 text-xs text-fg-3">Bright part is what this block can trade. The rest stays in the maker&apos;s wallet.</div>
+    </div></div>
   );
 }
 
@@ -68,14 +68,14 @@ function Bar({ label, active, total, digits }: { label: string; active: number; 
   const pct = total > 0 ? Math.min(100, (active / total) * 100) : 0;
   return (
     <div>
-      <div className="mb-1 flex justify-between text-xs">
+      <div className="mb-1.5 flex justify-between gap-3 text-xs">
         <span className="text-fg-2">{label}</span>
         <span className="num text-fg-2">
           {active.toFixed(digits)} / {total.toFixed(digits)}
         </span>
       </div>
-      <div className="flex h-2 w-full overflow-hidden rounded-full bg-panel-2">
-        <div className="h-full bg-accent transition-[width] duration-700" style={{ width: `${pct}%` }} />
+      <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+        <div className="absolute inset-y-0 left-0 rounded-full bg-accent shadow-[0_0_12px_rgba(88,201,182,0.35)]" style={{ width: `${pct}%`, transition: "width 900ms var(--ease-out)" }} />
       </div>
     </div>
   );
