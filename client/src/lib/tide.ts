@@ -33,6 +33,25 @@ export async function readParams(pc: PublicClient, key: Hex) {
   return { lambda: Number(p.lambdaBps), N: Number(p.n), delta: Number(p.deltaBps), fee: Number(p.feeBps), owner: p.owner, manager: p.manager };
 }
 
+export type Bounds = { lambdaMin: number; lambdaMax: number; nMax: number; maxStepBps: number; cooldown: number; lastManagerSet: number };
+
+/** The owner's guardrails for the manager, plus the time of the manager's last write. */
+export async function readBounds(pc: PublicClient, key: Hex): Promise<Bounds> {
+  const dep = deployment();
+  const [b, last] = await Promise.all([
+    pc.readContract({ address: dep.tideParams, abi: tideParamsAbi, functionName: "bounds", args: [key] }) as Promise<{ lambdaMin: number; lambdaMax: number; nMax: number; maxStepBps: number; cooldown: number }>,
+    pc.readContract({ address: dep.tideParams, abi: tideParamsAbi, functionName: "lastManagerSet", args: [key] }) as Promise<bigint>,
+  ]);
+  return { lambdaMin: Number(b.lambdaMin), lambdaMax: Number(b.lambdaMax), nMax: Number(b.nMax), maxStepBps: Number(b.maxStepBps), cooldown: Number(b.cooldown), lastManagerSet: Number(last) };
+}
+
+/** Would a manager write to (lambda, N) pass the guardrails right now? Same check the contract makes. */
+export async function withinBounds(pc: PublicClient, key: Hex, lambda: number, N: number): Promise<{ ok: boolean; why: string }> {
+  const dep = deployment();
+  const [ok, why] = (await pc.readContract({ address: dep.tideParams, abi: tideParamsAbi, functionName: "withinBounds", args: [key, lambda, N] })) as [boolean, string];
+  return { ok, why };
+}
+
 /** Largest delta the fee backs at depth N: (N - 1) * delta <= 2 * fee (TideMath.checkParams). */
 export function maxDeltaBps(N: number, feeBps: number) {
   return N <= 1 ? 4999 : Math.floor((2 * feeBps) / (N - 1));

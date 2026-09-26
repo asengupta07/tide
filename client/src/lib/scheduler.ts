@@ -51,7 +51,7 @@ export async function tick(reason = "schedule"): Promise<string> {
         continue;
       }
       const p = await propose(s.name, vol.sigma);
-      out.push(`${s.label}: proposed lambda ${p.from.lambda} -> ${p.to.lambda}, delta ${p.from.delta} -> ${p.to.delta}`);
+      out.push(`${s.label}: ${p.auto ? "applied" : "proposed, needs the owner"} lambda ${p.from.lambda} -> ${p.to.lambda}, delta ${p.from.delta} -> ${p.to.delta}`);
     }
     const summary = `σ ${(vol.sigma * 100).toFixed(0)}%, λ* ${target}: ${out.join("; ") || "no strategies"}`;
     update((st) => log(st, "info", `manager check (${reason}): ${summary}`));

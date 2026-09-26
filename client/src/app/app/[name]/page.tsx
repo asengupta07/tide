@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { useAccount, useSignMessage } from "wagmi";
-import { getAddress } from "viem";
+import { useAccount, useSignMessage, useWriteContract } from "wagmi";
+import { getAddress, type Hex } from "viem";
+import { ADDR, tideParamsAbi } from "@/lib/chain";
 import { ArrowUpRight, ArrowRight, ShieldCheck, Fingerprint, Sparkle, CaretDown, CircleNotch, Fire } from "@phosphor-icons/react";
 
 import { Nav, Bezel, Status, Pill } from "@/components/ui";
@@ -17,9 +18,10 @@ type Snapshot = {
   agentEnabled: boolean;
   records: { name: string; lambda: number; N: number; delta: number; fee?: number; strategyHash: string };
   onchain: { lambda: number; N: number; delta: number; fee: number; owner: string; manager: string } | null;
+  bounds: { lambdaMin: number; lambdaMax: number; nMax: number; maxStepBps: number; cooldown: number; lastManagerSet: number } | null;
   block: { blockNumber: number; active: { weth: string; usdc: string }; total: { weth: string; usdc: string } } | null;
   fills: { block: number; tx: string; taker: string; tokenIn: string; tokenOut: string; amountIn: string; amountOut: string }[];
-  proposals: { id: string; status: string; from: { lambda: number; N: number; delta: number }; to: { lambda: number; N: number; delta: number }; reason: string; sigma: number; approvalUrl?: string; blockedReason?: string; txs?: { ens?: string; params?: string }; createdAt: number }[];
+  proposals: { id: string; status: string; from: { lambda: number; N: number; delta: number }; to: { lambda: number; N: number; delta: number }; reason: string; sigma: number; approvalUrl?: string; blockedReason?: string; txs?: { ens?: string; params?: string }; createdAt: number; auto?: boolean; outside?: string }[];
   log: { at: number; level: string; msg: string }[];
   deployment: { tideParams: string; tideRouter: string; tideApp: string; aqua: string; weth: string };
   agent: string;
@@ -38,7 +40,7 @@ const ago = (t: number) => {
 };
 const STATUS_TEXT: Record<string, string> = {
   pending: "Waiting for your approval",
-  approved: "Approved, writing…",
+  approved: "Approved. Outside your guardrails, so your wallet applies it",
   applied: "Applied",
   blocked: "Declined, nothing changed",
   expired: "Timed out, nothing changed",
@@ -180,7 +182,7 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
         <h2 className="text-lg font-medium">Manager</h2>
         <p className="mt-1 max-w-[70ch] text-sm text-fg-3">
           {s.agentEnabled
-            ? "A bot watches volatility and suggests how much of your inventory to show. It can never change anything on its own: every suggestion needs you to confirm with World ID first."
+            ? "A bot watches volatility and adjusts how much of your inventory to show. Inside the guardrails you set below it acts on its own. Outside them it needs you: a fresh World ID sign-in, then your wallet."
             : "The manager is not enabled on this strategy. You change settings yourself."}
         </p>
 
@@ -208,7 +210,7 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
                 {mgr && (
                   <p className="relative z-10 mt-5 border-t border-white/[0.07] pt-4 text-xs leading-relaxed text-fg-2">
                     Autopilot: the manager checks the market every {mgr.tickMinutes} min
-                    {mgr.nextTick ? `, next in ${Math.max(0, Math.round((mgr.nextTick - Date.now()) / 60000))} min` : ""}. It only speaks up when the suggested visibility moves by {mgr.minMoveBps / 100} points or more.
+                    {mgr.nextTick ? `, next in ${Math.max(0, Math.round((mgr.nextTick - Date.now()) / 60000))} min` : ""}. It acts when the suggested visibility moves by {mgr.minMoveBps / 100} points or more: on its own inside the guardrails, otherwise it asks you.
                   </p>
                 )}
               </div>
@@ -270,6 +272,8 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
           </div>
         )}
 
+        {s.agentEnabled && s.bounds && <Guardrails b={s.bounds} orderHash={s.strategy.orderHash} isOwner={isOwner} />}
+
         {/* Suggestions */}
         {s.proposals.length > 0 && (
           <div className="mt-6 space-y-3">
@@ -289,7 +293,8 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
                       <Status s={p.status} />
                     </div>
                     <p className="mt-2 text-sm text-fg-2">{humanReason(p.sigma, p.to.lambda, p.from.lambda)}{p.to.delta !== p.from.delta && ` The deep-curve band moves to ${p.to.delta / 100}%: about three one-block price moves at this volatility, so a stale first trade gives nobody an edge, and no more than the fee can back.`}</p>
-                    <div className="mt-2 text-xs text-fg-3">{STATUS_TEXT[p.status] ?? p.status} · {ago(p.createdAt)}</div>
+                    <div className="mt-2 text-xs text-fg-3">{p.auto && p.status === "applied" ? "Applied by the manager, inside your guardrails" : STATUS_TEXT[p.status] ?? p.status}{p.outside && p.status !== "applied" ? ` (${p.outside})` : ""} · {ago(p.createdAt)}</div>
+                    {p.status === "approved" && !p.txs?.params && isOwner && <ApplyButton p={p} orderHash={s.strategy.orderHash} />}
                     {p.status === "pending" && p.approvalUrl && isOwner && (
                       <div className="mt-4 flex flex-wrap items-center gap-3">
                         <Pill href={p.approvalUrl} size="sm" external>Approve with World ID</Pill>
@@ -387,6 +392,96 @@ function humanReason(sigma: number, to: number, from: number) {
   if (to < from) return `Markets look volatile (about ${v}% a year). Showing less inventory per block cuts what bots can take from you, at the cost of your token mix drifting a bit more.`;
   if (to > from) return `Markets look calm (about ${v}% a year). Bots take little at this volatility, so showing more inventory earns more fees than it loses.`;
   return `At about ${v}% volatility the current setting is already the best trade-off.`;
+}
+
+/** The owner's guardrails for the manager: what it may change on its own. Owner edits them with the wallet. */
+function Guardrails({ b, orderHash, isOwner }: { b: NonNullable<Snapshot["bounds"]>; orderHash: string; isOwner: boolean }) {
+  const { writeContractAsync } = useWriteContract();
+  const [edit, setEdit] = useState(false);
+  const [v, setV] = useState({ lambdaMin: b.lambdaMin, lambdaMax: b.lambdaMax, nMax: b.nMax, maxStepBps: b.maxStepBps, cooldown: b.cooldown });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [tx, setTx] = useState<string | null>(null);
+  const save = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const h = await writeContractAsync({ address: ADDR.tideParams, abi: tideParamsAbi, functionName: "setBounds", args: [orderHash as Hex, { lambdaMin: v.lambdaMin, lambdaMax: v.lambdaMax, nMax: v.nMax, maxStepBps: v.maxStepBps, cooldown: v.cooldown }] });
+      setTx(h);
+      setEdit(false);
+    } catch (e) {
+      setErr((e as Error).message.split("\n")[0]);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const Num = ({ k, label, step = 1 }: { k: keyof typeof v; label: string; step?: number }) => (
+    <label className="block text-xs text-fg-3">
+      {label}
+      <input type="number" step={step} value={v[k]} onChange={(e) => setV({ ...v, [k]: Number(e.target.value) })} className="num mt-1 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-fg outline-none focus:border-accent" />
+    </label>
+  );
+  return (
+    <Bezel small className="mt-4">
+      <div className="p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-medium">Guardrails for the manager</div>
+            <p className="mt-1 text-xs text-fg-3">What it may change on its own. Anything beyond this needs your fresh World ID sign-in and your wallet. Stored on-chain; the contract refuses the manager outside them.</p>
+          </div>
+          {isOwner && !edit && <button onClick={() => setEdit(true)} className="pill pill-ghost pill-sm"><span>Edit</span><span className="ico"><ArrowRight size={13} /></span></button>}
+        </div>
+        {!edit ? (
+          <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+            <div><dt className="text-[11px] text-fg-3">Visibility range</dt><dd className="num mt-0.5 text-lg font-medium">{b.lambdaMin / 100}% to {b.lambdaMax / 100}%</dd></div>
+            <div><dt className="text-[11px] text-fg-3">Largest move per change</dt><dd className="num mt-0.5 text-lg font-medium">{b.maxStepBps / 100} points</dd></div>
+            <div><dt className="text-[11px] text-fg-3">Deepest curve</dt><dd className="num mt-0.5 text-lg font-medium">{b.nMax}×</dd></div>
+            <div><dt className="text-[11px] text-fg-3">Between changes</dt><dd className="num mt-0.5 text-lg font-medium">{Math.round(b.cooldown / 60)} min</dd></div>
+          </dl>
+        ) : (
+          <div className="mt-4 grid gap-3 sm:grid-cols-5">
+            <Num k="lambdaMin" label="min visibility, bps" />
+            <Num k="lambdaMax" label="max visibility, bps" />
+            <Num k="maxStepBps" label="max move, bps" />
+            <Num k="nMax" label="deepest curve, N" />
+            <Num k="cooldown" label="between changes, s" />
+            <div className="flex items-end gap-2 sm:col-span-5">
+              <button onClick={save} disabled={busy} className="pill pill-primary pill-sm disabled:opacity-40"><span>{busy ? "Confirm in your wallet…" : "Save guardrails"}</span><span className="ico">{busy ? <CircleNotch size={13} className="animate-spin" /> : <ArrowRight size={13} />}</span></button>
+              <button onClick={() => setEdit(false)} className="text-xs text-fg-3">Cancel</button>
+            </div>
+          </div>
+        )}
+        {tx && <p className="mt-3 text-xs text-fg-3">Saved: <a className="text-accent" href={`https://sepolia.etherscan.io/tx/${tx}`}>{tx.slice(0, 18)}…</a>. Shows here after the next refresh.</p>}
+        {err && <p className="mt-2 text-xs text-bad">{err}</p>}
+      </div>
+    </Bezel>
+  );
+}
+
+/** Owner applies an approved, out-of-guardrails change with their own wallet. Verified on-chain before it is marked. */
+function ApplyButton({ p, orderHash }: { p: Snapshot["proposals"][number]; orderHash: string }) {
+  const { writeContractAsync } = useWriteContract();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const go = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const h = await writeContractAsync({ address: ADDR.tideParams, abi: tideParamsAbi, functionName: "set", args: [orderHash as Hex, p.to.lambda, p.to.N, p.to.delta] });
+      const r = await fetch("/api/agent/applied", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: p.id, tx: h }) });
+      if (!r.ok) throw new Error((await r.json()).error);
+      window.location.reload();
+    } catch (e) {
+      setErr((e as Error).message.split("\n")[0]);
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="mt-3">
+      <button onClick={go} disabled={busy} className="pill pill-primary pill-sm disabled:opacity-40"><span>{busy ? "Confirm in your wallet…" : "Apply on-chain"}</span><span className="ico">{busy ? <CircleNotch size={13} className="animate-spin" /> : <ArrowRight size={13} />}</span></button>
+      {err && <p className="mt-1 text-xs text-bad">{err}</p>}
+    </div>
+  );
 }
 
 /** Sign a short message with the connected wallet, then start the World ID bind with that proof. */

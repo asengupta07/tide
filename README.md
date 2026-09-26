@@ -2,7 +2,7 @@
 
 Tide is a partially-active AMM that shows each block's arbitrageur only a fraction λ of the maker's inventory, quotes uninformed flow against an N-times deeper virtual curve backed by the idle remainder, and lets a manager agent tune λ only after a fresh World ID authentication, with the parameters living as ENSv2 records the agent may edit and nothing else.
 
-**Model guide:** [MATHEMATICS_MODEL.md](MATHEMATICS_MODEL.md) · **Ops:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), [CHANGELOG.md](CHANGELOG.md) · **Whitepaper:** [WHITEPAPER.pdf](WHITEPAPER.pdf) · **Video:** _(link)_ · **Live demo (Sepolia):** dashboard `client/` (see Run), records on [eth-usdc.tide.eth](https://sepolia.app.ens.domains/eth-usdc.tide.eth), fills on [TideRouter](https://sepolia.etherscan.io/address/0xfDD5a4E385cc5082d1be12F215fa696a3c4B0957), hook pool on [TideHook](https://sepolia.etherscan.io/address/0xEcbF515eEd6006270210db1c9bfcA1dB3AD1AA88)
+**Model guide:** [MATHEMATICS_MODEL.md](MATHEMATICS_MODEL.md) · **Ops:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), [CHANGELOG.md](CHANGELOG.md) · **Whitepaper:** [WHITEPAPER.pdf](WHITEPAPER.pdf) · **Video:** _(link)_ · **Live demo (Sepolia):** dashboard `client/` (see Run), records on [eth-usdc.tide.eth](https://sepolia.app.ens.domains/eth-usdc.tide.eth), fills on [TideRouter](https://sepolia.etherscan.io/address/0xbc9545AEd6d0C4dcD7606e284b78C1ccea11390a), hook pool on [TideHook](https://sepolia.etherscan.io/address/0xeC07D678EC42312AcFb8097aaFCE4ADf438D6A88)
 
 Built at ETHGlobal Tokyo 2026 on two 2026 papers with no prior implementation: *Partially Active AMMs* (Ko, [arXiv 2602.09887](https://arxiv.org/abs/2602.09887)) and *Collateralized Liquidity Scaling* (Kim & Park, [arXiv 2605.19267](https://arxiv.org/abs/2605.19267)).
 
@@ -14,9 +14,9 @@ Built at ETHGlobal Tokyo 2026 on two 2026 papers with no prior implementation: *
 | Shared math | [`contracts/src/lib/TideMath.sol`](contracts/src/lib/TideMath.sol) | active split, N-scaled quotes, drift bound, solvency bound; checked against `research/tide_math.py` vectors |
 | 1inch Aqua program | [`contracts/src/aqua/`](contracts/src/aqua) | three SwapVM opcodes on a redeployed `AquaSwapVMRouter`, shipped through the official Aqua registry |
 | Uniswap v4 hook | [`contracts/src/v4/TideHook.sol`](contracts/src/v4/TideHook.sol) | same math via `beforeSwap` + `BeforeSwapDelta`, hook-owned ERC-6909 reserves |
-| Governed parameters | [`contracts/src/TideParams.sol`](contracts/src/TideParams.sol) | on-chain mirror of the ENS records λ, N, δ plus the fee; owner or manager only; revocable; enforces `(N − 1)·δ ≤ 2·fee` |
+| Governed parameters | [`contracts/src/TideParams.sol`](contracts/src/TideParams.sol) | on-chain mirror of the ENS records λ, N, δ plus the fee; owner-set guardrails (λ range, max step, N max, cooldown) that bind the manager; enforces `(N − 1)·δ ≤ 2·fee` |
 | ENSv2 (Sepolia) | [`client/scripts/ens-setup.ts`](client/scripts/ens-setup.ts), [`client/src/lib/ens/`](client/src/lib/ens) | `tide.eth` → user registry → `eth-usdc.tide.eth` (strategy) and `manager.tide.eth` (ENSIP-26 agent); per-key EAC role for the agent |
-| World ID for Agents | [`client/src/lib/world.ts`](client/src/lib/world.ts), [`client/src/lib/agent.ts`](client/src/lib/agent.ts) | bind owner, RFC 9470 step-up before every write, server-side validation, denied paths |
+| World ID for Agents | [`client/src/lib/world.ts`](client/src/lib/world.ts), [`client/src/lib/agent.ts`](client/src/lib/agent.ts) | bind owner (wallet-signed), RFC 9470 step-up for changes outside the guardrails, server-side validation, denied paths |
 | Dashboard + agent | [`client/`](client) | Next.js app: records, active/passive split, fills, proposals, approve/deny, agent log, frontier chart |
 | Research | [`research/`](research) | frontier solver, Monte-Carlo, test vectors, figures |
 
@@ -31,14 +31,14 @@ Every fill pays a flat fee on tokenIn, read from `TideParams` by both venues, an
 | Contract | Address |
 | --- | --- |
 | Aqua registry (official 1inch) | `0x1111113CCf1426A8E30e2bfF5E005d929bF6a90a` |
-| TideRouter (redeployed AquaSwapVMRouter + Tide opcodes) | `0xfDD5a4E385cc5082d1be12F215fa696a3c4B0957` |
-| TideParams (λ, N, δ, fee) | `0x4608489C117E0719dD5cd88B58ED172A048344FF` |
-| TideApp (program/order builder) | `0x246dbC0fd5FB6fF4De065f38Aa7B0dE1ea46705C` |
-| TideHook (Uniswap v4, PoolManager `0xE03A…3543`, pool `0x81e837cc…9ea4`) | `0xEcbF515eEd6006270210db1c9bfcA1dB3AD1AA88` |
+| TideRouter (redeployed AquaSwapVMRouter + Tide opcodes) | `0xbc9545AEd6d0C4dcD7606e284b78C1ccea11390a` |
+| TideParams (λ, N, δ, fee) | `0x2Cfc28DB47EfCE980D5908e25b80401Dae79558C` |
+| TideApp (program/order builder) | `0x332c40233af3049383E55cfC9551e0a775337BfF` |
+| TideHook (Uniswap v4, PoolManager `0xE03A…3543`, pool `0xda2258ce…d444`) | `0xeC07D678EC42312AcFb8097aaFCE4ADf438D6A88` |
 | ENS user registry for `tide.eth` | `0xC02D402724B76c1CBa8d35988CAA8F9e1E31b97C` |
 | Strategy resolver (`eth-usdc.tide.eth`) | `0x42a719F03f4921783367A1017F389Ee310c16B2E` |
 | Agent resolver (`manager.tide.eth`) | `0x3553ff32412FC570182b6e37935A11F8555Bd5F5` |
-| Strategy hash (Aqua order hash) | `0xd09a0db274ee2227fbd57cef397a5d0649aaa70a57b8602a06fe6ecdefa4e4f8` |
+| Strategy hash (Aqua order hash) | `0x3a21759a684cbed9da8b05539f586e9e037724acd011d2e07e50e2f79ba0e590` |
 
 Owner `0xF23be0fbE9DEf26570278F91f3F150Af015a3ECf`, manager agent `0xedbA94c7292Aef84AC220E14ffF642aC4D749647`. All transaction hashes are in `contracts/broadcast/` and `client/data/ens.json`.
 
@@ -80,9 +80,10 @@ pnpm dev                                        # https://localhost:3000; the Wo
 #           Aqua.ship, optional one-multicall delegation to manager.tide.eth. Four signatures.
 pnpm tsx --env-file=../.env scripts/e2e-new-strategy.ts  # same flow with a throwaway wallet, end to end
 pnpm agent propose --sigma 0.8 --strategy eth-usdc.tide.eth   # agent proposes λ*, prints the approval URL
-# Autopilot: the server measures realised ETH volatility (Coinbase hourly candles) every AGENT_TICK_MINUTES and
-# proposes on its own when λ* moves ≥ AGENT_MIN_MOVE_BPS, only for strategies with a delegated manager and a
-# bound owner. POST /api/agent/tick runs a check now; GET /api/agent/status shows σ, λ* and the next check.
+# Autopilot: the server measures realised ETH volatility (Coinbase hourly candles) every AGENT_TICK_MINUTES.
+# When λ* moves ≥ AGENT_MIN_MOVE_BPS it applies the change itself if it is inside the owner's on-chain
+# guardrails, otherwise it opens a proposal that needs the owner's fresh World ID sign-in and wallet.
+# POST /api/agent/tick runs a check now; GET /api/agent/status shows σ, λ* and the next check.
 pnpm tsx --env-file=../.env scripts/test-agent-flow.ts   # denied / replayed / expired / forged paths
 pnpm tsx --env-file=../.env scripts/ens-agent-check.ts   # agent can set lambda, cannot touch anything else
 pnpm tsx --env-file=../.env scripts/ens-revoke.ts        # one EAC call per record + drop on-chain manager
@@ -96,7 +97,7 @@ pnpm tsx --env-file=../.env scripts/ens-revoke.ts        # one EAC call per reco
 - Three custom opcodes in reserved third-party slots of `OpcodeList.sol`, one per family bank, no 1inch opcode overwritten: `ACTIVE_SPLIT` 0x92, `VIRTUAL_XYC` 0x52, `BUFFER_GUARD` 0x22 (`contracts/src/aqua/instructions/TideProgram.sol:24-26`). Dispatch extends `AquaOpcodes` (`contracts/src/aqua/TideOpcodes.sol:16`).
 - Instruction order is security-critical and enforced on-chain: every Tide opcode scans the program and reverts unless the order is `ACTIVE_SPLIT → VIRTUAL_XYC → BUFFER_GUARD`, each exactly once (`TideProgram.sol:32`). Tests: reordered, missing and duplicated programs revert (`contracts/test/aqua/TideAqua.t.sol`, `test_ReorderedProgram_Reverts` and neighbours).
 - Lazy re-split, fee on tokenIn and two swaps in one block: `ActiveSplit.sol:59`, test `test_TwoSwapsInOneBlock_ThenLazyResplitNextBlock`.
-- Onchain token transfers: Sepolia fill `0xcaea1c64…457773` (0.02 WETH → 55.40 USDC through Aqua `pull`/`push`, 0.3 % fee kept by the maker), plus the mainnet-fork demo above with real WETH/USDC.
+- Onchain token transfers: Sepolia fill `0x40874b1a…a73b95` (0.02 WETH → 55.40 USDC through Aqua `pull`/`push`, 0.3 % fee kept by the maker), plus the mainnet-fork demo above with real WETH/USDC.
 - Program layout: `TideApp.program()` (`contracts/src/aqua/TideApp.sol:43`). The fee is not an instruction argument: `ACTIVE_SPLIT` reads it from `TideParams`, so a fill always pays the fee the parameter box was checked against.
 - Fee-rebate bound and the round-trip test: `contracts/src/lib/TideMath.sol:115`, `contracts/src/TideParams.sol:43,67`, `contracts/test/aqua/TideAqua.t.sol:291,318`.
 
@@ -105,7 +106,7 @@ pnpm tsx --env-file=../.env scripts/ens-revoke.ts        # one EAC call per reco
 - Hook: `contracts/src/v4/TideHook.sol`; pricing in `_getUnspecifiedAmount` (line 109) and `_compute` (line 151), fee reported through `_getSwapFeeAmount` (line 146); JIT guard in `addLiquidity`/`removeLiquidity` (lines 205, 211). Permissions: `beforeInitialize`, `beforeSwap` + `beforeSwapReturnDelta`, `beforeAddLiquidity`, `beforeRemoveLiquidity`.
 - Cross-venue parity test: `contracts/test/CrossVenue.t.sol` (same trade sequence, identical amounts on Aqua and v4).
 - [FEEDBACK.md](FEEDBACK.md) at the repo root; Developer Feedback Form submitted with its link.
-- Sepolia: pool `0x81e837cc…9ea4`, swap `0x8a060d09…017497` (0.01 WETH → 27.198 USDC, quote == fill, fee included).
+- Sepolia: pool `0xda2258ce…d444`, swap `0x0bceb28e…4593fb` (0.01 WETH → 27.198 USDC, quote == fill, fee included).
 
 ### ENSv2 (Sepolia)
 
@@ -116,9 +117,10 @@ pnpm tsx --env-file=../.env scripts/ens-revoke.ts        # one EAC call per reco
 
 ### World ID for Agents
 
+- Where the human sits: the manager runs autopilot inside guardrails the owner set on-chain (`TideParams.setBounds`: λ range, largest move per change, N max, cooldown; defaults 10 to 90 %, 25 points, 8, one hour). The contract refuses a manager write outside them. Only a change outside the guardrails needs the owner: a fresh World ID sign-in, after which the agent writes the ENS records and the owner's wallet applies on-chain (`Apply on-chain` on the dashboard, verified by `/api/agent/applied`).
 - Official dev environment (`https://sandbox.auth.world.org`), discovery read at runtime. One app client, any number of owners: each strategy owner binds their own World ID after proving the wallet with a signed message (`client/src/app/api/world/bind/route.ts`). Bind → request → completion → validated result → protected action: `client/src/lib/world.ts` (`beginAuth` line 78 sets `prompt=login`, `max_age=0`; `completeAuth` line 109 verifies signature, `iss`, `aud`, `nonce`, `iat`, `auth_time`) and `client/src/lib/agent.ts` (`handleCallback` line 98, pairwise-subject match line 146).
 - Denied / expired / cancelled / replayed / forged paths leave the records unchanged: `client/scripts/test-agent-flow.ts`.
-- Live run (Sepolia): client `Tide manager` registered through the World ID MCP; proposal `3509d7d32778` approved with a fresh proof, then ENS `setText` `0xfec2442d…bffdcb` and `TideParams.set` `0xe032df2b…3069a5` (λ 5000 → 3300, δ 20 → 15 bps).
+- Live on Sepolia, both paths: inside guardrails, proposal `c837027773d9` (λ 5000 → 7400, δ 20 → 8) applied by the manager alone, ENS `0x560bb50c…d08e`, `TideParams.set` `0x02d4d5fb…eb66`; outside, proposal `29fb16e6a59a` (λ 7400 → 2000, N 4 → 3, δ 8 → 23) approved with a fresh World ID proof, ENS `0xf45c7f8a…bd22` by the agent, applied by the owner's wallet `0x82307ff9…496d` and verified by `/api/agent/applied`.
 - Client secret only in the server module; never in the repo (`.env.example`).
 - Debrief: [docs/world-debrief.md](docs/world-debrief.md).
 

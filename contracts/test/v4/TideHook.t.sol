@@ -195,8 +195,7 @@ contract TideHookTest is Test {
 
     function test_Guard_TopUp_ResplitsFromPassiveBuffer() public {
         params.setFee(PoolId.unwrap(poolId), 6750); // owner = this test
-        vm.prank(manager_);
-        params.set(PoolId.unwrap(poolId), 2000, 4, 4500);
+        params.set(PoolId.unwrap(poolId), 2000, 4, 4500); // owner: a 30-point jump the manager's guardrails refuse
         _swapExactIn(true, 0.01e18);
         TideHook.BlockState memory s = hook.state();
         uint256 q = 84e18;

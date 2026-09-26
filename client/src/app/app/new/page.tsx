@@ -197,7 +197,7 @@ export default function NewStrategy() {
                 <input type="checkbox" checked={enableAgent} onChange={(e) => setEnableAgent(e.target.checked)} className="mt-1 accent-[var(--accent)]" />
                 <span>
                   <span className="text-fg">Let manager.tide.eth propose parameter changes</span>
-                  <span className="block text-xs text-fg-3">Grants the agent setText on exactly λ, N and δ. It still needs your fresh World ID approval for every write. Revocable in one call.</span>
+                  <span className="block text-xs text-fg-3">Grants the agent setText on exactly λ, N and δ. Inside guardrails you can edit later (10% to 90% visibility, at most 25 points per change, one change an hour, N up to 8) it applies changes itself; beyond them it needs your fresh World ID sign-in and your wallet. Revocable in one call.</span>
                 </span>
               </label>
 

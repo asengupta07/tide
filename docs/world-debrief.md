@@ -4,10 +4,14 @@ Project: Tide, ETHGlobal Tokyo 2026. Written as the integration was built (Sep 2
 
 ## What the protected action is
 
-The manager agent (`manager.tide.eth`, wallet `0xedbA…9647`) proposes new values of the three
-strategy parameters (`lambda`, `N`, `delta`) for `eth-usdc.tide.eth`. Writing them is the protected
-action: it changes how much of the owner's inventory the AMM exposes each block. The write is an ENSv2
-`setText` through an EAC role scoped to those three keys, followed by `TideParams.set` on Sepolia.
+The manager agent (`manager.tide.eth`, wallet `0xedbA…9647`) changes the three strategy parameters
+(`lambda`, `N`, `delta`) of a strategy such as `eth-usdc.tide.eth`: an ENSv2 `setText` through an EAC role
+scoped to those keys, then `TideParams.set` on Sepolia. Inside guardrails the owner set on-chain (λ range,
+largest move per change, N max, cooldown) the agent does this alone: the rule is deterministic and the
+contract bounds the key. The protected action is a change **outside** those guardrails, which moves the
+owner's exposure beyond what they pre-authorised. There the owner must authenticate fresh with World ID;
+the agent then writes the records and the owner's wallet applies on-chain, since the contract refuses the
+manager. Authority sits where policy is chosen, not on every tick.
 
 ## Flow (client/src/lib/world.ts, client/src/lib/agent.ts)
 
@@ -53,6 +57,12 @@ sector, so a public deployment on another hostname is a second client and a re-b
   From "client registered" to "first write" about 25 minutes, most of it the HTTPS callback detour below.
 
 ## Live run notes
+
+- Guardrails version (later on Sep 26): inside the owner's bounds the agent applied λ 5000 → 7400, δ 20 → 8
+  with no human (ENS `0x560b…d08e`, `TideParams.set` `0x02d4…eb66`). Outside them, λ 7400 → 2000 went
+  through the step-up (`prompt=login&max_age=0`), the agent wrote the records (`0xf45c…bd22`) and the
+  owner's wallet applied on-chain (`0x8230…496d`); `/api/agent/applied` checked the chain before marking
+  it. The human step now sits only where policy is exceeded.
 
 - Client registration through the World ID MCP worked on the first HTTPS attempt: the agent stages the
   request, the human approves it in the portal, the public client config comes back through

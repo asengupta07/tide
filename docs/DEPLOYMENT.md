@@ -72,6 +72,9 @@ What a redeploy changes:
   id and seeds 0.2 WETH + 600 USDC.
 - **Parameter box.** `init` reverts unless `(N − 1)·δ ≤ 2·fee`. Scripts use λ 5000, N 4, δ 20, fee 30.
   A δ of 45 % (buffer top-up demo) needs a 67.5 % fee; see `MATHEMATICS_MODEL.md` § 8.
+- **Guardrails.** `init` sets defaults for the manager (λ 1000 to 9000, step ≤ 2500 bps, N ≤ 8, cooldown
+  3600 s). Owner changes them with `setBounds` (dashboard card or `cast`). Manager writes outside them
+  revert with `OutsideBounds`; `withinBounds(key, λ, N)` is the same check as a view.
 
 ### 3.2 After a redeploy, in the client
 
@@ -143,10 +146,15 @@ Current sandbox client: `Tide manager`, id `1f15d369-99c8-475a-94f8-c387dcb075aa
   `TS=$(date +%s000); SIG=$(cast wallet sign --private-key $OWNER_PRIVATE_KEY "Tide: bind World ID to $OWNER_ADDRESS at $TS")`
   then open `https://localhost:3000/api/world/bind?owner=$OWNER_ADDRESS&ts=$TS&sig=$SIG`. Unsigned or
   stale requests get 401. Every strategy owner binds their own World ID; one app client serves all of them.
-- Step-up: `POST /api/agent/propose {"strategy":"eth-usdc.tide.eth","sigma":0.8}` → open `approvalUrl`
-  → sandbox demands fresh proof (`prompt=login&max_age=0`) → `/approved?purpose=stepup` shows the ENS
-  and `TideParams.set` tx hashes. The dashboard's "Approve with World ID" button does the same but only
-  renders for the connected owner wallet.
+- Inside guardrails: `POST /api/agent/propose {"strategy":"eth-usdc.tide.eth","sigma":0.42}` applies at
+  once (ENS + `TideParams.set` by the agent), proposal status `applied`, `auto: true`. A second call within
+  the cooldown escalates instead.
+- Outside guardrails (step-up): same POST with a σ whose λ* is far away → `approvalUrl` → sandbox demands
+  fresh proof (`prompt=login&max_age=0`) → `/approved?purpose=stepup`; the agent writes ENS, status
+  `approved`; the owner presses "Apply on-chain" (wallet `set`), `/api/agent/applied` verifies on-chain and
+  marks it `applied`. From a shell the owner step is
+  `cast send $TIDE_PARAMS "set(bytes32,uint32,uint32,uint32)" $HASH λ N δ --private-key $OWNER_PRIVATE_KEY`
+  followed by `POST /api/agent/applied {"id","tx"}`.
 - Denied / expired / replayed / forged: `pnpm tsx scripts/test-agent-flow.ts` (no credentials needed).
 
 ## 6. Public deployment checklist

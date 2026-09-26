@@ -5,6 +5,22 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
 
 ## Sep 26, 2026 (evening)
 
+**Guardrails: autopilot inside bounds, human only outside**
+- `TideParams.Bounds` per strategy: λ range, largest λ move per write, N max, cooldown. Defaults at
+  `init` (1000 to 9000, 2500, 8, 3600 s); owner changes with `setBounds`; `withinBounds` view. A manager
+  write outside reverts with `OutsideBounds`; owner writes are unbounded. 47 tests.
+- Agent: inside bounds it applies λ/δ itself (ENS + `TideParams.set`), proposal `applied` with
+  `auto: true`. Outside, the World step-up as before; on approval it writes ENS, status `approved`, and
+  the owner applies on-chain from the dashboard (`/api/agent/applied` verifies before marking).
+- Dashboard: guardrails card with owner edit, "Apply on-chain" button, copy updated. Landing and wizard
+  copy: the human is needed where policy changes, not per tick.
+- Redeployed: params `0x2Cfc…558C`, router `0xbc95…390a`, app `0x332c…7BfF`, hook `0xeC07…6A88`,
+  pool `0xda22…d444`, strategy hash `0x3a21…e590`; fill `0x4087…3b95`, hook swap `0x0bce…93fb`.
+  Previous strategy docked (`0xda84…8694`).
+- Live on Sepolia, both paths: inside guardrails, λ 5000 → 7400, δ 20 → 8 applied by the manager alone
+  (ENS `0x560b…d08e`, params `0x02d4…eb66`); outside, λ 7400 → 2000, N 4 → 3, δ 8 → 23 approved with a
+  fresh World ID proof, ENS `0xf45c…bd22` by the agent, applied by the owner's wallet `0x8230…496d`.
+
 **Whitepaper v0.2**
 - Rewritten shorter (six pages): abstract, model, mechanism, three propositions (steady-state LVR,
   virtual depth and solvency, the fee-rebate bound), frontier, simulation, implementation, governance,

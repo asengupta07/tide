@@ -288,6 +288,61 @@ contract TideAquaTest is TideAquaBase {
         params.set(orderHash, 1000, 4, 20);
     }
 
+    function test_Bounds_ManagerInsideOwnerOutside() public {
+        (, bytes32 orderHash) = _ship();
+        // defaults: lambda in [1000, 9000], N <= 8, step <= 2500, cooldown 3600 s
+        TideParams.Bounds memory b = params.bounds(orderHash);
+        assertEq(b.lambdaMin, 1000);
+        assertEq(b.lambdaMax, 9000);
+        assertEq(b.cooldown, 3600);
+
+        (bool ok, string memory why) = params.withinBounds(orderHash, 3500, 4);
+        assertTrue(ok, why);
+        vm.prank(manager);
+        params.set(orderHash, 3500, 4, 20); // 5000 -> 3500, step 1500: inside
+
+        // cooldown: a second manager write in the same hour is refused
+        (ok, why) = params.withinBounds(orderHash, 3000, 4);
+        assertFalse(ok);
+        assertEq(why, "cooldown");
+        vm.prank(manager);
+        vm.expectRevert(
+            abi.encodeWithSelector(TideParams.OutsideBounds.selector, orderHash, "cooldown", block.timestamp)
+        );
+        params.set(orderHash, 3000, 4, 20);
+        vm.warp(block.timestamp + 3600);
+
+        // step too large, then below the floor, then N too deep: all refused for the manager
+        vm.prank(manager);
+        vm.expectRevert(abi.encodeWithSelector(TideParams.OutsideBounds.selector, orderHash, "step", 3000));
+        params.set(orderHash, 6500, 4, 20);
+        vm.prank(manager);
+        vm.expectRevert(abi.encodeWithSelector(TideParams.OutsideBounds.selector, orderHash, "lambda", 900));
+        params.set(orderHash, 900, 4, 20);
+        vm.prank(manager);
+        vm.expectRevert(abi.encodeWithSelector(TideParams.OutsideBounds.selector, orderHash, "n", 16));
+        params.set(orderHash, 3000, 16, 4); // (16 - 1) * 4 = 60 <= 2 * 30 passes the fee bound, fails nMax
+
+        // the owner is never bounded
+        vm.prank(maker);
+        params.set(orderHash, 900, 16, 4);
+        (uint32 l, uint32 n,,) = params.get(orderHash);
+        assertEq(l, 900);
+        assertEq(n, 16);
+
+        // only the owner moves the bounds; invalid bounds are refused
+        vm.prank(manager);
+        vm.expectRevert(abi.encodeWithSelector(TideParams.NotOwner.selector, orderHash, manager));
+        params.setBounds(orderHash, TideParams.Bounds(500, 9500, 16, 5000, 0));
+        vm.prank(maker);
+        vm.expectRevert(abi.encodeWithSelector(TideParams.InvalidBounds.selector, "lambda", 12_000));
+        params.setBounds(orderHash, TideParams.Bounds(500, 12_000, 16, 5000, 0));
+        vm.prank(maker);
+        params.setBounds(orderHash, TideParams.Bounds(500, 9500, 16, 5000, 0));
+        vm.prank(manager);
+        params.set(orderHash, 5000, 16, 4); // 900 -> 5000 within the new step and range, no cooldown
+    }
+
     function test_Params_FeeBound_RejectsDeltaTheFeeCannotBack() public {
         (, bytes32 orderHash) = _ship();
         // (N - 1) * delta = 3 * 21 = 63 > 2 * 30

@@ -680,6 +680,14 @@ an easier starting value to defend when lambda = 0.5.
 Delta is boxed on both sides (Section 8): at least about three one-block price moves, at most
 `2 * fee / (N - 1)`. The lower edge depends on volatility, so the manager re-proposes it with lambda.
 
+### Guardrails: what the manager may do alone
+
+The rule for lambda and delta is deterministic, so the manager applies it on its own as long as the
+result stays inside bounds Alice set on-chain: a lambda range, a largest lambda move per change, a
+largest N, and a cooldown between changes (defaults 10% to 90%, 25 points, N <= 8, one hour). The
+contract refuses a manager write outside them. Only a change beyond the guardrails needs Alice: a fresh
+World ID sign-in, then her wallet. Authority sits where policy is chosen, not on every tick.
+
 ### Fee: what backs the deep curve
 
 The flat fee on tokenIn is set by the owner at `init`, changeable by the owner only, and read by both

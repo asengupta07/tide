@@ -12,7 +12,7 @@ import { publicClient, walletClient, readText, setTextCalldata, resolverAbi, can
 import { GOVERNED_KEYS } from "./ens/config";
 import { beginAuth, completeAuth, WorldAuthError, type AuthRequest } from "./world";
 import { load, save, update, log, expireStale, type Proposal, type State } from "./store";
-import { applyParams, readParams, maxDeltaBps } from "./tide";
+import { applyParams, readParams, readBounds, withinBounds, maxDeltaBps } from "./tide";
 import { getStrategy, listStrategies, type Strategy } from "./registry";
 
 type Frontier = { kappa: number; fee: number; curves: { sigma: number; lambda_star: number; lambda_star_bps: number }[] };
@@ -89,16 +89,50 @@ export async function propose(strategyName: string, sigma: number, overrides?: P
   const to = { lambda, N, delta };
   const from = { lambda: rec.lambda, N: rec.N, delta: rec.delta };
   const direction = to.lambda < from.lambda ? "down" : to.lambda > from.lambda ? "up" : "unchanged";
-  const reason =
+  let reason =
     `realised volatility ${(sigma * 100).toFixed(0)}% -> frontier lambda* = ${(lambda / 100).toFixed(0)}%; ` +
     (direction === "down" ? "expose less inventory per block to cut LVR" : direction === "up" ? "expose more inventory per block; fee income outweighs LVR at this volatility" : "no change needed") +
     (to.delta !== from.delta || to.N !== from.N
       ? `; delta ${from.delta} -> ${to.delta} bps (three one-block moves of ${blockMoveBps(sigma).toFixed(1)} bps, capped at ${maxDeltaBps(N, fee)} bps by the ${fee} bp fee at ${N}x)`
       : "");
 
+  // Inside the owner's guardrails the manager applies on its own. Outside them the owner must say yes,
+  // fresh, as a human (World ID), and then apply with the wallet, since the contract refuses the manager.
+  const wb = await withinBounds(publicClient(), strat.orderHash, to.lambda, to.N);
+  if (wb.ok) {
+    const autoId = randomBytes(6).toString("hex");
+    const auto: Proposal = { id: autoId, createdAt: Date.now(), strategy: strat.name, owner: strat.owner, from, to, reason: `${reason}; inside the owner's guardrails`, sigma, status: "applied", auto: true };
+    update((s) => {
+      expireStale(s);
+      s.proposals.unshift(auto);
+      log(s, "info", `proposal ${autoId} on ${strat.name}: lambda ${from.lambda} -> ${to.lambda}, delta ${from.delta} -> ${to.delta}; inside guardrails, applying`, autoId, strat.name);
+    });
+    try {
+      const txs = await writeApproved(auto);
+      update((s) => {
+        const p = s.proposals.find((x) => x.id === autoId)!;
+        p.txs = txs;
+        p.decidedAt = Date.now();
+        p.status = txs.params ? "applied" : "failed";
+        p.blockedReason = txs.params ? undefined : txs.outside;
+        log(s, txs.params ? "info" : "error", txs.params ? `proposal ${autoId} applied by the manager: ENS ${txs.ens}, TideParams ${txs.params}` : `proposal ${autoId}: guardrails moved under us (${txs.outside})`, autoId, strat.name);
+      });
+      return { ...auto, txs };
+    } catch (e) {
+      update((s) => {
+        const p = s.proposals.find((x) => x.id === autoId)!;
+        p.status = "failed";
+        p.blockedReason = (e as Error).message;
+        log(s, "error", `proposal ${autoId} manager write failed: ${(e as Error).message}`, autoId, strat.name);
+      });
+      throw e;
+    }
+  }
+  reason += `; outside the owner's guardrails (${wb.why}), needs the owner`;
+
   const id = randomBytes(6).toString("hex");
   const { request, url } = await beginAuth("stepup", { proposalId: id, owner: strat.owner });
-  const proposal: Proposal = { id, createdAt: Date.now(), strategy: strat.name, owner: strat.owner, from, to, reason, sigma, status: "pending", approvalUrl: url, authState: request.state };
+  const proposal: Proposal = { id, createdAt: Date.now(), strategy: strat.name, owner: strat.owner, from, to, reason, sigma, status: "pending", approvalUrl: url, authState: request.state, outside: wb.why };
   update((s) => {
     expireStale(s);
     s.authRequests[request.state] = request;
@@ -170,12 +204,18 @@ export async function handleCallback(query: URLSearchParams): Promise<{ purpose:
     const txs = await writeApproved(proposal);
     update((st) => {
       const p = st.proposals.find((x) => x.id === proposal.id)!;
-      p.status = "applied";
-      p.txs = txs;
-      log(st, "info", `proposal ${p.id} applied: ENS ${txs.ens}, TideParams ${txs.params}`, p.id, p.strategy);
+      p.txs = { ens: txs.ens, params: txs.params };
+      if (txs.params) {
+        p.status = "applied";
+        log(st, "info", `proposal ${p.id} applied: ENS ${txs.ens}, TideParams ${txs.params}`, p.id, p.strategy);
+      } else {
+        p.status = "approved";
+        p.outside = txs.outside;
+        log(st, "info", `proposal ${p.id}: records written (ENS ${txs.ens}); ${txs.outside}, so the owner's wallet applies it on-chain`, p.id, p.strategy);
+      }
     });
-    proposal.status = "applied";
-    proposal.txs = txs;
+    proposal.status = txs.params ? "applied" : "approved";
+    proposal.txs = { ens: txs.ens, params: txs.params };
   } catch (e) {
     update((st) => {
       const p = st.proposals.find((x) => x.id === proposal.id)!;
@@ -200,9 +240,32 @@ async function writeApproved(p: Proposal) {
   const calls = GOVERNED_KEYS.map((k) => setTextCalldata(p.strategy, k, values[k]));
   const ens = await wc.writeContract({ address: strat.resolver, abi: resolverAbi, functionName: "multicall", args: [calls], chain: wc.chain, account: wc.account });
   await pc.waitForTransactionReceipt({ hash: ens });
+  // The contract refuses a manager write outside the owner's guardrails; check first, no gas wasted.
+  const wb = await withinBounds(pc, strat.orderHash, p.to.lambda, p.to.N);
+  if (!wb.ok) return { ens, outside: wb.why } as { ens: Hex; params?: Hex; outside?: string };
   const params = await applyParams(agentKey, strat.orderHash, p.to.lambda, p.to.N, p.to.delta);
   await pc.waitForTransactionReceipt({ hash: params });
-  return { ens, params };
+  return { ens, params } as { ens: Hex; params?: Hex; outside?: string };
+}
+
+/** After the owner applied an out-of-bounds change with their own wallet: confirm on-chain, then mark it. */
+export async function markApplied(id: string, tx: Hex) {
+  const pc = publicClient();
+  const s = load();
+  const p = s.proposals.find((x) => x.id === id);
+  if (!p) throw new Error("unknown proposal");
+  const strat = getStrategy(p.strategy);
+  if (!strat) throw new Error("strategy vanished");
+  await pc.waitForTransactionReceipt({ hash: tx });
+  const on = await readParams(pc, strat.orderHash);
+  if (on.lambda !== p.to.lambda || on.N !== p.to.N || on.delta !== p.to.delta) throw new Error("on-chain values do not match the proposal");
+  update((st) => {
+    const q = st.proposals.find((x) => x.id === id)!;
+    q.status = "applied";
+    q.txs = { ...(q.txs ?? {}), params: tx };
+    q.decidedAt = Date.now();
+    log(st, "info", `proposal ${id} applied on-chain by the owner: ${tx}`, id, q.strategy);
+  });
 }
 
 /** Everything the dashboard needs for one strategy. */
@@ -215,16 +278,18 @@ export async function snapshot(strategyName?: string) {
     return st;
   });
   const pc = publicClient();
-  const [records, onchain, enabled] = await Promise.all([
+  const [records, onchain, enabled, bounds] = await Promise.all([
     currentRecords(strat),
     readParams(pc, strat.orderHash).catch(() => null),
     agentEnabled(strat),
+    readBounds(pc, strat.orderHash).catch(() => null),
   ]);
   const bound = s.bound[strat.owner.toLowerCase()];
   return {
     strategy: strat,
     records,
     onchain,
+    bounds,
     agentEnabled: enabled,
     bound: bound ? { subject: bound.subject.slice(0, 12) + "…", issuer: bound.issuer, boundAt: bound.boundAt } : null,
     proposals: s.proposals.filter((p) => p.strategy === strat.name),

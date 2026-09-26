@@ -111,7 +111,7 @@ export default function Landing() {
                   {[
                     [TextAa, "eth-usdc.tide.eth", "λ, N and δ are text records on an ENSv2 name. Anyone can read them. The contracts read them."],
                     [Key, "manager.tide.eth", "The manager has its own name and an access-control role for exactly three keys. It cannot touch anything else."],
-                    [Fingerprint, "World ID", "Every write starts with a fresh World ID sign-in by the owner. Denied, expired or replayed means nothing is written."],
+                    [Fingerprint, "World ID", "Inside the owner's guardrails the manager acts alone. Outside them nothing moves without a fresh World ID sign-in by the owner, then the owner's wallet."],
                     [Prohibit, "One call to revoke", "The owner removes the agent's role per record and drops it as manager on-chain. Inventory never moved."],
                   ].map(([Icon, t, b]) => {
                     const I = Icon as typeof TextAa;

@@ -23,6 +23,8 @@ export type Proposal = {
   decidedAt?: number;
   blockedReason?: string;
   txs?: { ens?: string; params?: string };
+  auto?: boolean; // applied by the manager on its own, inside the owner's guardrails
+  outside?: string; // why the manager could not apply it (guardrail that failed)
 };
 
 export type LogEntry = { at: number; level: "info" | "warn" | "error"; msg: string; proposalId?: string; strategy?: string };

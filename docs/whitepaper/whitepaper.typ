@@ -129,7 +129,7 @@ One Solidity library, `TideMath`, holds the split, the $N$-scaled quotes, the dr
 
 *Uniswap v4.* The same steps run inside `beforeSwap` of a `BaseCustomCurve` hook that returns a `BeforeSwapDelta` for the whole amount, holds its reserves as ERC-6909 claims, mints pro-rata shares and refuses liquidity changes in any block that already saw a swap. A cross-venue test runs one trade sequence on both venues and asserts identical amounts.
 
-*Parameters.* `TideParams` stores $lambda$, $N$, $delta$ and $f$ per strategy, keyed by the Aqua order hash or the v4 pool id. The owner or a manager may set the first three; only the owner may set the fee; every write is checked against @eq:feebound.
+*Parameters.* `TideParams` stores $lambda$, $N$, $delta$ and $f$ per strategy, keyed by the Aqua order hash or the v4 pool id, together with owner-set guardrails for the manager: a $lambda$ range, the largest $lambda$ move per write, the largest $N$ and a cooldown between writes. The owner's writes are unbounded; a manager write outside the guardrails reverts; every write is checked against @eq:feebound.
 
 #figure(
   table(
@@ -145,15 +145,15 @@ One Solidity library, `TideMath`, holds the split, the $N$-scaled quotes, the dr
   caption: [Gas measured in Foundry. The overhead is three parameter reads, one balance read and the program scan; caching parameters per block would roughly halve it.],
 )
 
-The suite has 46 tests: vector parity, every opcode, two swaps in one block, the lazy re-split, re-pricing of an informed-sized follow-on trade, exact-output beyond inventory, buffer top-up, fee netting, quote-equals-fill in both directions and modes, program-order reverts, governance, the round trip of Proposition 3, hook liquidity guards and cross-venue parity.
+The suite has 47 tests: vector parity, every opcode, two swaps in one block, the lazy re-split, re-pricing of an informed-sized follow-on trade, exact-output beyond inventory, buffer top-up, fee netting, quote-equals-fill in both directions and modes, program-order reverts, governance and guardrails, the round trip of Proposition 3, hook liquidity guards and cross-venue parity.
 
-The reference deployment is on Sepolia (router `0xfDD5…0957`, parameters `0x4608…44FF`, hook `0xEcbF…AA88`) with a WETH/USDC strategy at $lambda = 0.5$, $N = 4$, $delta = 20$ bp, $f = 30$ bp, one filled Aqua order and one hook swap in which the quote equalled the fill. A fork script reproduces the flow against the mainnet Aqua registry with real WETH and USDC.
+The reference deployment is on Sepolia (router `0xbc95…390a`, parameters `0x2Cfc…558C`, hook `0xeC07…6A88`) with a WETH/USDC strategy at $lambda = 0.5$, $N = 4$, $delta = 20$ bp, $f = 30$ bp, one filled Aqua order and one hook swap in which the quote equalled the fill. A fork script reproduces the flow against the mainnet Aqua registry with real WETH and USDC.
 
 = Governance
 
-The parameters of a strategy are text records on an ENS name the maker owns (`eth-usdc.tide.eth` for the reference strategy), so anyone can read them and the chain of custody is public. A manager agent with its own name, `manager.tide.eth`, holds a resolver role scoped to exactly the `lambda`, `N` and `delta` records and is the `manager` of the on-chain parameters; it cannot touch the fee, the strategy hash, addresses or the name itself, and the owner revokes it with one call per record.
+The parameters of a strategy are text records on an ENS name the maker owns (`eth-usdc.tide.eth` for the reference strategy), so anyone can read them and the chain of custody is public. A manager agent with its own name, `manager.tide.eth`, holds a resolver role scoped to exactly the `lambda`, `N` and `delta` records and is the `manager` of the on-chain parameters; it cannot touch the fee, the guardrails, the strategy hash, addresses or the name itself, and the owner revokes it with one call per record.
 
-The agent proposes $lambda^*$ from the frontier and $delta$ from @eq:box at the realised volatility. Nothing is written on a proposal alone. The owner must complete a fresh World ID authentication (`prompt=login`, `max_age=0`); the resulting ID token is validated server-side and its pairwise subject must match the one the owner bound to the wallet, which itself required a signed message from that wallet. Only then does the agent write the records and mirror them on-chain. Denied, expired, replayed and forged responses leave everything unchanged, and a harness asserts each path.
+The agent computes $lambda^*$ from the frontier and $delta$ from @eq:box at the realised volatility. Inside the owner's guardrails it writes the records and the on-chain parameters on its own: the rule is deterministic and the contract bounds what the key can do, so no human is needed per change. A change outside the guardrails is where authority matters, and there the owner must complete a fresh World ID authentication (`prompt=login`, `max_age=0`); the ID token is validated server-side and its pairwise subject must match the one the owner bound to the wallet, which itself required a signed message from that wallet. The agent then writes the records, and the owner's wallet applies the change on-chain, since the contract refuses the manager. Denied, expired, replayed and forged responses leave everything unchanged, and a harness asserts each path. Both paths have run on the reference deployment: a change inside the guardrails applied by the agent alone, and one outside them approved with a fresh proof and applied by the owner.
 
 = Limitations
 

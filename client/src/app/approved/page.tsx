@@ -27,11 +27,18 @@ export default async function Approved({ searchParams }: { searchParams: Promise
               λ {p.from.lambda} → {p.to.lambda} · N {p.from.N} → {p.to.N} · δ {p.from.delta} → {p.to.delta}
             </div>
             {p.blockedReason && <div className="text-bad">{p.blockedReason}</div>}
+            {p.status === "approved" && !p.txs?.params && (
+              <div className="text-fg-2">Records written. This change is outside your guardrails{p.outside ? ` (${p.outside})` : ""}, so the manager cannot apply it: press "Apply on-chain" on the dashboard with your wallet.</div>
+            )}
             {p.txs && (
               <div className="pt-2 text-xs">
-                <a className="text-accent" href={`https://sepolia.etherscan.io/tx/${p.txs.ens}`}>ENS setText {p.txs.ens?.slice(0, 18)}…</a>
-                <br />
-                <a className="text-accent" href={`https://sepolia.etherscan.io/tx/${p.txs.params}`}>TideParams.set {p.txs.params?.slice(0, 18)}…</a>
+                {p.txs.ens && <a className="text-accent" href={`https://sepolia.etherscan.io/tx/${p.txs.ens}`}>ENS setText {p.txs.ens.slice(0, 18)}…</a>}
+                {p.txs.params && (
+                  <>
+                    <br />
+                    <a className="text-accent" href={`https://sepolia.etherscan.io/tx/${p.txs.params}`}>TideParams.set {p.txs.params.slice(0, 18)}…</a>
+                  </>
+                )}
               </div>
             )}
           </div></Bezel>
