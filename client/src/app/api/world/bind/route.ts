@@ -4,10 +4,12 @@ import { update } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
-/** Owner signs in once so the agent knows which pairwise subject may approve its proposals. */
-export async function GET() {
+/** A strategy owner (`?owner=0x…`, the connected wallet) signs in once; the pairwise subject is bound to that wallet. */
+export async function GET(req: Request) {
   try {
-    const { request, url } = await beginAuth("bind");
+    const owner = new URL(req.url).searchParams.get("owner") ?? "";
+    if (!/^0x[0-9a-fA-F]{40}$/.test(owner)) return NextResponse.json({ error: "owner wallet required" }, { status: 400 });
+    const { request, url } = await beginAuth("bind", { owner });
     update((s) => {
       s.authRequests[request.state] = request;
     });

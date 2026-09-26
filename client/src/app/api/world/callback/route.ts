@@ -13,6 +13,8 @@ export async function GET(req: Request) {
   const dest = new URL("/approved", url.origin);
   dest.searchParams.set("purpose", result.purpose);
   if (result.proposal) dest.searchParams.set("proposal", result.proposal.id);
+  if (result.proposal) dest.searchParams.set("strategy", result.proposal.strategy);
+  if (result.owner) dest.searchParams.set("owner", result.owner);
   if (result.error) dest.searchParams.set("error", result.error);
   return NextResponse.redirect(dest);
 }

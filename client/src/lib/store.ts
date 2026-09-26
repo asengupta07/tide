@@ -1,7 +1,6 @@
 /**
- * Tiny JSON file store for the demo backend: bound owner identity, pending auth requests, proposals and
- * the agent log. Lives in client/data/state.json (git-ignored). Single-process, synchronous, good enough
- * for a hackathon backend; swap for a database if this ever leaves the demo.
+ * JSON file store for the backend: bound owner identities (per wallet), pending auth requests, proposals
+ * and the agent log. client/data/state.json, git-ignored. Single process; fine for the demo.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -13,6 +12,7 @@ export type Proposal = {
   id: string;
   createdAt: number;
   strategy: string; // ENS name
+  owner: string; // wallet that must approve
   from: { lambda: number; N: number; delta: number };
   to: { lambda: number; N: number; delta: number };
   reason: string;
@@ -25,10 +25,11 @@ export type Proposal = {
   txs?: { ens?: string; params?: string };
 };
 
-export type LogEntry = { at: number; level: "info" | "warn" | "error"; msg: string; proposalId?: string };
+export type LogEntry = { at: number; level: "info" | "warn" | "error"; msg: string; proposalId?: string; strategy?: string };
 
 export type State = {
-  bound?: VerifiedIdentity & { boundAt: number };
+  /** lowercased owner wallet -> bound World identity */
+  bound: Record<string, VerifiedIdentity & { boundAt: number }>;
   authRequests: Record<string, AuthRequest>;
   proposals: Proposal[];
   log: LogEntry[];
@@ -38,9 +39,14 @@ const FILE = path.join(process.cwd(), "data", "state.json");
 
 export function load(): State {
   try {
-    return JSON.parse(fs.readFileSync(FILE, "utf8")) as State;
+    const s = JSON.parse(fs.readFileSync(FILE, "utf8")) as Partial<State> & { bound?: unknown };
+    // migrate the single-owner shape
+    const bound = s.bound && typeof s.bound === "object" && "subject" in (s.bound as object)
+      ? { [(process.env.OWNER_ADDRESS ?? "").toLowerCase()]: s.bound as unknown as State["bound"][string] }
+      : ((s.bound as State["bound"]) ?? {});
+    return { bound, authRequests: s.authRequests ?? {}, proposals: s.proposals ?? [], log: s.log ?? [] };
   } catch {
-    return { authRequests: {}, proposals: [], log: [] };
+    return { bound: {}, authRequests: {}, proposals: [], log: [] };
   }
 }
 
@@ -56,12 +62,11 @@ export function update<T>(fn: (s: State) => T): T {
   return r;
 }
 
-export function log(state: State, level: LogEntry["level"], msg: string, proposalId?: string) {
-  state.log.unshift({ at: Date.now(), level, msg, proposalId });
-  state.log = state.log.slice(0, 200);
+export function log(state: State, level: LogEntry["level"], msg: string, proposalId?: string, strategy?: string) {
+  state.log.unshift({ at: Date.now(), level, msg, proposalId, strategy });
+  state.log = state.log.slice(0, 300);
 }
 
-/** Proposals waiting for approval longer than the timeout are expired: nothing is written. */
 export const approvalTimeoutMs = () => Number(process.env.WORLD_APPROVAL_TIMEOUT_SECONDS ?? "180") * 1000;
 
 export function expireStale(state: State) {
@@ -71,7 +76,7 @@ export function expireStale(state: State) {
       p.status = "expired";
       p.decidedAt = now;
       p.blockedReason = "approval window elapsed, no fresh authentication received";
-      log(state, "warn", `proposal ${p.id} blocked: timed out waiting for the owner`, p.id);
+      log(state, "warn", `proposal ${p.id} blocked: timed out waiting for the owner`, p.id, p.strategy);
     }
   }
 }

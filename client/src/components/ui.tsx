@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { motion, useReducedMotion, AnimatePresence } from "motion/react";
 import { ArrowUpRight, ArrowRight } from "@phosphor-icons/react";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 /** Enter-on-scroll reveal: content appears in reading order as the page unfolds. */
 export function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
@@ -44,7 +45,7 @@ const LINKS = [
   ["Mechanism", "/#mechanism"],
   ["Results", "/#results"],
   ["Governance", "/#governance"],
-  ["Live", "/#live"],
+  ["Strategies", "/app"],
   ["Whitepaper", "/WHITEPAPER.pdf"],
 ] as const;
 
@@ -69,9 +70,9 @@ export function Nav({ current }: { current?: "landing" | "app" }) {
           </nav>
           <div className="flex items-center gap-2">
             {current === "app" ? (
-              <Pill href="/" variant="ghost" size="sm">Home</Pill>
+              <ConnectButton chainStatus="none" showBalance={false} accountStatus={{ smallScreen: "avatar", largeScreen: "address" }} />
             ) : (
-              <Pill href="/app" size="sm">Open dashboard</Pill>
+              <Pill href="/app" size="sm">Open app</Pill>
             )}
             <button
               aria-label={open ? "Close menu" : "Open menu"}

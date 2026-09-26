@@ -27,6 +27,8 @@ export type Discovery = {
 export type AuthRequest = {
   purpose: "bind" | "stepup";
   proposalId?: string;
+  /** wallet being bound (bind) or whose binding must match (stepup) */
+  owner?: string;
   state: string;
   nonce: string;
   codeVerifier: string;
@@ -75,12 +77,13 @@ export async function discover(): Promise<Discovery> {
 const b64url = (b: Buffer) => b.toString("base64url");
 
 /** Build a new authorization request. Fresh authentication is demanded for step-ups. */
-export async function beginAuth(purpose: AuthRequest["purpose"], proposalId?: string) {
+export async function beginAuth(purpose: AuthRequest["purpose"], opts: { proposalId?: string; owner?: string } = {}) {
   const d = await discover();
   const { clientId, redirectUri } = worldConfig();
   const req: AuthRequest = {
     purpose,
-    proposalId,
+    proposalId: opts.proposalId,
+    owner: opts.owner?.toLowerCase(),
     state: b64url(randomBytes(24)),
     nonce: b64url(randomBytes(24)),
     codeVerifier: b64url(randomBytes(48)),
