@@ -17,7 +17,7 @@ Built at ETHGlobal Tokyo 2026 on two 2026 papers with no prior implementation: *
 | Governed parameters | [`contracts/src/TideParams.sol`](contracts/src/TideParams.sol) | on-chain mirror of the ENS records λ, N, δ plus the fee; owner-set guardrails (λ range, max step, N max, cooldown) that bind the manager; enforces `(N − 1)·δ ≤ 2·fee` |
 | ENSv2 (Sepolia) | [`client/scripts/ens-setup.ts`](client/scripts/ens-setup.ts), [`client/src/lib/ens/`](client/src/lib/ens) | `tide.eth` → user registry → `eth-usdc.tide.eth` (strategy) and `manager.tide.eth` (ENSIP-26 agent); per-key EAC role for the agent |
 | World ID for Agents | [`client/src/lib/world.ts`](client/src/lib/world.ts), [`client/src/lib/agent.ts`](client/src/lib/agent.ts) | bind owner (wallet-signed), RFC 9470 step-up for changes outside the guardrails, server-side validation, denied paths |
-| Dashboard + agent | [`client/`](client) | Next.js app: records, active/passive split, fills, proposals, approve/deny, agent log, frontier chart. Off-chain state (strategy index, proposals, OIDC requests, World bindings, log) in MongoDB; `pnpm reindex` rebuilds the strategy index from the ENS registry and records |
+| Dashboard + agent | [`client/`](client) | Next.js app: records, active/passive split, ETH/USD candles with the strategy's fills marked, a trade panel that fills the strategy from a wallet, price impact by size, proposals, approve/deny, agent log, frontier chart. Off-chain state (strategy index, proposals, OIDC requests, World bindings, log) in MongoDB; `pnpm reindex` rebuilds the strategy index from the ENS registry and records |
 | Research | [`research/`](research) | frontier solver, Monte-Carlo, test vectors, figures |
 
 ## Mechanism in one paragraph
@@ -34,6 +34,7 @@ Every fill pays a flat fee on tokenIn, read from `TideParams` by both venues, an
 | TideRouter (redeployed AquaSwapVMRouter + Tide opcodes) | `0x65a22C65E24b78ea708DD420aEc29f7dce38a31e` |
 | TideParams (λ, N, δ, fee) | `0x1685850e16Ea6A6D5f3fF6FBA824B4d834eb72aD` |
 | TideApp (program/order builder) | `0x47ba13504B02E0Bf40C3C80Bb2B1aa3dF8EDD12c` |
+| TideTaker (quote and fill a strategy from a wallet) | `0xD02Dcc05B9A4834BF5F88F6D44Aa590818791c98` |
 | TideHook (Uniswap v4, PoolManager `0xE03A…3543`, pool `0x910eb666…80ae`) | `0x1391EC676d47884a1A4837Dc6F108aBfEf6cAA88` |
 | ENS user registry for `tide.eth` | `0xC02D402724B76c1CBa8d35988CAA8F9e1E31b97C` |
 | Strategy resolver (`eth-usdc.tide.eth`) | `0x42a719F03f4921783367A1017F389Ee310c16B2E` |
@@ -99,7 +100,8 @@ pnpm tsx --env-file=../.env scripts/ens-revoke.ts        # one EAC call per reco
 - Lazy re-split, fee on tokenIn and two swaps in one block: `ActiveSplit.exec` in `contracts/src/aqua/instructions/ActiveSplit.sol`, test `test_TwoSwapsInOneBlock_ThenLazyResplitNextBlock`.
 - Onchain token transfers: Sepolia fill `0x214ce80b…cc3c0` (0.02 WETH → 55.40 USDC through Aqua `pull`/`push`, 0.3 % fee kept by the maker), plus the mainnet-fork demo above with real WETH/USDC.
 - Side by side on a mainnet fork: `contracts/script/side-by-side.sh` ships two strategies from the same wallet, a plain `FeeFlatIn XYCSwap Salt` program and the Tide program, same inventory, same router, same registry, then runs eight blocks of the same price path with an arbitrageur, a retail order and one informed-sized order against both, all real `Aqua.push`/`Aqua.pull` fills. The renderer decodes the `Swapped` events from the receipts: arbitrage extraction about 35 % lower on Tide (theory 33 %), retail 6 bp better on the deep curve, the guard re-pricing the large order, and the honest cost of a retail order that lands first in a block. `--fast` skips the animation.
-- Program layout: `TideApp.program()` (`contracts/src/aqua/TideApp.sol:43`). The fee is not an instruction argument: `ACTIVE_SPLIT` reads it from `TideParams`, so a fill always pays the fee the parameter box was checked against.
+- Program layout: `TideApp.program()` (`contracts/src/aqua/TideApp.sol`).
+- `TideTaker` (`contracts/src/aqua/TideTaker.sol`): a wallet-facing taker that builds the taker traits on-chain, pulls the input, pushes it into the maker's Aqua balance in the pre-transfer callback, and has Aqua deliver the output to the caller. The dashboard's trade panel quotes and fills through it. The fee is not an instruction argument: `ACTIVE_SPLIT` reads it from `TideParams`, so a fill always pays the fee the parameter box was checked against.
 - Fee-rebate bound and the round-trip test: `TideMath.checkParams`, `TideParams.initFor` / `set` / `setFee`, tests `test_Params_FeeBound_RejectsDeltaTheFeeCannotBack` and `test_RoundTrip_ActiveThenVirtual_LosesMoneyUnderFeeBound` in `contracts/test/aqua/TideAqua.t.sol`.
 
 ### Uniswap v4

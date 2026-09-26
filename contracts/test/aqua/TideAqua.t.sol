@@ -15,6 +15,7 @@ import { ActiveSplit } from "../../src/aqua/instructions/ActiveSplit.sol";
 import { BufferGuard } from "../../src/aqua/instructions/BufferGuard.sol";
 import { TideParams } from "../../src/TideParams.sol";
 import { TideApp } from "../../src/aqua/TideApp.sol";
+import { TideTaker } from "../../src/aqua/TideTaker.sol";
 
 contract TideAquaTest is TideAquaBase {
     // ---------------------------------------------------------------------------------------------
@@ -380,6 +381,46 @@ contract TideAquaTest is TideAquaBase {
         vm.warp(block.timestamp + 1);
         vm.prank(manager);
         params.set(orderHash, 5000, 16, 4); // 900 -> 5000 within the new step and range, no cooldown
+    }
+
+    function test_TideTaker_QuoteAndFillFromAWallet() public {
+        TideTaker tk = new TideTaker(aqua, address(router), app);
+        TideApp.Config memory cfg = _config(91);
+        vm.startPrank(maker);
+        app.init(cfg, LAMBDA, N, DELTA, FEE, manager);
+        address[] memory tokens = new address[](2);
+        tokens[0] = address(tokenA);
+        tokens[1] = address(tokenB);
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = BAL_A;
+        amounts[1] = BAL_B;
+        aqua.ship(address(router), abi.encode(app.order(cfg)), tokens, amounts);
+        vm.stopPrank();
+
+        address alice = vm.addr(0xa11ce);
+        tokenA.mint(alice, 10e18);
+        tokenB.mint(alice, 1000e18);
+        vm.startPrank(alice);
+        tokenA.approve(address(tk), type(uint256).max);
+        (, uint256 q) = tk.quote(cfg, 1e18, true, true);
+        assertEq(q, _xyc(_net(1e18), BAL_A * LAMBDA / BPS, BAL_B * LAMBDA / BPS), "quote is the first-fill price");
+        (uint256 inA, uint256 outB) = tk.swap(cfg, 1e18, true, true, q);
+        assertEq(inA, 1e18);
+        assertEq(outB, q, "fill == quote");
+        assertEq(tokenB.balanceOf(alice), q + 1000e18, "output went straight to the wallet");
+        assertEq(tokenA.balanceOf(alice), 9e18);
+        // exact-out with a refund of the unused pull
+        tokenB.approve(address(tk), type(uint256).max);
+        (uint256 needB,) = tk.quote(cfg, 0.05e18, false, false);
+        (uint256 inB, uint256 outA) = tk.swap(cfg, 0.05e18, false, false, needB + 1e18);
+        assertEq(inB, needB);
+        assertEq(outA, 0.05e18);
+        assertEq(tokenB.balanceOf(alice), q + 1000e18 - needB, "unused pull refunded");
+        // a limit tighter than the quote reverts, nothing moves
+        (, uint256 q2) = tk.quote(cfg, 1e18, true, true);
+        vm.expectRevert(abi.encodeWithSelector(TideTaker.SlippageExceeded.selector, q2, q2 + 1));
+        tk.swap(cfg, 1e18, true, true, q2 + 1);
+        vm.stopPrank();
     }
 
     function test_Params_KeysCannotBeSquatted() public {

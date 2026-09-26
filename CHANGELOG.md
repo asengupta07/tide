@@ -5,6 +5,15 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
 
 ## Sep 27, 2026
 
+**Trade from the dashboard, charts**
+- `TideTaker` contract: quote and fill a strategy from a wallet in one call (traits built on-chain, exact
+  pull, refund on exact-out, slippage limit). Deployed `0xD02D…1c98`, test added (54 tests).
+- Dashboard "Market" section: ETH/USD candles (Coinbase, proxied) with the strategy's fills marked on them,
+  a trade panel with live router quotes, the plain-pool comparison and one-tx fills, and a price-impact-
+  by-size curve for the plain pool, Tide's first fill and Tide's follow-on fills from the live reserves.
+- Fills carry block timestamps; the router log cache dedupes and serialises scans; strategy salt is kept
+  on reindex.
+
 **Hook verification**
 - Four hook tests (round trip under the fee bound, `HookSwap` fee report, exact-out gross-up, guardrails on the
   pool key); cross-venue parity extended to eight trades over three blocks with exact-out both ways. 53 tests.
