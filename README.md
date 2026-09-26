@@ -80,6 +80,7 @@ pnpm dev                                        # https://localhost:3000; the Wo
 # /app/new: name it (<label>.tide.eth to your wallet, own resolver, records seeded), approve, TideParams.init,
 #           Aqua.ship, optional one-multicall delegation to manager.tide.eth. Four signatures.
 pnpm tsx --env-file=../.env scripts/e2e-new-strategy.ts  # same flow with a throwaway wallet, end to end
+ACTIVITY_FILLS=18 pnpm tsx --env-file=../.env scripts/seed-market-activity.ts  # tiny real Sepolia fills across every independent funded LP
 pnpm agent propose --sigma 0.8 --strategy eth-usdc.tide.eth   # agent proposes λ*, prints the approval URL
 # Autopilot: the server measures realised ETH volatility (Coinbase hourly candles) every AGENT_TICK_MINUTES.
 # When λ* moves ≥ AGENT_MIN_MOVE_BPS it applies the change itself if it is inside the owner's on-chain

@@ -14,6 +14,9 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
 - The order ticket now separates the executable full-inventory comparison from Tide's follow-on lane. It
   derives the live maximum size inside each strategy's delta guard, shows the modeled output and impact
   advantage, and offers a one-click demo size that remains eligible as the best route changes.
+- A reusable Sepolia activity seeder discovers every independent funded WETH/USDC strategy and sends tiny,
+  alternating fills in same-block waves. The live demo was seeded with 34 new successful swaps; the three
+  LPs now expose 17, 13, and 10 verifiable fills in the terminal.
 
 **Dashboard polish**
 - "Get a suggestion" opens the manager's answer in a modal (Escape, backdrop or X closes it); the
