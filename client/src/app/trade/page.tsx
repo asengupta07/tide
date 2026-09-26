@@ -48,7 +48,7 @@ export default function TradePage() {
 function TradeMarket() {
   const router = useRouter();
   const query = useSearchParams();
-  const requested = query.get("strategy");
+  const requested = query.get("strategy")?.trim() || null;
   const [rows, setRows] = useState<StrategyRow[] | null>(null);
   const [selected, setSelected] = useState("");
   const [snapshot, setSnapshot] = useState<TradeSnapshot | null>(null);
@@ -57,7 +57,7 @@ function TradeMarket() {
 
   useEffect(() => {
     let alive = true;
-    fetch("/api/strategies", { cache: "no-store" })
+    fetch("/api/strategies?scope=public", { cache: "no-store" })
       .then(async (response) => {
         const body = await response.json();
         if (!response.ok) throw new Error(body.error || "Could not load Tide markets");
@@ -66,7 +66,8 @@ function TradeMarket() {
       .then((markets) => {
         if (!alive) return;
         setRows(markets);
-        const initial = markets.find((market) => market.name === requested)?.name
+        // Direct links can still open an unlisted strategy; discovery only lists published markets.
+        const initial = requested
           ?? markets.find((market) => market.name === "eth-usdc.tide.eth")?.name
           ?? markets[0]?.name
           ?? "";
@@ -96,7 +97,7 @@ function TradeMarket() {
     router.replace(`/trade?strategy=${encodeURIComponent(name)}`, { scroll: false });
   };
 
-  const activeSnapshot = snapshot?.strategy.name === selected ? snapshot : null;
+  const activeSnapshot = snapshot && (snapshot.strategy.name === selected || snapshot.strategy.label === selected) ? snapshot : null;
   const totals = {
     weth: units(activeSnapshot?.block?.total.weth, 18),
     usdc: units(activeSnapshot?.block?.total.usdc, 6),
@@ -132,7 +133,7 @@ function TradeMarket() {
                   {[0, 1, 2].map((item) => <div key={item} className="h-16 animate-pulse rounded-lg bg-white/[0.035]" />)}
                 </div>
               )}
-              {rows?.length === 0 && <p className="p-5 text-sm text-fg-3">No Tide strategies are live yet.</p>}
+              {rows?.length === 0 && <p className="p-5 text-sm text-fg-3">No strategies have been shared publicly yet.</p>}
               {rows && rows.length > 0 && (
                 <div className="max-h-[30rem] overflow-y-auto p-2 [scrollbar-width:thin]">
                   {rows.map((market) => {

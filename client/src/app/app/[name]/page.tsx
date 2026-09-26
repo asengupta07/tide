@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { StrategySharing } from '@/components/StrategySharing';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useParams, useSearchParams } from 'next/navigation';
@@ -345,6 +347,7 @@ function Body({
 
   return (
     <>
+      <div className="mb-5 flex gap-5 text-sm text-fg-3"><Link href="/app" className="hover:text-fg">← My strategies</Link><Link href="/app/explore" className="hover:text-fg">Explore</Link>{isOwner && <a href="#sharing" className="text-accent">Sharing & templates ↗</a>}</div>
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
@@ -879,6 +882,7 @@ function Body({
           </div>
         )}
       </section>
+      {isOwner && <StrategySharing key={`${s.strategy.label}-${s.strategy.owner}`} label={s.strategy.label} name={s.strategy.name} config={s.onchain && s.bounds && s.onchain.owner.toLowerCase() === s.strategy.owner.toLowerCase() ? { lambda: s.onchain.lambda, N: s.onchain.N, delta: s.onchain.delta, fee: s.onchain.fee, bounds: { lambdaMin: s.bounds.lambdaMin, lambdaMax: s.bounds.lambdaMax, nMax: s.bounds.nMax, maxStepBps: s.bounds.maxStepBps, cooldown: s.bounds.cooldown } } : null} />}
     </>
   );
 }

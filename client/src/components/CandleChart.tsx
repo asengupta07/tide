@@ -16,16 +16,25 @@ export function CandleChart({ fills, weth }: { fills: Fill[]; weth: string }) {
   const box = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const [tf, setTf] = useState<keyof typeof GRAN>("1h");
-  const [candles, setCandles] = useState<Candle[] | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  const [feed, setFeed] = useState<{ timeframe: string; candles: Candle[] | null; error: string | null } | null>(null);
+  const candles = feed?.timeframe === tf ? feed.candles : null;
+  const err = feed?.timeframe === tf ? feed.error : null;
 
   useEffect(() => {
-    setCandles(null);
-    fetch(`/api/candles?granularity=${GRAN[tf]}`).then((r) => r.json()).then((d) => (Array.isArray(d) ? setCandles(d) : setErr(d.error))).catch((e) => setErr(e.message));
+    const controller = new AbortController();
+    fetch(`/api/candles?granularity=${GRAN[tf]}`, { signal: controller.signal })
+      .then(async r => {
+        const data = await r.json();
+        if (!r.ok || !Array.isArray(data)) throw new Error(data.error || "Could not load candles");
+        return data as Candle[];
+      })
+      .then(data => { if (!controller.signal.aborted) setFeed({ timeframe: tf, candles: data, error: null }); })
+      .catch(e => { if (!controller.signal.aborted) setFeed({ timeframe: tf, candles: null, error: e.message }); });
+    return () => controller.abort();
   }, [tf]);
 
   useEffect(() => {
-    if (!box.current || !candles) return;
+    if (!box.current || !candles?.length) return;
     const css = getComputedStyle(document.documentElement);
     const v = (k: string) => css.getPropertyValue(k).trim();
     const chart = createChart(box.current, {
@@ -78,6 +87,7 @@ export function CandleChart({ fills, weth }: { fills: Fill[]; weth: string }) {
       </div>
       <div ref={box} className="h-[320px] w-full min-w-0 overflow-hidden" />
       {!candles && !err && <div className="absolute inset-x-0 top-10 h-[320px] animate-pulse rounded-2xl bg-white/[0.03]" />}
+      {candles?.length === 0 && <p className="mt-2 text-xs text-fg-3">No candles available for this timeframe.</p>}
       {err && <div className="mt-2 text-xs text-bad">Price feed unavailable: {err}</div>}
     </div>
   );

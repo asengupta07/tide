@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Ship a Tide strategy in four signatures:
@@ -8,15 +8,16 @@
  *   4. ship           Aqua.ship(router, order, tokens, amounts); inventory stays in your wallet
  *   then optionally   enable the manager: one multicall granting setText on λ/N/δ, and bind World ID
  */
-import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   useAccount,
   usePublicClient,
   useWriteContract,
   useSignMessage,
-} from 'wagmi';
-import { WalletButton } from '@/components/WalletButton';
+} from "wagmi";
+import { WalletButton } from "@/components/WalletButton";
 import {
   encodeAbiParameters,
   encodeFunctionData,
@@ -25,11 +26,11 @@ import {
   toHex,
   type Address,
   type Hex,
-} from 'viem';
-import { packetToBytes } from 'viem/ens';
-import { Check, CircleNotch, ArrowRight } from '@phosphor-icons/react';
+} from "viem";
+import { packetToBytes } from "viem/ens";
+import { Check, CircleNotch, ArrowRight } from "@phosphor-icons/react";
 
-import { Nav, Bezel } from '@/components/ui';
+import { Nav, Bezel } from "@/components/ui";
 import {
   ADDR,
   erc20Abi,
@@ -39,24 +40,48 @@ import {
   resolverAbi,
   ORDER_TUPLE,
   short,
-} from '@/lib/chain';
-import { ownerMessage } from '@/lib/auth';
-import { maxDeltaBps } from '@/lib/bounds';
+} from "@/lib/chain";
+import { ownerMessage } from "@/lib/auth";
+import { TemplateConfig, type Publication } from "@/lib/sharing";
+import { maxDeltaBps } from "@/lib/bounds";
 
-type Step = 'idle' | 'running' | 'done' | 'error';
-const PARENT = 'tide.eth';
+type Step = "idle" | "running" | "done" | "error";
+const PARENT = "tide.eth";
 
 /** The on-chain box (N - 1) * delta <= 2 * fee, capped at the slider's 5 % range. */
 const maxDelta = (n: number, fee: number) => Math.min(500, maxDeltaBps(n, fee));
 
 export default function NewStrategy() {
+  return (
+    <Suspense
+      fallback={<div className="p-32 text-fg-3">Loading strategy builder…</div>}
+    >
+      <WizardIdentity />
+    </Suspense>
+  );
+}
+function WizardIdentity() {
+  const templateId = useSearchParams().get("template");
+  const { address } = useAccount();
+  return (
+    <StrategyWizard
+      key={`${address ?? "disconnected"}:${templateId ?? "blank"}`}
+    />
+  );
+}
+
+function StrategyWizard() {
   const { address, isConnected } = useAccount();
   const pc = usePublicClient();
   const { writeContractAsync } = useWriteContract();
   const { signMessageAsync } = useSignMessage();
   const router = useRouter();
+  const templateId = useSearchParams().get("template");
+  const [template, setTemplate] = useState<Publication | null>(null);
+  const [templateError, setTemplateError] = useState("");
+  const [templateReviewed, setTemplateReviewed] = useState(false);
 
-  const [label, setLabel] = useState('');
+  const [label, setLabel] = useState("");
   const [avail, setAvail] = useState<{
     available: boolean;
     reason?: string;
@@ -65,9 +90,9 @@ export default function NewStrategy() {
   const [n, setN] = useState(4);
   const [delta, setDelta] = useState(20);
   const [fee, setFee] = useState(30);
-  const [weth, setWeth] = useState('0.1');
-  const [usdc, setUsdc] = useState('300');
-  const [enableAgent, setEnableAgent] = useState(true);
+  const [weth, setWeth] = useState("0.1");
+  const [usdc, setUsdc] = useState("300");
+  const [enableAgent, setEnableAgent] = useState(false);
   const saltRef = useRef<string | null>(null);
 
   const [steps, setSteps] = useState<
@@ -83,27 +108,114 @@ export default function NewStrategy() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (!templateId) return;
+    const c = new AbortController();
+    fetch(`/api/publications/${encodeURIComponent(templateId)}`, {
+      cache: "no-store",
+      signal: c.signal,
+    })
+      .then(async (r) => {
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error);
+        return j as Publication;
+      })
+      .then((p) => {
+        if (p.kind !== "template")
+          throw new Error("This link is not a template.");
+        const pair = [p.tokenA.toLowerCase(), p.tokenB.toLowerCase()]
+          .sort()
+          .join(":");
+        if (
+          pair !==
+          [ADDR.weth.toLowerCase(), ADDR.usdc.toLowerCase()].sort().join(":")
+        )
+          throw new Error(
+            "This template uses a token pair not supported by this wizard.",
+          );
+        const config = TemplateConfig.parse(p.config);
+        setTemplate(p);
+        setLambda(config.lambda);
+        setN(config.N);
+        setDelta(config.delta);
+        setFee(config.fee);
+        setEnableAgent(false);
+        setTemplateReviewed(false);
+        setTemplateError("");
+      })
+      .catch((e) => {
+        if (!c.signal.aborted) setTemplateError(e.message);
+      });
+    return () => c.abort();
+  }, [templateId]);
+
+  useEffect(() => {
     if (!label) return;
-    const t = setTimeout(
-      () =>
-        fetch(`/api/strategy/available?label=${encodeURIComponent(label)}`)
-          .then((r) => r.json())
-          .then(setAvail),
-      350,
-    );
-    return () => clearTimeout(t);
-  }, [label]);
+    const controller = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        const a = await fetch(
+          `/api/strategy/available?label=${encodeURIComponent(label)}`,
+          { signal: controller.signal },
+        ).then((r) => r.json());
+        if (!a.available && templateId && !controller.signal.aborted) {
+          setAvail({
+            available: false,
+            reason:
+              "Choose a new name for this template. Existing strategies keep their own settings.",
+          });
+          return;
+        }
+        if (!a.available && address) {
+          // a name you registered earlier but never finished shipping: pick it up where you left off
+          const mine = await fetch(
+            `/api/strategy/${encodeURIComponent(label)}`,
+            { signal: controller.signal },
+          )
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null);
+          if (
+            !controller.signal.aborted &&
+            mine &&
+            mine.owner?.toLowerCase() === address.toLowerCase()
+          ) {
+            setStrat({
+              name: mine.name,
+              orderHash: mine.orderHash,
+              resolver: mine.resolver,
+              label: mine.label,
+              salt: mine.salt,
+            });
+            return setAvail({
+              available: false,
+              reason: `${label}.${PARENT} is already yours; continue below to finish shipping it`,
+            });
+          }
+        }
+        if (!controller.signal.aborted) setAvail(a);
+      } catch {
+        if (!controller.signal.aborted)
+          setAvail({
+            available: false,
+            reason: "Could not check this name. Try again.",
+          });
+      }
+    }, 350);
+    return () => {
+      clearTimeout(t);
+      controller.abort();
+    };
+  }, [label, address, templateId]);
 
   const set = (k: string, v: { s: Step; tx?: string; err?: string }) =>
     setSteps((p) => ({ ...p, [k]: v }));
   const run = async (k: string, fn: () => Promise<string | void>) => {
-    set(k, { s: 'running' });
+    set(k, { s: "running" });
     try {
       const tx = await fn();
-      set(k, { s: 'done', tx: tx ?? undefined });
+      set(k, { s: "done", tx: tx ?? undefined });
     } catch (e) {
       set(k, {
-        s: 'error',
+        s: "error",
         err:
           (e as { shortMessage?: string }).shortMessage ?? (e as Error).message,
       });
@@ -112,7 +224,7 @@ export default function NewStrategy() {
   };
   const wait = async (hash: Hex) => {
     const rc = await pc!.waitForTransactionReceipt({ hash });
-    if (rc.status !== 'success') throw new Error('transaction reverted');
+    if (rc.status !== "success") throw new Error("transaction reverted");
     return hash;
   };
 
@@ -122,18 +234,25 @@ export default function NewStrategy() {
       : [ADDR.usdc, ADDR.weth];
 
   const ship = async () => {
-    if (!address || !pc) return;
-    const strategySalt = saltRef.current ?? String(Date.now());
-    saltRef.current = strategySalt;
+    if (!address || !pc || !canShip) return;
+    const salt = strat?.salt ?? (saltRef.current ??= String(Date.now()));
     setBusy(true);
     try {
       // 1. name
       let s = strat;
       if (!s) {
-        await run('name', async () => {
-          const r = await fetch('/api/strategy/create', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
+        await run("name", async () => {
+          // the registrar pays for the name, so your wallet signs the request first
+          const ts = Date.now();
+          const sig = await signMessageAsync({
+            message: ownerMessage(
+              `name ${label} for ${address.toLowerCase()}`,
+              ts,
+            ),
+          });
+          const r = await fetch("/api/strategy/create", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
             body: JSON.stringify({
               label,
               owner: address,
@@ -141,7 +260,9 @@ export default function NewStrategy() {
               n,
               deltaBps: delta,
               feeBps: fee,
-              salt: strategySalt,
+              salt,
+              ts,
+              sig,
             }),
           });
           const j = await r.json();
@@ -151,7 +272,7 @@ export default function NewStrategy() {
             orderHash: j.orderHash,
             resolver: j.resolver,
             label: j.label,
-            salt: j.salt ?? strategySalt,
+            salt: j.salt ?? salt,
           };
           setStrat(s);
           return j.txs?.register;
@@ -161,18 +282,18 @@ export default function NewStrategy() {
       const usdcAmt = parseUnits(usdc, 6);
 
       // 2. balances + approvals
-      await run('approve', async () => {
+      await run("approve", async () => {
         const [bw, bu] = await Promise.all([
           pc.readContract({
             address: ADDR.weth,
             abi: erc20Abi,
-            functionName: 'balanceOf',
+            functionName: "balanceOf",
             args: [address],
           }),
           pc.readContract({
             address: ADDR.usdc,
             abi: erc20Abi,
-            functionName: 'balanceOf',
+            functionName: "balanceOf",
             args: [address],
           }),
         ]);
@@ -181,7 +302,7 @@ export default function NewStrategy() {
             await writeContractAsync({
               address: ADDR.weth,
               abi: erc20Abi,
-              functionName: 'deposit',
+              functionName: "deposit",
               value: wethAmt - bw,
             }),
           );
@@ -190,7 +311,7 @@ export default function NewStrategy() {
             await writeContractAsync({
               address: ADDR.usdc,
               abi: erc20Abi,
-              functionName: 'mint',
+              functionName: "mint",
               args: [address, usdcAmt - bu],
             }),
           );
@@ -198,13 +319,13 @@ export default function NewStrategy() {
           pc.readContract({
             address: ADDR.weth,
             abi: erc20Abi,
-            functionName: 'allowance',
+            functionName: "allowance",
             args: [address, ADDR.aqua],
           }),
           pc.readContract({
             address: ADDR.usdc,
             abi: erc20Abi,
-            functionName: 'allowance',
+            functionName: "allowance",
             args: [address, ADDR.aqua],
           }),
         ]);
@@ -215,7 +336,7 @@ export default function NewStrategy() {
             await writeContractAsync({
               address: ADDR.weth,
               abi: erc20Abi,
-              functionName: 'approve',
+              functionName: "approve",
               args: [ADDR.aqua, wethAmt],
             }),
           );
@@ -224,7 +345,7 @@ export default function NewStrategy() {
             await writeContractAsync({
               address: ADDR.usdc,
               abi: erc20Abi,
-              functionName: 'approve',
+              functionName: "approve",
               args: [ADDR.aqua, usdcAmt],
             }),
           );
@@ -232,21 +353,21 @@ export default function NewStrategy() {
       });
 
       // 3. params
-      await run('params', async () => {
+      await run("params", async () => {
         const p = (await pc.readContract({
           address: ADDR.tideParams,
           abi: tideParamsAbi,
-          functionName: 'params',
+          functionName: "params",
           args: [s!.orderHash],
         })) as { owner: Address };
-        if (p.owner !== '0x0000000000000000000000000000000000000000') return;
+        if (p.owner !== "0x0000000000000000000000000000000000000000") return;
         const [tokenA, tokenB] = tokensSorted();
         // through TideApp: it checks you are the maker, so nobody else can claim your order hash
         return wait(
           await writeContractAsync({
             address: ADDR.tideApp,
             abi: tideAppAbi,
-            functionName: 'init',
+            functionName: "init",
             args: [
               { maker: address, tokenA, tokenB, salt: BigInt(s!.salt) },
               lambda,
@@ -255,29 +376,40 @@ export default function NewStrategy() {
               fee,
               enableAgent
                 ? ADDR.agent
-                : '0x0000000000000000000000000000000000000000',
+                : "0x0000000000000000000000000000000000000000",
             ],
           }),
         );
       });
 
+      if (template?.config) {
+        await run("bounds", async () =>
+          wait(
+            await writeContractAsync({
+              address: ADDR.tideParams,
+              abi: tideParamsAbi,
+              functionName: "setBounds",
+              args: [s!.orderHash, template.config!.bounds],
+            }),
+          ),
+        );
+      }
+
       // 4. ship
-      await run('ship', async () => {
+      await run("ship", async () => {
         const [tokenA, tokenB] = tokensSorted();
         const [bal] = (await pc.readContract({
           address: ADDR.aqua,
           abi: aquaAbi,
-          functionName: 'rawBalances',
+          functionName: "rawBalances",
           args: [address, ADDR.tideRouter, s!.orderHash, tokenA],
         })) as [bigint, number];
         if (bal > 0n) return;
         const order = (await pc.readContract({
           address: ADDR.tideApp,
           abi: tideAppAbi,
-          functionName: 'order',
-          args: [
-            { maker: address, tokenA, tokenB, salt: BigInt(strategySalt) },
-          ],
+          functionName: "order",
+          args: [{ maker: address, tokenA, tokenB, salt: BigInt(s!.salt) }],
         })) as { maker: Address; traits: bigint; data: Hex };
         const encoded = encodeAbiParameters(ORDER_TUPLE, [
           { maker: order.maker, traits: order.traits, data: order.data },
@@ -288,7 +420,7 @@ export default function NewStrategy() {
           await writeContractAsync({
             address: ADDR.aqua,
             abi: aquaAbi,
-            functionName: 'ship',
+            functionName: "ship",
             args: [ADDR.tideRouter, encoded, [tokenA, tokenB], amounts],
           }),
         );
@@ -296,17 +428,17 @@ export default function NewStrategy() {
 
       // 5. delegate to the manager: one multicall, three key-scoped grants
       if (enableAgent) {
-        await run('delegate', async () => {
+        await run("delegate", async () => {
           const dns = toHex(packetToBytes(s!.name));
-          const calls = ['lambda', 'N', 'delta'].map((k) =>
+          const calls = ["lambda", "N", "delta"].map((k) =>
             encodeFunctionData({
               abi: resolverAbi,
-              functionName: 'grantSetterRoles',
+              functionName: "grantSetterRoles",
               args: [
                 encodeFunctionData({
                   abi: resolverAbi,
-                  functionName: 'setText',
-                  args: [dns, k, ''],
+                  functionName: "setText",
+                  args: [dns, k, ""],
                 }),
                 ADDR.agent,
               ],
@@ -316,7 +448,7 @@ export default function NewStrategy() {
             await writeContractAsync({
               address: s!.resolver,
               abi: resolverAbi,
-              functionName: 'multicall',
+              functionName: "multicall",
               args: [calls],
             }),
           );
@@ -333,13 +465,16 @@ export default function NewStrategy() {
   const amountOk = (v: string, dec: number) =>
     /^\d+(\.\d+)?$/.test(v) &&
     Number(v) > 0 &&
-    (v.split('.')[1]?.length ?? 0) <= dec;
+    (v.split(".")[1]?.length ?? 0) <= dec;
   const canShip =
     isConnected &&
     (avail?.available || !!strat) &&
     amountOk(weth, 18) &&
     amountOk(usdc, 6) &&
-    !busy;
+    !busy &&
+    (!templateId ||
+      (template?.id === templateId && templateReviewed && !templateError)) &&
+    (n - 1) * delta <= 2 * fee;
 
   return (
     <>
@@ -351,6 +486,77 @@ export default function NewStrategy() {
           tokens stay in your wallet; Aqua pulls only at fill time.
         </p>
 
+        <p className="mt-3 text-xs text-fg-3">
+          New strategies are unlisted. Publish to Explore later from your
+          strategy dashboard. On-chain records remain public.
+        </p>
+        {templateId && (
+          <Bezel small className="mt-8">
+            <section className="p-6">
+              <div className="text-xs uppercase tracking-[0.2em] text-accent">
+                Start from a shared idea
+              </div>
+              {templateError ? (
+                <div role="alert" className="mt-3 text-bad">
+                  {templateError}
+                  <Link href="/app/new" className="ml-3 text-accent">
+                    Start from scratch →
+                  </Link>
+                </div>
+              ) : template?.id !== templateId ? (
+                <p role="status" className="mt-3 text-fg-2">
+                  Loading template…
+                </p>
+              ) : (
+                <>
+                  <h2 className="mt-3 text-2xl font-semibold">
+                    {template.title}
+                  </h2>
+                  <p className="mt-2 text-xs text-fg-3">
+                    By {short(template.owner)} · WETH / USDC · Saved{" "}
+                    {new Date(template.updatedAt).toLocaleDateString()}
+                  </p>
+                  <p className="mt-4 whitespace-pre-wrap break-words text-sm text-fg-2">
+                    {template.description}
+                  </p>
+                  <p className="mt-4 text-sm text-fg-2">
+                    {template.config!.lambda / 100}% exposure ·{" "}
+                    {template.config!.N}× depth · {template.config!.delta / 100}
+                    % drift · {template.config!.fee / 100}% fee
+                  </p>
+                  <p className="mt-2 text-sm text-fg-2">
+                    Manager guardrails:{" "}
+                    {template.config!.bounds.lambdaMin / 100}–
+                    {template.config!.bounds.lambdaMax / 100}% exposure; max
+                    depth {template.config!.bounds.nMax}×; max step{" "}
+                    {template.config!.bounds.maxStepBps / 100} points; cooldown{" "}
+                    {template.config!.bounds.cooldown}s.
+                  </p>
+                  <label className="mt-5 flex items-start gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      disabled={busy || !!strat}
+                      checked={templateReviewed}
+                      onChange={(e) => setTemplateReviewed(e.target.checked)}
+                      className="mt-1"
+                    />
+                    <span>
+                      I have reviewed these parameters and guardrails. This
+                      creates my own unlisted strategy. Agent access is optional
+                      and stays off until I enable it below.
+                    </span>
+                  </label>
+                  <p className="mt-3 text-xs text-fg-3">
+                    You can adjust parameters below. Copied guardrails are
+                    applied in a separate wallet transaction, and can be edited
+                    on your dashboard.
+                  </p>
+                </>
+              )}
+            </section>
+          </Bezel>
+        )}
+
         {!isConnected && (
           <div className="mt-10 flex flex-col items-start gap-4 rounded-2xl border border-dashed border-white/10 p-6 text-sm text-fg-2 sm:flex-row sm:items-center">
             Connect a wallet to begin. <WalletButton size="md" />
@@ -359,14 +565,17 @@ export default function NewStrategy() {
 
         <div className="mt-10 grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
           <Bezel>
-            <div className="space-y-8 p-6 md:p-8">
+            <fieldset
+              disabled={busy || (!!templateId && template?.id !== templateId)}
+              className="space-y-8 p-6 md:p-8"
+            >
               <Field
                 label="Name"
                 hint={
                   avail
                     ? avail.available
                       ? `${label}.${PARENT} is free`
-                      : (avail.reason ?? 'taken')
+                      : (avail.reason ?? "taken")
                     : `becomes <label>.${PARENT}, owned by your wallet`
                 }
                 ok={avail?.available}
@@ -375,11 +584,13 @@ export default function NewStrategy() {
                   <input
                     value={label}
                     onChange={(e) => {
-                      const next = e.target.value
-                        .toLowerCase()
-                        .replace(/[^a-z0-9-]/g, '');
-                      setLabel(next);
-                      if (!next) setAvail(null);
+                      setLabel(
+                        e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
+                      );
+                      setAvail(null);
+                      setStrat(null);
+                      setSteps({});
+                      saltRef.current = null;
                     }}
                     placeholder="eth-usdc-2"
                     className="num w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-fg outline-none focus:border-accent"
@@ -393,12 +604,13 @@ export default function NewStrategy() {
                 hint="lower cuts arbitrage loss, raises drift. The frontier suggests 50% at 60% volatility."
               >
                 <input
+                  disabled={!!strat}
                   type="range"
                   aria-label="visibility per block, percent"
                   aria-valuetext={`${lambda / 100} percent`}
-                  min={500}
+                  min={1}
                   max={10000}
-                  step={100}
+                  step={1}
                   value={lambda}
                   onChange={(e) => setLambda(Number(e.target.value))}
                   className="w-full"
@@ -410,11 +622,12 @@ export default function NewStrategy() {
                   hint="on every trade; it is what backs the deep curve"
                 >
                   <input
+                    disabled={!!strat}
                     type="range"
                     aria-label="fee, percent"
                     aria-valuetext={`${fee / 100} percent`}
-                    min={1}
-                    max={100}
+                    min={0}
+                    max={Math.max(100, fee)}
                     step={1}
                     value={fee}
                     onChange={(e) => {
@@ -430,11 +643,12 @@ export default function NewStrategy() {
                   hint="follow-on trades see a pool N times deeper"
                 >
                   <input
+                    disabled={!!strat}
                     type="range"
                     aria-label="virtual depth multiplier"
                     aria-valuetext={`${n} times`}
                     min={1}
-                    max={16}
+                    max={64}
                     step={1}
                     value={n}
                     onChange={(e) => {
@@ -450,11 +664,12 @@ export default function NewStrategy() {
                   hint={`max price move the deep curve honours; the fee backs up to ${maxDelta(n, fee) / 100}% at ${n}×`}
                 >
                   <input
+                    disabled={!!strat}
                     type="range"
                     aria-label="drift band, percent"
                     aria-valuetext={`${delta / 100} percent`}
-                    min={1}
-                    max={Math.max(1, maxDelta(n, fee))}
+                    min={0}
+                    max={Math.max(delta, maxDelta(n, fee))}
                     step={1}
                     value={delta}
                     onChange={(e) => setDelta(Number(e.target.value))}
@@ -470,7 +685,7 @@ export default function NewStrategy() {
                     inputMode="decimal"
                     value={weth}
                     onChange={(e) => setWeth(e.target.value.trim())}
-                    className={`num w-full rounded-xl border bg-white/[0.03] px-4 py-3 outline-none focus:border-accent ${weth && !amountOk(weth, 18) ? 'border-bad/50' : 'border-white/10'}`}
+                    className={`num w-full rounded-xl border bg-white/[0.03] px-4 py-3 outline-none focus:border-accent ${weth && !amountOk(weth, 18) ? "border-bad/50" : "border-white/10"}`}
                   />
                 </Field>
                 <Field label="USDC inventory" hint="minted if short">
@@ -479,13 +694,14 @@ export default function NewStrategy() {
                     inputMode="decimal"
                     value={usdc}
                     onChange={(e) => setUsdc(e.target.value.trim())}
-                    className={`num w-full rounded-xl border bg-white/[0.03] px-4 py-3 outline-none focus:border-accent ${usdc && !amountOk(usdc, 6) ? 'border-bad/50' : 'border-white/10'}`}
+                    className={`num w-full rounded-xl border bg-white/[0.03] px-4 py-3 outline-none focus:border-accent ${usdc && !amountOk(usdc, 6) ? "border-bad/50" : "border-white/10"}`}
                   />
                 </Field>
               </div>
 
               <label className="flex items-start gap-3 text-sm">
                 <input
+                  disabled={!!strat}
                   type="checkbox"
                   checked={enableAgent}
                   onChange={(e) => setEnableAgent(e.target.checked)}
@@ -496,11 +712,13 @@ export default function NewStrategy() {
                     Let manager.tide.eth propose parameter changes
                   </span>
                   <span className="block text-xs text-fg-3">
-                    Grants the agent setText on exactly λ, N and δ. Inside
-                    guardrails you can edit later (10% to 90% visibility, at
-                    most 25 points per change, one change an hour, N up to 8) it
-                    applies changes itself; beyond them it needs your fresh
-                    World ID sign-in and your wallet. Revocable in one call.
+                    Grants the agent setText on exactly λ, N and δ. Inside the{" "}
+                    {template
+                      ? "template guardrails reviewed above"
+                      : "default guardrails (10% to 90% visibility, at most 25 points per change, one change an hour, N up to 8)"}
+                    , which you can edit later, it applies changes itself;
+                    beyond them it needs your fresh World ID sign-in and your
+                    wallet. Revocable in one call.
                   </span>
                 </span>
               </label>
@@ -510,7 +728,7 @@ export default function NewStrategy() {
                 onClick={ship}
                 className="pill pill-primary disabled:opacity-40"
               >
-                <span>{busy ? 'Working…' : 'Ship strategy'}</span>
+                <span>{busy ? "Working…" : "Ship strategy"}</span>
                 <span className="ico">
                   {busy ? (
                     <CircleNotch size={15} className="animate-spin" />
@@ -519,34 +737,43 @@ export default function NewStrategy() {
                   )}
                 </span>
               </button>
-            </div>
+            </fieldset>
           </Bezel>
 
           <Bezel small>
             <ol className="space-y-3 p-5">
               {[
                 [
-                  'name',
-                  'Register the name',
-                  'backend signs; resolver + subname to your wallet',
+                  "name",
+                  "Register the name",
+                  "backend signs; resolver + subname to your wallet",
                 ],
                 [
-                  'approve',
-                  'Fund and approve',
-                  'wrap / mint if short, approve Aqua',
+                  "approve",
+                  "Fund and approve",
+                  "wrap / mint if short, approve Aqua",
                 ],
                 [
-                  'params',
-                  'Set parameters',
-                  'TideApp.init from your wallet; guardrails start at their defaults',
+                  "params",
+                  "Set parameters",
+                  "TideApp.init from your wallet; guardrails start at their defaults",
                 ],
-                ['ship', 'Ship on Aqua', 'one signature, nothing moves'],
+                ...(template
+                  ? [
+                      [
+                        "bounds",
+                        "Apply template guardrails",
+                        "your wallet sets the reviewed limits",
+                      ],
+                    ]
+                  : []),
+                ["ship", "Ship on Aqua", "one signature, nothing moves"],
                 ...(enableAgent
                   ? [
                       [
-                        'delegate',
-                        'Delegate to the manager',
-                        'three scoped grants in one multicall',
+                        "delegate",
+                        "Delegate to the manager",
+                        "three scoped grants in one multicall",
                       ],
                     ]
                   : []),
@@ -555,11 +782,11 @@ export default function NewStrategy() {
                 return (
                   <li key={k} className="flex gap-3">
                     <span
-                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] ${st?.s === 'done' ? 'border-accent bg-accent text-accent-ink' : st?.s === 'running' ? 'border-accent text-accent' : st?.s === 'error' ? 'border-bad text-bad' : 'border-white/15 text-fg-3'}`}
+                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] ${st?.s === "done" ? "border-accent bg-accent text-accent-ink" : st?.s === "running" ? "border-accent text-accent" : st?.s === "error" ? "border-bad text-bad" : "border-white/15 text-fg-3"}`}
                     >
-                      {st?.s === 'done' ? (
+                      {st?.s === "done" ? (
                         <Check size={12} weight="bold" />
-                      ) : st?.s === 'running' ? (
+                      ) : st?.s === "running" ? (
                         <CircleNotch size={12} className="animate-spin" />
                       ) : null}
                     </span>
@@ -606,7 +833,7 @@ function Field({
       {children}
       {hint && (
         <div
-          className={`mt-1.5 text-xs ${ok === true ? 'text-accent' : ok === false ? 'text-bad' : 'text-fg-3'}`}
+          className={`mt-1.5 text-xs ${ok === true ? "text-accent" : ok === false ? "text-bad" : "text-fg-3"}`}
         >
           {hint}
         </div>

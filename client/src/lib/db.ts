@@ -20,6 +20,8 @@ export async function db(): Promise<Db> {
   const d = (await mongo()).db();
   if (!g.__tideIndexes) {
     g.__tideIndexes = (async () => {
+      await d.collection("publications").createIndex({ id: 1 }, { unique: true });
+      await d.collection("publications").createIndex({ published: 1, updatedAt: -1 });
       await d.collection("strategies").createIndex({ label: 1 }, { unique: true });
       await d.collection("proposals").createIndex({ id: 1 }, { unique: true });
       await d.collection("proposals").createIndex({ strategy: 1, createdAt: -1 });
