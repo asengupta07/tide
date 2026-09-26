@@ -15,8 +15,9 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
   is explicitly for liquidity management; owners see quote previews but cannot fill their own strategy.
   Traders also get ETH/USD candles with the selected strategy's fills and a live Tide-vs-plain price-impact
   chart by order size.
-  The market list excludes uninitialized or empty test strategies, and stale quote links fall back to a
-  funded market instead of exposing a raw contract revert.
+  The market list discovers every initialized, funded registry strategy regardless of Explore publication,
+  excludes incomplete or empty test entries, and falls back to another funded market instead of exposing a
+  raw contract revert.
 
 **Trade from the dashboard, charts**
 - `TideTaker` contract: quote and fill a strategy from a wallet in one call (traits built on-chain, exact

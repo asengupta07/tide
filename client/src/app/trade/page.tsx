@@ -17,6 +17,13 @@ type StrategyRow = {
   name: string;
   owner: string;
   records: { lambda: number; N: number; delta: number; fee?: number } | null;
+  market?: {
+    lambda: number;
+    N: number;
+    delta: number;
+    fee: number;
+    total: { weth: string; usdc: string };
+  } | null;
 };
 
 type TradeSnapshot = {
@@ -68,7 +75,7 @@ function TradeMarket() {
 
   useEffect(() => {
     let alive = true;
-    fetch("/api/strategies?scope=public&tradable=1", { cache: "no-store" })
+    fetch("/api/strategies?scope=markets&tradable=1", { cache: "no-store" })
       .then(async (response) => {
         const body = await response.json();
         if (!response.ok) throw new Error(body.error || "Could not load Tide markets");
@@ -77,9 +84,9 @@ function TradeMarket() {
       .then((markets) => {
         if (!alive) return;
         setRows(markets);
-        // Direct links can still open an unlisted strategy; discovery only lists published markets.
+        // Every initialized, funded strategy is a market. Publishing controls
+        // Explore metadata, not access to public on-chain liquidity.
         const initial = requested
-          ?? markets.find((market) => market.name === "eth-usdc.tide.eth")?.name
           ?? markets[0]?.name
           ?? "";
         setSelected(initial);
@@ -151,7 +158,7 @@ function TradeMarket() {
             <aside aria-label="Tide markets">
               <div className="flex items-center justify-between border-b border-line px-5 py-4">
                 <h2 className="text-sm font-medium">Markets</h2>
-                <span className="num text-xs text-fg-3">{rows?.length ?? "–"} strategies</span>
+                <span className="num text-xs text-fg-3">{rows ? `${rows.length} ${rows.length === 1 ? "strategy" : "strategies"}` : "– strategies"}</span>
               </div>
               {rows === null && !error && (
                 <div className="space-y-2 p-3" aria-label="Loading markets">
@@ -163,21 +170,33 @@ function TradeMarket() {
                 <div className="max-h-[30rem] overflow-y-auto p-2 [scrollbar-width:thin]">
                   {rows.map((market) => {
                     const active = market.name === selected;
+                    const params = market.market ?? market.records;
+                    const weth = units(market.market?.total.weth, 18);
+                    const usdc = units(market.market?.total.usdc, 6);
                     return (
                       <button
                         key={market.name}
                         type="button"
                         onClick={() => choose(market.name)}
                         aria-pressed={active}
-                        className={`touch-exempt flex w-full items-center justify-between gap-4 rounded-lg px-3 py-3 text-left transition-colors ${active ? "bg-accent/[0.1]" : "hover:bg-white/[0.04]"}`}
+                        className={`touch-exempt w-full rounded-lg px-3 py-3 text-left transition-colors ${active ? "bg-accent/[0.1]" : "hover:bg-white/[0.04]"}`}
                       >
-                        <span>
-                          <span className="block text-sm font-medium">WETH / USDC</span>
-                          <span className="num mt-0.5 block text-[11px] text-fg-3">{market.name}</span>
+                        <span className="flex items-start justify-between gap-4">
+                          <span>
+                            <span className="block text-sm font-medium">WETH / USDC</span>
+                            <span className="num mt-0.5 block text-[11px] text-fg-3">{market.name}</span>
+                          </span>
+                          <span className="text-right">
+                            <span className={`num block text-sm ${active ? "text-accent" : "text-fg-2"}`}>{params ? `${params.N}×` : "–"}</span>
+                            <span className="block text-[10px] text-fg-3">depth</span>
+                          </span>
                         </span>
-                        <span className="text-right">
-                          <span className={`num block text-sm ${active ? "text-accent" : "text-fg-2"}`}>{market.records ? `${market.records.N}×` : "–"}</span>
-                          <span className="block text-[10px] text-fg-3">depth</span>
+                        <span className="mt-3 flex items-end justify-between gap-3 border-t border-white/[0.06] pt-2 text-[10px] text-fg-3">
+                          <span>
+                            <span className="num block text-fg-2">{weth.toFixed(3)} WETH · {usdc.toLocaleString(undefined, { maximumFractionDigits: 0 })} USDC</span>
+                            <span className="num mt-0.5 block">maker {short(market.owner)}</span>
+                          </span>
+                          <span className="num text-right">λ {params ? `${params.lambda / 100}%` : "–"}<br />δ {params ? `${params.delta / 100}%` : "–"}</span>
                         </span>
                       </button>
                     );

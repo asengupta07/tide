@@ -12,7 +12,8 @@ export async function GET(req: Request) {
   const owner = query.get("owner");
   const tradableOnly = query.get("tradable") === "1";
   const publicMarkets = query.get("scope") === "public";
-  if (!owner && !publicMarkets) return NextResponse.json([]);
+  const marketScope = query.get("scope") === "markets";
+  if (!owner && !publicMarkets && !marketScope) return NextResponse.json([]);
   if (owner && !/^0x[0-9a-fA-F]{40}$/.test(owner))
     return NextResponse.json(
       { error: "Invalid wallet address" },
@@ -31,22 +32,26 @@ export async function GET(req: Request) {
       .find(
         publicMarkets
           ? { label: { $in: listings.map((p) => p.label) } }
-          : { owner: { $regex: `^${owner}$`, $options: "i" } },
+          : marketScope
+            ? {}
+            : { owner: { $regex: `^${owner}$`, $options: "i" } },
         { projection: { _id: 0 } },
       )
       .sort({ createdAt: -1 })
       .toArray();
     const published = publicMarkets
       ? listings
-      : await (
-          await col<Publication>("publications")
-        )
-          .find({
-            label: { $in: all.map((s) => s.label) },
-            published: true,
-            kind: "strategy",
-          })
-          .toArray();
+      : marketScope
+        ? []
+        : await (
+            await col<Publication>("publications")
+          )
+            .find({
+              label: { $in: all.map((s) => s.label) },
+              published: true,
+              kind: "strategy",
+            })
+            .toArray();
     const labels = new Set(published.map((p) => p.label));
     const pc = tradableOnly ? publicClient() : null;
     const rows = await Promise.all(
@@ -62,7 +67,16 @@ export async function GET(req: Request) {
           records,
           agentEnabled: enabled,
           published: labels.has(s.label),
-          ...(tradableOnly ? { tradeReady: isTradeReady(s.owner, onchain, block) } : {}),
+          ...(tradableOnly ? {
+            tradeReady: isTradeReady(s.owner, onchain, block),
+            market: onchain && block ? {
+              lambda: onchain.lambda,
+              N: onchain.N,
+              delta: onchain.delta,
+              fee: onchain.fee,
+              total: block.total,
+            } : null,
+          } : {}),
         };
       }),
     );
