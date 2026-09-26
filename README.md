@@ -17,7 +17,7 @@ Built at ETHGlobal Tokyo 2026 on two 2026 papers with no prior implementation: *
 | Governed parameters | [`contracts/src/TideParams.sol`](contracts/src/TideParams.sol) | on-chain mirror of the ENS records λ, N, δ plus the fee; owner-set guardrails (λ range, max step, N max, cooldown) that bind the manager; enforces `(N − 1)·δ ≤ 2·fee` |
 | ENSv2 (Sepolia) | [`client/scripts/ens-setup.ts`](client/scripts/ens-setup.ts), [`client/src/lib/ens/`](client/src/lib/ens) | `tide.eth` → user registry → `eth-usdc.tide.eth` (strategy) and `manager.tide.eth` (ENSIP-26 agent); per-key EAC role for the agent |
 | World ID for Agents | [`client/src/lib/world.ts`](client/src/lib/world.ts), [`client/src/lib/agent.ts`](client/src/lib/agent.ts) | bind owner (wallet-signed), RFC 9470 step-up for changes outside the guardrails, server-side validation, denied paths |
-| Dashboard + agent | [`client/`](client) | Next.js app: records, active/passive split, ETH/USD candles with the strategy's fills marked, a trade panel that fills the strategy from a wallet, price impact by size, proposals, approve/deny, agent log, frontier chart. Off-chain state (strategy index, proposals, OIDC requests, World bindings, log) in MongoDB; `pnpm reindex` rebuilds the strategy index from the ENS registry and records |
+| Dashboard + trading venue + agent | [`client/`](client) | Next.js app: an LP dashboard for records, active/passive split, fills, proposals and guarded changes; a separate Tide-only trading venue with live execution and plain-pool comparison; price-impact and frontier charts. Off-chain state (strategy index, proposals, OIDC requests, World bindings, log) in MongoDB; `pnpm reindex` rebuilds the strategy index from the ENS registry and records |
 | Research | [`research/`](research) | frontier solver, Monte-Carlo, test vectors, figures |
 
 ## Mechanism in one paragraph
@@ -71,7 +71,7 @@ cd contracts && ./script/fork-demo.sh
 
 Sepolia (already done, scripts are idempotent): `Deploy.s.sol`, `SepoliaDemo.s.sol` (ship + fill), `DeployHook.s.sol` (hook + pool + swap), then `pnpm ens:setup` in `client/`.
 
-App (landing, strategies, wizard, per-strategy dashboard) and agent:
+App (landing, Tide-only trading venue, LP strategies, wizard, per-strategy dashboard) and agent:
 
 ```bash
 cd client && pnpm install

@@ -43,15 +43,16 @@ export function Pill({ href, children, variant = "primary", external, size }: { 
 }
 
 const LINKS = [
+  ["Trade", "/trade"],
   ["Mechanism", "/#mechanism"],
   ["Results", "/#results"],
   ["Governance", "/#governance"],
-  ["Strategies", "/app"],
+  ["LP dashboard", "/app"],
   ["Whitepaper", "/WHITEPAPER.pdf"],
 ] as const;
 
 /** Floating glass island nav. Mobile: hamburger morphs to a cross, full-screen staggered menu. */
-export function Nav({ current }: { current?: "landing" | "app" }) {
+export function Nav({ current }: { current?: "landing" | "app" | "trade" }) {
   const [open, setOpen] = useState(false);
   const reduce = useReducedMotion();
   return (
@@ -68,10 +69,10 @@ export function Nav({ current }: { current?: "landing" | "app" }) {
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            {current === "app" ? (
+            {current === "app" || current === "trade" ? (
               <WalletButton />
             ) : (
-              <Pill href="/app" size="sm">Open app</Pill>
+              <Pill href="/trade" size="sm">Trade Tide</Pill>
             )}
             <button
               aria-label={open ? "Close menu" : "Open menu"}

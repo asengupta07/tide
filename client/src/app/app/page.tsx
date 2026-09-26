@@ -28,10 +28,13 @@ export default function Strategies() {
       <main className="mx-auto w-full max-w-7xl flex-1 px-5 pb-20 pt-28 sm:px-7 sm:pt-32 lg:px-10">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <h1 className="text-4xl font-semibold tracking-tight">Strategies</h1>
-            <p className="mt-2 max-w-[52ch] text-fg-2">Every Tide strategy is an ENS name under tide.eth, owned by the wallet that shipped it. Inventory stays in that wallet.</p>
+            <h1 className="text-4xl font-semibold tracking-tight">Liquidity dashboard</h1>
+            <p className="mt-2 max-w-[58ch] text-fg-2">Create and manage the Tide strategies owned by your wallet. Traders use the separate market to compare quotes and fill them.</p>
           </div>
-          <Pill href="/app/new">New strategy</Pill>
+          <div className="flex flex-wrap gap-3">
+            <Pill href="/trade" variant="ghost">Open trading</Pill>
+            <Pill href="/app/new">New strategy</Pill>
+          </div>
         </div>
 
         {rows === null && <div className="mt-12 grid gap-4 lg:grid-cols-2">{[0, 1].map((i) => <div key={i} className="h-40 animate-pulse rounded-2xl bg-white/[0.03]" />)}</div>}
@@ -44,15 +47,16 @@ export default function Strategies() {
                 Nothing under {short(address)} yet. <Link className="text-accent" href="/app/new">Ship one</Link>: pick a name, set the four knobs, ship on Aqua. A few signatures, nothing leaves your wallet.
               </div>
             ) : (
-              <Grid rows={mine} />
+              <Grid rows={mine} destination="manage" />
             )}
           </section>
         )}
 
         {rows && (
           <section className="mt-14">
-            <h2 className="mb-4 text-sm font-medium text-fg-2">{address ? "Everyone else" : "All strategies"}</h2>
-            {others.length === 0 ? <div className="text-sm text-fg-3">none</div> : <Grid rows={others} />}
+            <h2 className="mb-1 text-sm font-medium text-fg-2">{address ? "Other live markets" : "Live Tide markets"}</h2>
+            <p className="mb-4 text-xs text-fg-3">These open in the trader experience, not the LP controls.</p>
+            {others.length === 0 ? <div className="text-sm text-fg-3">none</div> : <Grid rows={others} destination="trade" />}
           </section>
         )}
       </main>
@@ -60,11 +64,11 @@ export default function Strategies() {
   );
 }
 
-function Grid({ rows }: { rows: Row[] }) {
+function Grid({ rows, destination }: { rows: Row[]; destination: "manage" | "trade" }) {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       {rows.map((r) => (
-        <Link key={r.name} href={`/app/${r.label}`} className="group block">
+        <Link key={r.name} href={destination === "manage" ? `/app/${r.label}` : `/trade?strategy=${encodeURIComponent(r.name)}`} className="group block">
           <Bezel small>
             <div className="p-5 transition-colors duration-300 group-hover:bg-white/[0.02]">
               <div className="flex items-start justify-between gap-4">

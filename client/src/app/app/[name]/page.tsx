@@ -163,7 +163,6 @@ export default function Dashboard() {
   const [proposeErr, setProposeErr] = useState<string | null>(null);
   const [advanced, setAdvanced] = useState(false);
   const [mgr, setMgr] = useState<Mgr | null>(null);
-  const [sigmaTouched, setSigmaTouched] = useState(false);
   const sigmaTouchedRef = useRef(false); // the poll closes over the first render; a ref sees the click
   const [now, setNow] = useState<number | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null); // the suggestion shown in the modal
@@ -254,7 +253,6 @@ export default function Dashboard() {
             sigma={sigma}
             setSigma={(v) => {
               sigmaTouchedRef.current = true;
-              setSigmaTouched(true);
               setSigma(v);
             }}
             propose={propose}
@@ -474,12 +472,14 @@ function Body({
         </Bezel>
       </section>
 
-      {/* Market: candles with fills, live trade, impact by size */}
+      {/* Market: candles with fills, execution preview, impact by size */}
       <section className="mt-10">
         <h2 className="text-lg font-medium">Market</h2>
         <p className="mt-1 text-sm text-fg-3">
           The price the strategy is trading around, every fill against it, and
-          what a fill would get right now.
+          {isOwner
+            ? ' what a trader would receive right now. Owner wallets can preview execution here but cannot fill their own liquidity.'
+            : ' what a fill would get right now.'}
         </p>
         <div className="mt-5 grid gap-4 lg:grid-cols-[1.6fr_1fr] [&>*]:min-w-0">
           <Bezel small>
@@ -493,6 +493,7 @@ function Body({
               totals={{ weth: w.t, usdc: u.t }}
               feeBps={feeBps}
               onFilled={refresh}
+              mode={isOwner ? 'preview' : 'trade'}
             />
           </Bezel>
         </div>

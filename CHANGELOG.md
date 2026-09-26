@@ -10,6 +10,9 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
   suggestion history sits in a fixed-height scrolling list. Impact curve: legend below the chart, N-curve
   drawn only inside the δ band, axes scaled to the band. Polls that fail keep the last snapshot. Mobile
   WalletConnect wallets are offered only when `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` is set.
+- `/trade` is now the dedicated Tide-only trader venue: pick a strategy, compare the live router quote
+  against a same-inventory constant-product pool, and swap only from a non-owner wallet. The LP dashboard
+  is explicitly for liquidity management; owners see quote previews but cannot fill their own strategy.
 
 **Trade from the dashboard, charts**
 - `TideTaker` contract: quote and fill a strategy from a wallet in one call (traits built on-chain, exact
