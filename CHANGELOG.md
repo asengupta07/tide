@@ -26,6 +26,11 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
   token decimals dynamically, and charts the selected asset. LINK/USDC launched with two independent
   Sepolia LPs and twelve successful on-chain fills alongside the existing WETH/USDC market.
 
+**Whitepaper v0.3**
+- New "Worked example" section: one block of the reference parameters on 1 WETH / 3,000 USDC with an
+  arbitrageur, a small trade inside the band and a larger one the guard re-prices, as a flow diagram
+  (Typst `fletcher`) plus the arithmetic. Compile needs network once to fetch the package.
+
 **Dashboard polish**
 - "Get a suggestion" opens the manager's answer in a modal (Escape, backdrop or X closes it); the
   suggestion history sits in a fixed-height scrolling list. Impact curve: legend below the chart, N-curve

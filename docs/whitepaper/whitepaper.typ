@@ -1,3 +1,4 @@
+#import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
 #set document(title: "Tide: a partially active market maker with a fee-bounded virtual curve", author: "Team Tide")
 #set page(paper: "a4", margin: (x: 2.3cm, y: 2.1cm), numbering: "1", footer: context [
   #set text(size: 8.5pt, fill: luma(110))
@@ -16,7 +17,7 @@
   #v(4pt)
   #text(size: 12.5pt)[A partially active market maker with a fee-bounded virtual curve]
   #v(8pt)
-  #text(size: 9.5pt, fill: luma(90))[Team Tide · Version 0.2 · September 26, 2026 · #link("https://github.com/asengupta07/tide")[github.com/asengupta07/tide]]
+  #text(size: 9.5pt, fill: luma(90))[Team Tide · Version 0.3 · September 27, 2026 · #link("https://github.com/asengupta07/tide")[github.com/asengupta07/tide]]
 ]
 
 #v(10pt)
@@ -54,6 +55,41 @@ Per block and per strategy:
 5. *Solvency.* Any fill must be deliverable from active plus passive. A fill that dips into the passive part triggers a re-split from the new totals at the current marginal price, which creates no arbitrage.
 6. *Fee.* Every fill pays $f$ on the input token. The curve and the drift guard see the net input; the taker pays gross; the fee rests in the passive part until the next re-split. Both venues read $f$ from the same parameter record as $lambda$, $N$ and $delta$, so a fill always pays the fee its parameters were checked against.
 
+= Worked example
+
+One block of the reference parameters, $lambda = 0.5$, $N = 4$, $delta = 20$ bp, $f = 30$ bp, on a strategy holding 1 WETH and 3,000 USDC (pool price 3,000). Between blocks the market moves to 3,030. Three takers arrive in block $b$: an arbitrageur, a small trader, and a larger trader who tries to use the deep curve. All amounts come from the contract formulas with the fee taken on the input before pricing.
+
+#figure(
+  diagram(
+    node-stroke: 0.5pt + luma(120),
+    node-corner-radius: 3pt,
+    node-inset: 7pt,
+    edge-stroke: 0.6pt,
+    spacing: (10mm, 7mm),
+    node((0, 0), [*Split* (first quote of block $b$) \ active 0.5 WETH, 1,500 USDC \ passive 0.5 WETH, 1,500 USDC], name: <split>),
+    edge("-|>", [ArbBot, 7.50 USDC in], label-side: left),
+    node((0, 1), [*First fill, $N = 1$* \ 0.00248 WETH out, anchor 3,030 \ ArbBot nets USD 0.015 (plain pool: 0.030)], name: <first>),
+    edge("-|>", [Carol, 0.001 WETH in], label-side: left),
+    node((0, 2), [*Follow-on, $N = 4$* \ drift 10 bp $<= delta$: virtual curve \ 3.0194 USDC out, impact 5 bp], name: <carol>),
+    edge("-|>", [MalloryBot, 0.01 WETH in], label-side: left),
+    node((0, 3), [*Follow-on, guard trips* \ drift 99 bp $> delta$: active curve \ 29.50 USDC out, not 29.94], name: <mallory>),
+    edge("-|>", [block $b + 1$], label-side: left),
+    node((0, 4), [*Re-split from new totals* \ 1.00852 WETH, 2,974.99 USDC \ active 0.50426 WETH, 1,487.49 USDC], name: <next>),
+  ),
+  caption: [One block of the reference strategy. Fees rest in the passive part until the next split.],
+  placement: auto,
+) <fig:flow>
+
+*Split.* The first quote of the block sets `active = 0.5 × total` for both tokens; the passive half is not quoted this block.
+
+*ArbBot.* The active curve has $k = 0.5 times 1500 = 750$. Moving it to 3,030 takes $sqrt(750 times 3030) - 1500 = 7.48$ USDC net, 7.50 USDC gross with the fee, for $0.5 - 750\/1507.48 = 0.00248$ WETH. At the market price that is worth 7.52 USDC: the arbitrageur clears USD 0.015 and the strategy gives up USD 0.037 of value. A plain pool with the same 1 WETH and 3,000 USDC would have been moved with 15.01 USDC for 0.00496 WETH, a USD 0.030 profit and a USD 0.075 loss. Halving the exposure halves the loss in this block, which is the per-block picture behind @eq:steady (the steady-state saving is a third, because the passive half carries a stale price into the next block).
+
+*Carol.* Sells 0.001 WETH, 0.000997 net. On the virtual curve $(4 x_a)(4 y_a)$ with $x_a = 0.49752$, $y_a = 1507.48$ she receives $0.000997 times 4 times 1507.48 \/ (4 times 0.49752 + 0.000997) = 3.0194$ USDC. The drift, $1 - (4 x_a \/ (4 x_a + q))^2 = 10$ bp, is inside $delta$, so the quote stands. Her price impact against the anchor is 5 bp; the active curve alone would have charged 20 bp (3.0149 USDC) and the plain pool 10 bp (3.0179 USDC). This is Table 2 at $N = 4$ for a small trade.
+
+*MalloryBot.* Sells 0.01 WETH, ten times Carol's size. The virtual curve would pay 29.94 USDC, but the drift is 99 bp, five times $delta$, so the guard re-prices the fill on the active curve at 29.50 USDC. The band at these reserves is about 0.002 WETH (USD 6), so the deep curve serves retail-sized flow and nothing that could move the anchor. The re-pricing is what makes @eq:feebound hold: within the band the deep curve can hand out at most $(N-1)delta\/2 = 30$ bp of improvement per unit, exactly what one fee of 30 bp costs, and a sale-then-buy-back loop pays the fee twice.
+
+*Re-split.* Block $b+1$ starts from the new totals, including the 0.0225 USDC and 0.00006 WETH of fees that sat in the passive part, and the anchor is forgotten. Nothing carries over except the reserves, which is why the state per strategy is one block number and two active balances.
+
 = Analysis
 
 *Proposition 1 (activeness scales LVR).* A strategy of equity $E$ that exposes $lambda E$ per block loses, in steady state,
@@ -61,7 +97,7 @@ $ EE["LVR"_"Tide"] = (sigma^2)/8 dot E dot Delta dot 1/(2-lambda). $ <eq:steady>
 
 _Proof sketch._ Let $g_t$ be the log gap between the market and the pool's marginal price at the top of block $t$. The first fill closes the gap on the active slice; after the re-split the pool price is the reserve-weighted mix of the active part (at the market) and the passive part (at the old price), so the gap carried forward is $(1-lambda) g_t + r_(t+1)$ with $r_(t+1) tilde N(0, sigma^2 Delta)$. Thus $g$ is AR(1) with stationary variance $sigma^2 Delta \/ (lambda(2-lambda))$. Closing a gap $g$ on a curve of value $lambda E$ costs $lambda E g^2\/8$ to second order, and taking expectations gives @eq:steady. The gap dynamics are those of @ko2026, Section 3. $square$
 
-The saving is 33% at $lambda = 0.5$ and 43% at $lambda = 0.25$; it is capped at 50% as $lambda arrow 0$, at which point the pool no longer tracks the market. Section 5 confirms the ratio numerically.
+The saving is 33% at $lambda = 0.5$ and 43% at $lambda = 0.25$; it is capped at 50% as $lambda arrow 0$, at which point the pool no longer tracks the market. Section 6 confirms the ratio numerically.
 
 *Proposition 2 (virtual depth and solvency).* Quoting against $(N x_a)(N y_a) = k$ reduces the slippage of a trade of size $q$ from about $q\/x_a$ to about $q\/(N x_a)$ (Table 2). The virtual curve promises up to $N y_a$, which the pool does not hold. With the drift bound measured against the block anchor, the most it can be asked to deliver in one block is
 $ y_max = N y_a (1 - sqrt(1-delta)), $
@@ -83,7 +119,7 @@ lowering $N$ when the interval is empty. At $sigma = 60%$, $f = 30$ bp, $N = 4$ 
 
 *Choosing $lambda$.* Exposing less of the reserves lowers LVR but lets the pool's token weight $w_t$ drift from its target $theta = 1\/2$; the deviation is AR(1) with decay $(1-lambda)$ and shock $r_t\/4$. The maker minimises
 $ "LVR"(lambda) - "Fees"(lambda) + kappa sum_t (w_t - theta)^2, $ <eq:objective>
-where the fee term is first order in $f$ and $kappa$ prices tracking error. LVR and tracking error scale with $sigma^2$ and fees with $sigma$, so $lambda^*$ falls as volatility rises. We solve @eq:objective on a grid at $f = 1$ bp with $kappa$ calibrated to $lambda^* = 0.5$ at $sigma = 60%$ (Figure 2); the manager reads $lambda^*$ from this frontier and $delta$ from @eq:box.
+where the fee term is first order in $f$ and $kappa$ prices tracking error. LVR and tracking error scale with $sigma^2$ and fees with $sigma$, so $lambda^*$ falls as volatility rises. We solve @eq:objective on a grid at $f = 1$ bp with $kappa$ calibrated to $lambda^* = 0.5$ at $sigma = 60%$ (Figure 3); the manager reads $lambda^*$ from this frontier and $delta$ from @eq:box.
 
 #figure(
   image("../../research/fig_frontier.png", width: 70%),
