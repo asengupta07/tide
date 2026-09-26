@@ -67,11 +67,14 @@ cd contracts && ./script/fork-demo.sh
 
 Sepolia (already done, scripts are idempotent): `Deploy.s.sol`, `SepoliaDemo.s.sol` (ship + fill), `DeployHook.s.sol` (hook + pool + swap), then `pnpm ens:setup` in `client/`.
 
-Dashboard and agent:
+App (landing, strategies, wizard, per-strategy dashboard) and agent:
 
 ```bash
-cd client && pnpm install && pnpm dev          # http://localhost:3000
-pnpm agent propose --sigma 0.8                 # agent proposes λ*, prints the World ID approval URL
+cd client && pnpm install && pnpm dev          # http://localhost:3000, connect a Sepolia wallet (RainbowKit)
+# /app/new: name it (<label>.tide.eth to your wallet, own resolver, records seeded), approve, TideParams.init,
+#           Aqua.ship, optional one-multicall delegation to manager.tide.eth. Four signatures.
+pnpm tsx --env-file=../.env scripts/e2e-new-strategy.ts  # same flow with a throwaway wallet, end to end
+pnpm agent propose --sigma 0.8 --strategy eth-usdc.tide.eth   # agent proposes λ*, prints the approval URL
 pnpm tsx --env-file=../.env scripts/test-agent-flow.ts   # denied / replayed / expired / forged paths
 pnpm tsx --env-file=../.env scripts/ens-agent-check.ts   # agent can set lambda, cannot touch anything else
 pnpm tsx --env-file=../.env scripts/ens-revoke.ts        # one EAC call per record + drop on-chain manager

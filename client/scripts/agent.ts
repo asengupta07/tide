@@ -15,7 +15,7 @@ const arg = (k: string, d?: string) => {
 async function main() {
   if (cmd === "propose") {
     const sigma = Number(arg("sigma", "0.6"));
-    const body: Record<string, number> = { sigma };
+    const body: Record<string, number | string> = { sigma, strategy: arg("strategy", "eth-usdc.tide.eth")! };
     if (arg("N")) body.N = Number(arg("N"));
     if (arg("delta")) body.delta = Number(arg("delta"));
     const res = await fetch(`${base}/api/agent/propose`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
