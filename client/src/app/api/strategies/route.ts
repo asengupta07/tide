@@ -6,6 +6,7 @@ import { currentRecords, agentEnabled } from "@/lib/agent";
 import { publicClient } from "@/lib/ens/client";
 import { blockState, readParams } from "@/lib/tide";
 import { isTradeReady } from "@/lib/trade-readiness";
+import { marketForTokens, tokenMeta } from "@/lib/tokens";
 export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const query = new URL(req.url).searchParams;
@@ -64,6 +65,8 @@ export async function GET(req: Request) {
         ]);
         return {
           ...s,
+          tokens: { tokenA: tokenMeta(s.tokenA), tokenB: tokenMeta(s.tokenB) },
+          pair: marketForTokens(s.tokenA, s.tokenB),
           records,
           agentEnabled: enabled,
           published: labels.has(s.label),

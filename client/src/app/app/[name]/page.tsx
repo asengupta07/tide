@@ -32,6 +32,7 @@ import { CandleChart } from '@/components/CandleChart';
 import { ImpactCurve } from '@/components/ImpactCurve';
 import { TradePanel } from '@/components/TradePanel';
 import { DitherField } from '@/components/shaders';
+import { marketForTokens, tokenMeta } from '@/lib/tokens';
 
 type Mgr = {
   sigma: number | null;
@@ -84,8 +85,8 @@ type Snapshot = {
   } | null;
   block: {
     blockNumber: number;
-    active: { weth: string; usdc: string };
-    total: { weth: string; usdc: string };
+    active: { tokenA?: string; tokenB?: string; weth: string; usdc: string };
+    total: { tokenA?: string; tokenB?: string; weth: string; usdc: string };
   } | null;
   fills: {
     block: number;
@@ -132,7 +133,6 @@ const num = (wei: string | undefined, dec: number) =>
 const fmt = (v: number, d = 2) =>
   v.toLocaleString(undefined, { maximumFractionDigits: d });
 const short = (h?: string) => (h ? `${h.slice(0, 6)}…${h.slice(-4)}` : '');
-const WETH = '0xfff9976782d46cc05630d1f6ebab18b2324d6b14';
 const tx = (h?: string) => `https://sepolia.etherscan.io/tx/${h}`;
 const ago = (t: number, now: number | null) => {
   if (now === null) return 'just now';
@@ -310,11 +310,19 @@ function Body({
   const delta = s.records.delta / 100;
   const feeBps = s.onchain?.fee ?? s.records.fee ?? 30;
   const rebate = ((s.records.N - 1) * s.records.delta) / 2; // bps, the deep curve's best price improvement
-  const w = {
-    a: num(s.block?.active.weth, 18),
-    t: num(s.block?.total.weth, 18),
+  const tokenA = tokenMeta(s.strategy.tokenA);
+  const tokenB = tokenMeta(s.strategy.tokenB);
+  const pair = marketForTokens(s.strategy.tokenA, s.strategy.tokenB) ?? { key: `${s.strategy.tokenA}:${s.strategy.tokenB}`, base: tokenA, quote: tokenB };
+  const inventoryA = {
+    a: num(s.block?.active.tokenA ?? (tokenA.symbol === 'WETH' ? s.block?.active.weth : s.block?.active.usdc), tokenA.decimals),
+    t: num(s.block?.total.tokenA ?? (tokenA.symbol === 'WETH' ? s.block?.total.weth : s.block?.total.usdc), tokenA.decimals),
   };
-  const u = { a: num(s.block?.active.usdc, 6), t: num(s.block?.total.usdc, 6) };
+  const inventoryB = {
+    a: num(s.block?.active.tokenB ?? (tokenB.symbol === 'WETH' ? s.block?.active.weth : s.block?.active.usdc), tokenB.decimals),
+    t: num(s.block?.total.tokenB ?? (tokenB.symbol === 'WETH' ? s.block?.total.weth : s.block?.total.usdc), tokenB.decimals),
+  };
+  const base = pair.base.address.toLowerCase() === s.strategy.tokenA.toLowerCase() ? inventoryA : inventoryB;
+  const quote = pair.quote.address.toLowerCase() === s.strategy.tokenA.toLowerCase() ? inventoryA : inventoryB;
   const hasSplit = (s.block?.blockNumber ?? 0) > 0;
   const pending = s.proposals.find((p) => p.status === 'pending');
   const focus = focusId ? s.proposals.find((p) => p.id === focusId) : undefined;
@@ -454,15 +462,15 @@ function Body({
             </div>
             <div className="mt-6 grid gap-6 md:grid-cols-2">
               <Inventory
-                label="WETH"
-                active={hasSplit ? w.a : w.t * (lambda / 100)}
-                total={w.t}
+                label={pair.base.symbol}
+                active={hasSplit ? base.a : base.t * (lambda / 100)}
+                total={base.t}
                 digits={4}
               />
               <Inventory
-                label="USDC"
-                active={hasSplit ? u.a : u.t * (lambda / 100)}
-                total={u.t}
+                label={pair.quote.symbol}
+                active={hasSplit ? quote.a : quote.t * (lambda / 100)}
+                total={quote.t}
                 digits={2}
               />
             </div>
@@ -487,13 +495,14 @@ function Body({
         <div className="mt-5 grid gap-4 lg:grid-cols-[1.6fr_1fr] [&>*]:min-w-0">
           <Bezel small>
             <div className="min-w-0 overflow-hidden p-5">
-              <CandleChart fills={s.fills} weth={WETH} />
+              <CandleChart fills={s.fills} baseToken={pair.base} />
             </div>
           </Bezel>
           <Bezel small>
             <TradePanel
               strategy={s.strategy}
-              totals={{ weth: w.t, usdc: u.t }}
+              totals={{ tokenA: inventoryA.t, tokenB: inventoryB.t }}
+              pair={pair}
               feeBps={feeBps}
               lambdaBps={s.onchain?.lambda ?? s.records.lambda}
               N={s.onchain?.N ?? s.records.N}
@@ -515,8 +524,8 @@ function Body({
             </div>
             <div className="mt-4">
               <ImpactCurve
-                totalIn={w.t}
-                totalOut={u.t}
+                totalIn={base.t}
+                totalOut={quote.t}
                 lambda={lambda / 100}
                 N={s.onchain?.N ?? s.records.N}
                 deltaBps={s.onchain?.delta ?? s.records.delta}
@@ -784,13 +793,10 @@ function Body({
             <Bezel small>
               <ul className="divide-y divide-white/[0.06]">
                 {fills.slice(0, 10).map((f) => {
-                  const inW = f.tokenIn.toLowerCase() === WETH;
-                  const a = inW
-                    ? `${fmt(num(f.amountIn, 18), 4)} WETH`
-                    : `${fmt(num(f.amountIn, 6))} USDC`;
-                  const b = inW
-                    ? `${fmt(num(f.amountOut, 6))} USDC`
-                    : `${fmt(num(f.amountOut, 18), 4)} WETH`;
+                  const input = f.tokenIn.toLowerCase() === tokenA.address.toLowerCase() ? tokenA : tokenB;
+                  const output = f.tokenOut.toLowerCase() === tokenA.address.toLowerCase() ? tokenA : tokenB;
+                  const a = `${fmt(num(f.amountIn, input.decimals), input.decimals > 6 ? 4 : 2)} ${input.symbol}`;
+                  const b = `${fmt(num(f.amountOut, output.decimals), output.decimals > 6 ? 4 : 2)} ${output.symbol}`;
                   return (
                     <li
                       key={`${f.tx}-${f.logIndex}`}

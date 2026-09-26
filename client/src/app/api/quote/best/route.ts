@@ -6,19 +6,20 @@ import tideTakerAbi from "@/abi/tide/TideTaker.json";
 import { publicClient } from "@/lib/ens/client";
 import { col } from "@/lib/db";
 import type { Strategy } from "@/lib/registry";
-import { SEPOLIA_USDC } from "@/lib/registry";
 import { deployment } from "@/lib/tide";
+import { marketForTokens } from "@/lib/tokens";
 
 export const dynamic = "force-dynamic";
 
 const Q = z.object({
   amount: z.string().regex(/^\d+$/),
   exactIn: z.enum(["1", "0"]),
-  sellEth: z.enum(["1", "0"]),
+  tokenIn: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+  tokenOut: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
   excludeOwner: z.string().regex(/^0x[0-9a-fA-F]{40}$/).optional(),
 });
 
-/** Best single-strategy Tide route for one WETH/USDC order. */
+/** Best single-strategy Tide route for one supported market. */
 export async function GET(req: Request) {
   try {
     const q = Q.parse(Object.fromEntries(new URL(req.url).searchParams));
@@ -26,8 +27,9 @@ export async function GET(req: Request) {
     if (!dep.tideTaker) return NextResponse.json({ error: "Tide taker is not deployed" }, { status: 503 });
 
     const exclude = q.excludeOwner?.toLowerCase();
-    const tokenIn = q.sellEth === "1" ? dep.weth : SEPOLIA_USDC;
-    const tokenOut = q.sellEth === "1" ? SEPOLIA_USDC : dep.weth;
+    const tokenIn = getAddress(q.tokenIn);
+    const tokenOut = getAddress(q.tokenOut);
+    if (tokenIn === tokenOut || !marketForTokens(tokenIn, tokenOut)) return NextResponse.json({ error: "This market is not supported" }, { status: 400 });
     const strategies = await (await col<Strategy>("strategies"))
       .find({}, { projection: { _id: 0 } })
       .toArray();

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAddress } from "viem";
 import { createName, labelAvailable } from "@/lib/onboard";
-import { addStrategy, validLabel, SEPOLIA_WETH, SEPOLIA_USDC } from "@/lib/registry";
+import { addStrategy, validLabel } from "@/lib/registry";
+import { marketForTokens, sortedTokens, TOKENS } from "@/lib/tokens";
 import { appendLog } from "@/lib/store";
 import { requireOwner, OwnerAuthError, safeError } from "@/lib/auth";
 
@@ -11,6 +12,8 @@ export const dynamic = "force-dynamic";
 const Body = z.object({
   label: z.string().min(3).max(32),
   owner: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+  tokenA: z.string().regex(/^0x[0-9a-fA-F]{40}$/).optional(),
+  tokenB: z.string().regex(/^0x[0-9a-fA-F]{40}$/).optional(),
   lambdaBps: z.number().int().min(1).max(10_000),
   n: z.number().int().min(1).max(64),
   deltaBps: z.number().int().min(0).max(4999),
@@ -30,7 +33,9 @@ export async function POST(req: Request) {
     // the registrar key pays for the resolver and the registration, so the wallet that gets the name must ask
     await requireOwner(b.owner, `name ${label} for ${b.owner.toLowerCase()}`, b.ts, b.sig);
     if (!(await labelAvailable(label))) return NextResponse.json({ error: "label taken" }, { status: 409 });
-    const [tokenA, tokenB] = SEPOLIA_WETH.toLowerCase() < SEPOLIA_USDC.toLowerCase() ? [SEPOLIA_WETH, SEPOLIA_USDC] : [SEPOLIA_USDC, SEPOLIA_WETH];
+    const market = marketForTokens(b.tokenA ?? TOKENS.WETH.address, b.tokenB ?? TOKENS.USDC.address);
+    if (!market) return NextResponse.json({ error: "unsupported token pair" }, { status: 400 });
+    const [tokenA, tokenB] = sortedTokens(market);
     if ((b.n - 1) * b.deltaBps > 2 * b.feeBps) return NextResponse.json({ error: "delta exceeds what the fee backs: (N - 1) * delta must be <= 2 * fee" }, { status: 400 });
     const strat = await createName({ label, owner: getAddress(b.owner), tokenA, tokenB, salt: BigInt(b.salt), lambdaBps: b.lambdaBps, n: b.n, deltaBps: b.deltaBps, feeBps: b.feeBps, description: b.description });
     await addStrategy(strat);

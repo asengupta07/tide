@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { ChartLineUp, Path, ShieldCheck } from "@phosphor-icons/react";
+import { TOKENS } from "@/lib/tokens";
 
 type Market = {
   name: string;
+  pair?: { key: string } | null;
   market?: { N: number; fee: number; total: { weth: string; usdc: string } } | null;
 };
 
@@ -30,7 +32,7 @@ export function TradeHeroLive() {
         if (!r.ok) throw new Error("markets unavailable");
         return r.json() as Promise<Market[]>;
       }),
-      fetch("/api/quote/best?amount=10000000000000000&exactIn=1&sellEth=1", { cache: "no-store", signal: controller.signal }).then((r) => {
+      fetch(`/api/quote/best?amount=10000000000000000&exactIn=1&tokenIn=${TOKENS.WETH.address}&tokenOut=${TOKENS.USDC.address}`, { cache: "no-store", signal: controller.signal }).then((r) => {
         if (!r.ok) throw new Error("quote unavailable");
         return r.json() as Promise<Quote>;
       }),
@@ -43,7 +45,7 @@ export function TradeHeroLive() {
     return () => controller.abort();
   }, []);
 
-  const inventory = markets?.reduce((sum, market) => sum + usdc(market.market?.total.usdc ?? "0"), 0) ?? 0;
+  const inventory = markets?.filter((market) => market.pair?.key === "weth-usdc").reduce((sum, market) => sum + usdc(market.market?.total.usdc ?? "0"), 0) ?? 0;
   const output = quote ? usdc(quote.route.amountOut) : null;
 
   return (

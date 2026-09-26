@@ -6,13 +6,14 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { createChart, CandlestickSeries, HistogramSeries, createSeriesMarkers, type IChartApi, type UTCTimestamp, type SeriesMarker, type Time } from "lightweight-charts";
+import type { TokenMeta } from "@/lib/tokens";
 
 export type Fill = { block: number; at: number | null; tokenIn: string; amountIn: string; amountOut: string; tx: string };
 type Candle = { time: number; open: number; high: number; low: number; close: number; volume: number };
 
 const GRAN: Record<string, string> = { "15m": "900", "1h": "3600", "6h": "21600", "1d": "86400" };
 
-export function CandleChart({ fills, weth, compact = false }: { fills: Fill[]; weth: string; compact?: boolean }) {
+export function CandleChart({ fills, baseToken, compact = false }: { fills: Fill[]; baseToken: TokenMeta; compact?: boolean }) {
   const box = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const [tf, setTf] = useState<keyof typeof GRAN>("1h");
@@ -22,7 +23,7 @@ export function CandleChart({ fills, weth, compact = false }: { fills: Fill[]; w
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`/api/candles?granularity=${GRAN[tf]}`, { signal: controller.signal })
+    fetch(`/api/candles?granularity=${GRAN[tf]}&product=${encodeURIComponent(baseToken.usdProduct ?? "")}`, { signal: controller.signal })
       .then(async r => {
         const data = await r.json();
         if (!r.ok || !Array.isArray(data)) throw new Error(data.error || "Could not load candles");
@@ -31,7 +32,7 @@ export function CandleChart({ fills, weth, compact = false }: { fills: Fill[]; w
       .then(data => { if (!controller.signal.aborted) setFeed({ timeframe: tf, candles: data, error: null }); })
       .catch(e => { if (!controller.signal.aborted) setFeed({ timeframe: tf, candles: null, error: e.message }); });
     return () => controller.abort();
-  }, [tf]);
+  }, [tf, baseToken.usdProduct]);
 
   useEffect(() => {
     if (!box.current || !candles?.length) return;
@@ -60,12 +61,12 @@ export function CandleChart({ fills, weth, compact = false }: { fills: Fill[]; w
     const grouped = new Map<string, { time: UTCTimestamp; boughtEth: boolean; count: number }>();
     for (const fill of fills) {
       if (!fill.at || fill.at < first) continue;
-      const boughtEth = fill.tokenIn.toLowerCase() !== weth.toLowerCase();
+      const boughtBase = fill.tokenIn.toLowerCase() !== baseToken.address.toLowerCase();
       const time = (Math.floor(fill.at / step) * step) as UTCTimestamp;
-      const key = `${time}:${boughtEth ? "buy" : "sell"}`;
+      const key = `${time}:${boughtBase ? "buy" : "sell"}`;
       const current = grouped.get(key);
       if (current) current.count += 1;
-      else grouped.set(key, { time, boughtEth, count: 1 });
+      else grouped.set(key, { time, boughtEth: boughtBase, count: 1 });
     }
     const markers: SeriesMarker<Time>[] = [...grouped.values()]
       .map(({ time, boughtEth, count }) => ({
@@ -83,12 +84,12 @@ export function CandleChart({ fills, weth, compact = false }: { fills: Fill[]; w
       chart.remove();
       chartRef.current = null;
     };
-  }, [candles, fills, weth, tf]);
+  }, [candles, fills, baseToken.address, tf]);
 
   return (
     <div className="relative">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="min-w-0 text-sm font-medium">ETH / USD <span className="text-fg-3">· {fills.length} fills across {new Set(fills.map((fill) => fill.block)).size} blocks</span></div>
+        <div className="min-w-0 text-sm font-medium">{baseToken.symbol} / USD <span className="text-fg-3">· {fills.length} fills across {new Set(fills.map((fill) => fill.block)).size} blocks</span></div>
         <div className="flex gap-1 rounded-full border border-white/10 p-0.5">
           {(Object.keys(GRAN) as (keyof typeof GRAN)[]).map((k) => (
             <button key={k} onClick={() => setTf(k)} className={`touch-exempt rounded-full px-2.5 py-1 text-[11px] ${tf === k ? "bg-white/[0.08] text-fg" : "text-fg-3 hover:text-fg"}`}>{k}</button>

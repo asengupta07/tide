@@ -22,6 +22,9 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
   price-impact labels explain what traders actually get, and the demo-size shortcut is gone.
 - Tightened the Tide advantage into a compact, scannable callout with one output figure and clear
   eligibility details instead of the awkward split headline.
+- Added real multi-market trading: the terminal now groups liquidity and routes by token pair, formats
+  token decimals dynamically, and charts the selected asset. LINK/USDC launched with two independent
+  Sepolia LPs and twelve successful on-chain fills alongside the existing WETH/USDC market.
 
 **Dashboard polish**
 - "Get a suggestion" opens the manager's answer in a modal (Escape, backdrop or X closes it); the

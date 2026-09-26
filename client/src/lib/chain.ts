@@ -4,11 +4,13 @@ import tideParamsAbi from "@/abi/tide/TideParams.json";
 import tideAppAbi from "@/abi/tide/TideApp.json";
 import tideTakerAbi from "@/abi/tide/TideTaker.json";
 import resolverAbi from "@/abi/ens/PermissionedResolverImpl.json";
+import { TOKENS } from "@/lib/tokens";
 
 export const ADDR = {
   aqua: "0x1111113CCf1426A8E30e2bfF5E005d929bF6a90a" as Address,
-  weth: "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14" as Address,
-  usdc: "0x16f95D91DBa7dA3Aca778Ec053dF0FF6C6A8aA8e" as Address,
+  weth: TOKENS.WETH.address,
+  usdc: TOKENS.USDC.address,
+  link: TOKENS.LINK.address,
   tideParams: "0x1685850e16Ea6A6D5f3fF6FBA824B4d834eb72aD" as Address,
   tideRouter: "0x65a22C65E24b78ea708DD420aEc29f7dce38a31e" as Address,
   tideApp: "0x47ba13504B02E0Bf40C3C80Bb2B1aa3dF8EDD12c" as Address,

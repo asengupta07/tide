@@ -12,14 +12,16 @@ import { parseUnits, formatUnits, type Address, type Hex } from "viem";
 import { ArrowRight, ArrowsLeftRight, CircleNotch, TrendUp } from "@phosphor-icons/react";
 
 import { ADDR, erc20Abi, tideTakerAbi } from "@/lib/chain";
+import { marketForTokens, marketKey, tokenMeta, type MarketPair } from "@/lib/tokens";
 
 type StrategyConfig = { label?: string; name: string; owner: string; tokenA: string; tokenB: string; salt: string };
 type CurveParams = { lambdaBps: number; N: number; deltaBps: number };
-type RouteSource = { strategy: StrategyConfig; totals: { weth: number; usdc: number }; feeBps: number; params: CurveParams };
+type PairTotals = { tokenA: number; tokenB: number };
+type RouteSource = { strategy: StrategyConfig; totals: PairTotals; feeBps: number; params: CurveParams };
 
 type Props = {
   strategy: StrategyConfig;
-  totals: { weth: number; usdc: number }; // live inventory, for the plain-pool comparison
+  totals: PairTotals; // live inventory in the strategy's tokenA/tokenB order
   feeBps: number;
   lambdaBps?: number;
   N?: number;
@@ -29,29 +31,32 @@ type Props = {
   sources?: RouteSource[];
   mode?: "trade" | "preview";
   compact?: boolean;
+  pair?: MarketPair;
 };
 
-export function TradePanel({ strategy, totals, feeBps, lambdaBps, N, deltaBps, onFilled, onRoute, sources, mode = "trade", compact = false }: Props) {
+export function TradePanel({ strategy, totals, feeBps, lambdaBps, N, deltaBps, onFilled, onRoute, sources, mode = "trade", compact = false, pair }: Props) {
   const { address, isConnected } = useAccount();
   const pc = usePublicClient();
   const { writeContractAsync } = useWriteContract();
-  const [sellEth, setSellEth] = useState(true);
-  const [amount, setAmount] = useState(sellEth ? "0.01" : "20");
+  const market = pair ?? marketForTokens(strategy.tokenA, strategy.tokenB) ?? { key: marketKey(strategy.tokenA, strategy.tokenB), base: tokenMeta(strategy.tokenA), quote: tokenMeta(strategy.tokenB) };
+  const [sellBase, setSellBase] = useState(true);
+  const [amount, setAmount] = useState(defaultAmount(market.base));
   const [quote, setQuote] = useState<{ out: bigint; key: string; strategy: StrategyConfig; aToB: boolean; checked: number } | null>(null);
   const [busy, setBusy] = useState<"quote" | "approve" | "swap" | "mining" | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState<{ tx: string; out: string } | null>(null);
   const autoRoute = mode === "trade" && !!sources?.length;
-  const wethIsA = ADDR.weth.toLowerCase() === strategy.tokenA.toLowerCase();
-  const singleAToB = sellEth ? wethIsA : !wethIsA;
-  const tokenIn = sellEth ? ADDR.weth : ADDR.usdc;
-  const decIn = sellEth ? 18 : 6;
-  const decOut = sellEth ? 6 : 18;
+  const tokenInMeta = sellBase ? market.base : market.quote;
+  const tokenOutMeta = sellBase ? market.quote : market.base;
+  const tokenIn = tokenInMeta.address;
+  const decIn = tokenInMeta.decimals;
+  const decOut = tokenOutMeta.decimals;
+  const singleAToB = tokenIn.toLowerCase() === strategy.tokenA.toLowerCase();
   const okAmount = /^\d+(\.\d+)?$/.test(amount) && Number(amount) > 0 && (amount.split(".")[1]?.length ?? 0) <= decIn;
   const wei = okAmount ? parseUnits(amount, decIn) : 0n;
-  const quoteKey = okAmount ? `${autoRoute ? "best" : strategy.name}:${wei}:${sellEth ? "1" : "0"}:${address?.toLowerCase() ?? ""}` : "";
+  const quoteKey = okAmount ? `${autoRoute ? market.key : strategy.name}:${wei}:${tokenIn.toLowerCase()}:${address?.toLowerCase() ?? ""}` : "";
   const quoteUrl = autoRoute
-    ? `/api/quote/best?amount=${wei}&exactIn=1&sellEth=${sellEth ? "1" : "0"}${address ? `&excludeOwner=${address}` : ""}`
+    ? `/api/quote/best?amount=${wei}&exactIn=1&tokenIn=${tokenIn}&tokenOut=${tokenOutMeta.address}${address ? `&excludeOwner=${address}` : ""}`
     : `/api/quote?strategy=${encodeURIComponent(strategy.name)}&amount=${wei}&exactIn=1&aToB=${singleAToB ? "1" : "0"}`;
   const currentQuote = quote?.key === quoteKey ? quote : null;
   const currentStrategy = currentQuote?.strategy ?? strategy;
@@ -94,16 +99,17 @@ export function TradePanel({ strategy, totals, feeBps, lambdaBps, N, deltaBps, o
 
   // what a plain constant-product pool with the same inventory and fee would give
   const plain = (() => {
-    if (!okAmount || !(currentTotals.weth > 0 && currentTotals.usdc > 0)) return null;
+    const x = balanceFor(currentTotals, currentStrategy, tokenIn);
+    const y = balanceFor(currentTotals, currentStrategy, tokenOutMeta.address);
+    if (!okAmount || !(x > 0 && y > 0)) return null;
     const q = Number(amount) * (1 - currentFeeBps / 1e4);
-    const [x, y] = sellEth ? [currentTotals.weth, currentTotals.usdc] : [currentTotals.usdc, currentTotals.weth];
     return (q * y) / (x + q);
   })();
   const outNum = currentQuote ? Number(formatUnits(currentQuote.out, decOut)) : null;
-  const price = outNum && okAmount ? (sellEth ? outNum / Number(amount) : Number(amount) / outNum) : null;
+  const price = outNum && okAmount ? (sellBase ? outNum / Number(amount) : Number(amount) / outNum) : null;
   const vsPlain = outNum && plain ? (outNum / plain - 1) * 1e4 : null;
-  const laneLimit = (routeTotals: { weth: number; usdc: number }, routeFeeBps: number, params: CurveParams) => {
-    const totalIn = sellEth ? routeTotals.weth : routeTotals.usdc;
+  const laneLimit = (routeTotals: PairTotals, routeFeeBps: number, params: CurveParams, route: StrategyConfig) => {
+    const totalIn = balanceFor(routeTotals, route, tokenIn);
     const activeIn = totalIn * params.lambdaBps / 1e4;
     const drift = params.deltaBps / 1e4;
     if (!(activeIn > 0 && params.N > 1 && drift > 0 && drift < 1)) return 0;
@@ -111,14 +117,15 @@ export function TradePanel({ strategy, totals, feeBps, lambdaBps, N, deltaBps, o
     return maxNetIn / (1 - routeFeeBps / 1e4);
   };
   const followOn = (() => {
-    if (!okAmount || !currentParams || !(currentTotals.weth > 0 && currentTotals.usdc > 0) || currentParams.N <= 1) return null;
-    const [totalIn, totalOut] = sellEth ? [currentTotals.weth, currentTotals.usdc] : [currentTotals.usdc, currentTotals.weth];
+    const totalIn = balanceFor(currentTotals, currentStrategy, tokenIn);
+    const totalOut = balanceFor(currentTotals, currentStrategy, tokenOutMeta.address);
+    if (!okAmount || !currentParams || !(totalIn > 0 && totalOut > 0) || currentParams.N <= 1) return null;
     const lambda = currentParams.lambdaBps / 1e4;
     const activeIn = totalIn * lambda;
     const activeOut = totalOut * lambda;
     const drift = currentParams.deltaBps / 1e4;
     if (!(activeIn > 0 && activeOut > 0 && drift > 0 && drift < 1)) return null;
-    const maxGrossIn = laneLimit(currentTotals, currentFeeBps, currentParams);
+    const maxGrossIn = laneLimit(currentTotals, currentFeeBps, currentParams, currentStrategy);
     const maxNetIn = maxGrossIn * (1 - currentFeeBps / 1e4);
     const enteredNetIn = Number(amount) * (1 - currentFeeBps / 1e4);
     const eligible = enteredNetIn <= maxNetIn;
@@ -166,7 +173,7 @@ export function TradePanel({ strategy, totals, feeBps, lambdaBps, N, deltaBps, o
     }
   };
 
-  const outLabel = sellEth ? "USDC" : "WETH";
+  const outLabel = tokenOutMeta.symbol;
   return (
     <div className={`flex h-full flex-col ${compact ? "p-4" : "p-5"}`}>
       <div className="flex items-center justify-between">
@@ -174,8 +181,8 @@ export function TradePanel({ strategy, totals, feeBps, lambdaBps, N, deltaBps, o
           <div className="text-sm font-medium">{mode === "preview" ? "Preview execution" : autoRoute ? "Auto-routed swap" : "Swap on Tide"}</div>
           {mode === "preview" && <div className="mt-0.5 text-[11px] text-fg-3">Quote only</div>}
         </div>
-        <button onClick={() => { setSellEth(!sellEth); setAmount(!sellEth ? "0.01" : "20"); }} className="touch-exempt flex items-center gap-1.5 rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-fg-2 transition-colors hover:border-white/20 hover:text-fg" aria-label="flip trade direction">
-          <ArrowsLeftRight size={12} /> {sellEth ? "WETH → USDC" : "USDC → WETH"}
+        <button onClick={() => { setSellBase(!sellBase); setAmount(defaultAmount(!sellBase ? market.base : market.quote)); }} className="touch-exempt flex items-center gap-1.5 rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-fg-2 transition-colors hover:border-white/20 hover:text-fg" aria-label="flip trade direction">
+          <ArrowsLeftRight size={12} /> {tokenInMeta.symbol} → {tokenOutMeta.symbol}
         </button>
       </div>
       <p className={`${compact ? "mt-1.5 text-[11px]" : "mt-2 text-xs"} leading-relaxed text-fg-3`}>{autoRoute ? "Tide checks every available liquidity source and chooses the one that gives you the most." : "This price is live and reflects when your order is expected to land."}</p>
@@ -183,17 +190,17 @@ export function TradePanel({ strategy, totals, feeBps, lambdaBps, N, deltaBps, o
       <label className={`${compact ? "mt-3" : "mt-5"} block text-xs text-fg-3`}>
         You pay
         <div className={`mt-1 flex items-center gap-2 rounded-xl border bg-white/[0.03] px-4 ${compact ? "py-2.5" : "py-3"} ${amount && !okAmount ? "border-bad/50" : "border-white/10"}`}>
-          <input aria-label={`amount of ${sellEth ? "WETH" : "USDC"} to sell`} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value.trim())} className="num w-full bg-transparent text-lg text-fg outline-none" />
-          <span className="num shrink-0 text-sm text-fg-3">{sellEth ? "WETH" : "USDC"}</span>
+          <input aria-label={`amount of ${tokenInMeta.symbol} to sell`} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value.trim())} className="num w-full bg-transparent text-lg text-fg outline-none" />
+          <span className="num shrink-0 text-sm text-fg-3">{tokenInMeta.symbol}</span>
         </div>
       </label>
       <div className={`${compact ? "mt-2 py-2.5" : "mt-3 py-3"} rounded-xl border border-white/[0.06] bg-white/[0.02] px-4`}>
         <div className="flex items-baseline justify-between">
           <span className="text-xs text-fg-3">You get</span>
-          <span className="num text-lg text-fg">{busy === "quote" ? "…" : outNum !== null ? `${outNum.toLocaleString(undefined, { maximumFractionDigits: sellEth ? 2 : 6 })} ${outLabel}` : "-"}</span>
+          <span className="num text-lg text-fg">{busy === "quote" ? "…" : outNum !== null ? `${outNum.toLocaleString(undefined, { maximumFractionDigits: decOut <= 6 ? 2 : 6 })} ${outLabel}` : "-"}</span>
         </div>
         <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-fg-3">
-          <dt>price</dt><dd className="num text-right text-fg-2">{price ? `$${price.toLocaleString(undefined, { maximumFractionDigits: 2 })} / ETH` : "-"}</dd>
+          <dt>price</dt><dd className="num text-right text-fg-2">{price ? `${price.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${market.quote.symbol} / ${market.base.symbol}` : "-"}</dd>
           <dt>compared with a standard pool</dt><dd className={`num text-right ${vsPlain === null ? "text-fg-2" : vsPlain >= 0 ? "text-accent" : "text-fg-2"}`}>{vsPlain === null ? "-" : formatComparison(vsPlain)}</dd>
           <dt>liquidity provider fee</dt><dd className="num text-right text-fg-2">{currentFeeBps / 100}%</dd>
           {autoRoute && <><dt>best route</dt><dd className="num truncate text-right text-fg-2">{currentQuote ? currentStrategy.name : "-"}</dd></>}
@@ -222,7 +229,7 @@ export function TradePanel({ strategy, totals, feeBps, lambdaBps, N, deltaBps, o
                 {followOn.eligible ? (
                   <>This order qualifies if another trade lands earlier in the block. Estimated price impact: <span className="font-medium text-fg">{followOn.impactMultiple.toFixed(2)}× lower</span>.</>
                 ) : (
-                  <>Available for orders up to <span className="num text-fg">{formatLaneAmount(followOn.maxGrossIn, sellEth)} {sellEth ? "WETH" : "USDC"}</span> after another trade lands in the block. Estimated price impact: <span className="font-medium text-fg">{followOn.impactMultiple.toFixed(2)}× lower</span>.</>
+                  <>Available for orders up to <span className="num text-fg">{formatLaneAmount(followOn.maxGrossIn, tokenInMeta.decimals)} {tokenInMeta.symbol}</span> after another trade lands in the block. Estimated price impact: <span className="font-medium text-fg">{followOn.impactMultiple.toFixed(2)}× lower</span>.</>
                 )}
               </p>
             </div>
@@ -254,10 +261,21 @@ export function TradePanel({ strategy, totals, feeBps, lambdaBps, N, deltaBps, o
   );
 }
 
-function formatLaneAmount(value: number, weth: boolean) {
+function balanceFor(totals: PairTotals, strategy: StrategyConfig, token: string) {
+  return token.toLowerCase() === strategy.tokenA.toLowerCase() ? totals.tokenA : totals.tokenB;
+}
+
+function defaultAmount(token: { symbol: string }) {
+  if (token.symbol === "WETH") return "0.01";
+  if (token.symbol === "USDC") return "20";
+  return "1";
+}
+
+function formatLaneAmount(value: number, decimals: number) {
+  const max = decimals <= 6 ? 3 : 6;
   return value.toLocaleString(undefined, {
-    maximumFractionDigits: weth ? 6 : 3,
-    minimumFractionDigits: value > 0 && value < (weth ? 0.000001 : 0.001) ? (weth ? 8 : 4) : 0,
+    maximumFractionDigits: max,
+    minimumFractionDigits: value > 0 && value < 10 ** -max ? Math.min(decimals, max + 2) : 0,
   });
 }
 

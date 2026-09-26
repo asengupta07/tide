@@ -72,19 +72,19 @@ export async function applyParams(agentKey: string, key: Hex, lambda: number, N:
 export async function blockState(pc: PublicClient, orderHash: Hex, maker: Address, tokens?: { tokenA: Address; tokenB: Address }) {
   const dep = deployment();
   const [tokenA, tokenB] = tokens ? [tokens.tokenA, tokens.tokenB] : dep.weth.toLowerCase() < SEPOLIA_USDC.toLowerCase() ? [dep.weth, SEPOLIA_USDC] : [SEPOLIA_USDC, dep.weth];
-  const [blockNumber, activeWeth, activeUsdc, balances] = await Promise.all([
+  const [blockNumber, activeA, activeB, balances] = await Promise.all([
     pc.readContract({ address: dep.tideRouter, abi: tideRouterAbi, functionName: "tideBlockNumber", args: [orderHash] }) as Promise<bigint>,
-    pc.readContract({ address: dep.tideRouter, abi: tideRouterAbi, functionName: "tideActive", args: [orderHash, dep.weth] }) as Promise<bigint>,
-    pc.readContract({ address: dep.tideRouter, abi: tideRouterAbi, functionName: "tideActive", args: [orderHash, SEPOLIA_USDC] }) as Promise<bigint>,
+    pc.readContract({ address: dep.tideRouter, abi: tideRouterAbi, functionName: "tideActive", args: [orderHash, tokenA] }) as Promise<bigint>,
+    pc.readContract({ address: dep.tideRouter, abi: tideRouterAbi, functionName: "tideActive", args: [orderHash, tokenB] }) as Promise<bigint>,
     pc.readContract({ address: dep.aqua, abi: aquaAbi, functionName: "safeBalances", args: [maker, dep.tideRouter, orderHash, tokenA, tokenB] }).catch(() => [0n, 0n] as const),
   ]);
   const [balA, balB] = balances as readonly [bigint, bigint];
-  const totalWeth = tokenA === dep.weth ? balA : balB;
-  const totalUsdc = tokenA === dep.weth ? balB : balA;
+  const totalWeth = tokenA === dep.weth ? balA : tokenB === dep.weth ? balB : 0n;
+  const totalUsdc = tokenA === SEPOLIA_USDC ? balA : tokenB === SEPOLIA_USDC ? balB : 0n;
   return {
     blockNumber: Number(blockNumber),
-    active: { weth: activeWeth.toString(), usdc: activeUsdc.toString() },
-    total: { weth: totalWeth.toString(), usdc: totalUsdc.toString() },
+    active: { tokenA: activeA.toString(), tokenB: activeB.toString(), weth: (tokenA === dep.weth ? activeA : tokenB === dep.weth ? activeB : 0n).toString(), usdc: (tokenA === SEPOLIA_USDC ? activeA : tokenB === SEPOLIA_USDC ? activeB : 0n).toString() },
+    total: { tokenA: balA.toString(), tokenB: balB.toString(), weth: totalWeth.toString(), usdc: totalUsdc.toString() },
   };
 }
 
