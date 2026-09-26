@@ -19,8 +19,10 @@ export async function GET(req: Request) {
     const dep = deployment() as ReturnType<typeof deployment> & { tideTaker?: `0x${string}` };
     if (!dep.tideTaker) return NextResponse.json({ error: "taker not deployed" }, { status: 503 });
     const cfg = { maker: s.owner, tokenA: s.tokenA, tokenB: s.tokenB, salt: BigInt(s.salt || "0") };
-    const [amountIn, amountOut] = (await publicClient().readContract({ address: dep.tideTaker, abi: tideTakerAbi, functionName: "quote", args: [cfg, BigInt(q.amount), q.exactIn === "1", q.aToB === "1"] })) as [bigint, bigint];
-    return NextResponse.json({ amountIn: amountIn.toString(), amountOut: amountOut.toString() });
+    const aToB = q.aToB === "1";
+    const [amountIn, amountOut] = (await publicClient().readContract({ address: dep.tideTaker, abi: tideTakerAbi, functionName: "quote", args: [cfg, BigInt(q.amount), q.exactIn === "1", aToB] })) as [bigint, bigint];
+    const route = { strategy: s, aToB, amountIn: amountIn.toString(), amountOut: amountOut.toString() };
+    return NextResponse.json({ amountIn: route.amountIn, amountOut: route.amountOut, route, quotes: [route] });
   } catch (e) {
     const error = safeError(e);
     const message = error.includes("function \"quote\" reverted") || error.includes("contract function")

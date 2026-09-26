@@ -13,49 +13,67 @@ import { ArrowRight, ArrowsLeftRight, CircleNotch, TrendUp } from "@phosphor-ico
 
 import { ADDR, erc20Abi, tideTakerAbi } from "@/lib/chain";
 
+type StrategyConfig = { label?: string; name: string; owner: string; tokenA: string; tokenB: string; salt: string };
+type RouteSource = { strategy: StrategyConfig; totals: { weth: number; usdc: number }; feeBps: number };
+
 type Props = {
-  strategy: { label?: string; name: string; owner: string; tokenA: string; tokenB: string; salt: string };
+  strategy: StrategyConfig;
   totals: { weth: number; usdc: number }; // live inventory, for the plain-pool comparison
   feeBps: number;
   onFilled?: () => void;
+  onRoute?: (strategyName: string) => void;
+  sources?: RouteSource[];
   mode?: "trade" | "preview";
 };
 
-export function TradePanel({ strategy, totals, feeBps, onFilled, mode = "trade" }: Props) {
+export function TradePanel({ strategy, totals, feeBps, onFilled, onRoute, sources, mode = "trade" }: Props) {
   const { address, isConnected } = useAccount();
   const pc = usePublicClient();
   const { writeContractAsync } = useWriteContract();
   const [sellEth, setSellEth] = useState(true);
   const [amount, setAmount] = useState(sellEth ? "0.01" : "20");
-  const [quote, setQuote] = useState<{ out: bigint; key: string } | null>(null);
+  const [quote, setQuote] = useState<{ out: bigint; key: string; strategy: StrategyConfig; aToB: boolean; checked: number } | null>(null);
   const [busy, setBusy] = useState<"quote" | "approve" | "swap" | "mining" | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState<{ tx: string; out: string } | null>(null);
-  const isOwner = !!address && address.toLowerCase() === strategy.owner.toLowerCase();
-
+  const autoRoute = mode === "trade" && !!sources?.length;
   const wethIsA = ADDR.weth.toLowerCase() === strategy.tokenA.toLowerCase();
-  const aToB = sellEth ? wethIsA : !wethIsA;
+  const singleAToB = sellEth ? wethIsA : !wethIsA;
   const tokenIn = sellEth ? ADDR.weth : ADDR.usdc;
   const decIn = sellEth ? 18 : 6;
   const decOut = sellEth ? 6 : 18;
   const okAmount = /^\d+(\.\d+)?$/.test(amount) && Number(amount) > 0 && (amount.split(".")[1]?.length ?? 0) <= decIn;
   const wei = okAmount ? parseUnits(amount, decIn) : 0n;
-  const quoteKey = okAmount ? `${strategy.name}:${wei}:${aToB ? "1" : "0"}` : "";
+  const quoteKey = okAmount ? `${autoRoute ? "best" : strategy.name}:${wei}:${sellEth ? "1" : "0"}:${address?.toLowerCase() ?? ""}` : "";
+  const quoteUrl = autoRoute
+    ? `/api/quote/best?amount=${wei}&exactIn=1&sellEth=${sellEth ? "1" : "0"}${address ? `&excludeOwner=${address}` : ""}`
+    : `/api/quote?strategy=${encodeURIComponent(strategy.name)}&amount=${wei}&exactIn=1&aToB=${singleAToB ? "1" : "0"}`;
   const currentQuote = quote?.key === quoteKey ? quote : null;
+  const currentStrategy = currentQuote?.strategy ?? strategy;
+  const currentSource = sources?.find((source) => source.strategy.name === currentStrategy.name);
+  const currentTotals = currentSource?.totals ?? totals;
+  const currentFeeBps = currentSource?.feeBps ?? feeBps;
+  const aToB = currentQuote?.aToB ?? singleAToB;
+  const isOwner = !!address && address.toLowerCase() === currentStrategy.owner.toLowerCase();
 
   useEffect(() => {
     if (!quoteKey) return;
-    const quoteAmount = quoteKey.split(":").at(-2);
-    if (!quoteAmount) return;
     const controller = new AbortController();
     const t = setTimeout(async () => {
       setErr(null);
       setBusy("quote");
       try {
-        const r = await fetch(`/api/quote?strategy=${encodeURIComponent(strategy.name)}&amount=${quoteAmount}&exactIn=1&aToB=${aToB ? "1" : "0"}`, { signal: controller.signal });
+        const r = await fetch(quoteUrl, { signal: controller.signal });
         const j = await r.json();
         if (!r.ok) throw new Error(j.error);
-        setQuote({ out: BigInt(j.amountOut), key: quoteKey });
+        setQuote({
+          out: BigInt(j.route.amountOut),
+          key: quoteKey,
+          strategy: j.route.strategy as StrategyConfig,
+          aToB: Boolean(j.route.aToB),
+          checked: Number(j.sourcesChecked ?? (Array.isArray(j.quotes) ? j.quotes.length : 1)),
+        });
+        onRoute?.(j.route.strategy.name);
       } catch (e) {
         if (!controller.signal.aborted) setErr((e as Error).message);
       } finally {
@@ -66,15 +84,13 @@ export function TradePanel({ strategy, totals, feeBps, onFilled, mode = "trade" 
       clearTimeout(t);
       controller.abort();
     };
-  // Keep this dependency tuple stable for React Fast Refresh. `quoteKey`
-  // already changes with the amount and direction.
-  }, [aToB, quoteKey, strategy.name]);
+  }, [quoteKey, quoteUrl, onRoute]);
 
   // what a plain constant-product pool with the same inventory and fee would give
   const plain = (() => {
-    if (!okAmount || !(totals.weth > 0 && totals.usdc > 0)) return null;
-    const q = Number(amount) * (1 - feeBps / 1e4);
-    const [x, y] = sellEth ? [totals.weth, totals.usdc] : [totals.usdc, totals.weth];
+    if (!okAmount || !(currentTotals.weth > 0 && currentTotals.usdc > 0)) return null;
+    const q = Number(amount) * (1 - currentFeeBps / 1e4);
+    const [x, y] = sellEth ? [currentTotals.weth, currentTotals.usdc] : [currentTotals.usdc, currentTotals.weth];
     return (q * y) / (x + q);
   })();
   const outNum = currentQuote ? Number(formatUnits(currentQuote.out, decOut)) : null;
@@ -94,7 +110,7 @@ export function TradePanel({ strategy, totals, feeBps, onFilled, mode = "trade" 
         await pc.waitForTransactionReceipt({ hash: h });
       }
       setBusy("swap");
-      const cfg = { maker: strategy.owner as Address, tokenA: strategy.tokenA as Address, tokenB: strategy.tokenB as Address, salt: BigInt(strategy.salt || "0") };
+      const cfg = { maker: currentStrategy.owner as Address, tokenA: currentStrategy.tokenA as Address, tokenB: currentStrategy.tokenB as Address, salt: BigInt(currentStrategy.salt || "0") };
       const h = await writeContractAsync({ address: ADDR.tideTaker, abi: tideTakerAbi, functionName: "swap", args: [cfg, wei, true, aToB, minOut] });
       setBusy("mining");
       const rc = await pc.waitForTransactionReceipt({ hash: h as Hex });
@@ -113,14 +129,14 @@ export function TradePanel({ strategy, totals, feeBps, onFilled, mode = "trade" 
     <div className="flex h-full flex-col p-5">
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-sm font-medium">{mode === "preview" ? "Preview execution" : "Swap on Tide"}</div>
+          <div className="text-sm font-medium">{mode === "preview" ? "Preview execution" : autoRoute ? "Auto-routed swap" : "Swap on Tide"}</div>
           {mode === "preview" && <div className="mt-0.5 text-[11px] text-fg-3">Quote only</div>}
         </div>
         <button onClick={() => { setSellEth(!sellEth); setAmount(!sellEth ? "0.01" : "20"); }} className="touch-exempt flex items-center gap-1.5 rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-fg-2 transition-colors hover:border-white/20 hover:text-fg" aria-label="flip trade direction">
           <ArrowsLeftRight size={12} /> {sellEth ? "WETH → USDC" : "USDC → WETH"}
         </button>
       </div>
-      <p className="mt-2 text-xs leading-relaxed text-fg-3">Quoted live by the router. Follow-on flow gets the deeper virtual curve while the live quote accounts for your actual place in the block.</p>
+      <p className="mt-2 text-xs leading-relaxed text-fg-3">{autoRoute ? "Every available Tide LP is quoted live; the route with the most output wins." : "Quoted live by the router. Follow-on flow gets the deeper virtual curve while the live quote accounts for your actual place in the block."}</p>
 
       <label className="mt-5 block text-xs text-fg-3">
         You pay
@@ -137,7 +153,9 @@ export function TradePanel({ strategy, totals, feeBps, onFilled, mode = "trade" 
         <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-fg-3">
           <dt>price</dt><dd className="num text-right text-fg-2">{price ? `$${price.toLocaleString(undefined, { maximumFractionDigits: 2 })} / ETH` : "–"}</dd>
           <dt>vs a plain pool of the same size</dt><dd className={`num text-right ${vsPlain === null ? "text-fg-2" : vsPlain >= 0 ? "text-accent" : "text-warn"}`}>{vsPlain === null ? "–" : `${vsPlain >= 0 ? "+" : ""}${vsPlain.toFixed(1)} bp`}</dd>
-          <dt>fee, kept by the maker</dt><dd className="num text-right text-fg-2">{feeBps / 100}%</dd>
+          <dt>fee, kept by the maker</dt><dd className="num text-right text-fg-2">{currentFeeBps / 100}%</dd>
+          {autoRoute && <><dt>best route</dt><dd className="num truncate text-right text-fg-2">{currentQuote ? currentStrategy.name : "–"}</dd></>}
+          {autoRoute && <><dt>LP quotes compared</dt><dd className="num text-right text-fg-2">{currentQuote?.checked ?? "–"}</dd></>}
         </dl>
       </div>
 

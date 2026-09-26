@@ -17,7 +17,8 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
   chart by order size.
   The market list discovers every initialized, funded registry strategy regardless of Explore publication,
   excludes incomplete or empty test entries, and falls back to another funded market instead of exposing a
-  raw contract revert.
+  raw contract revert. Same-pair LPs are grouped into one market: the router multicalls every executable Tide
+  strategy and sends the order to the best single-LP quote, excluding the connected wallet's own liquidity.
 
 **Trade from the dashboard, charts**
 - `TideTaker` contract: quote and fill a strategy from a wallet in one call (traits built on-chain, exact

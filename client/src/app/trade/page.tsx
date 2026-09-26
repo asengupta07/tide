@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, CheckCircle, Waves } from "@phosphor-icons/react";
@@ -16,6 +16,9 @@ type StrategyRow = {
   label: string;
   name: string;
   owner: string;
+  tokenA: string;
+  tokenB: string;
+  salt: string;
   records: { lambda: number; N: number; delta: number; fee?: number } | null;
   market?: {
     lambda: number;
@@ -124,10 +127,10 @@ function TradeMarket() {
     return () => { alive = false; };
   }, [selected, refreshToken, rows, router]);
 
-  const choose = (name: string) => {
+  const choose = useCallback((name: string) => {
     setSelected(name);
     router.replace(`/trade?strategy=${encodeURIComponent(name)}`, { scroll: false });
-  };
+  }, [router]);
 
   const activeSnapshot = snapshot && (snapshot.strategy.name === selected || snapshot.strategy.label === selected) ? snapshot : null;
   const totals = {
@@ -146,7 +149,7 @@ function TradeMarket() {
               <Waves size={14} aria-hidden="true" /> Tide strategies only
             </div>
             <h1 className="max-w-[17ch] text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">Built for lower slippage. Verified live.</h1>
-            <p className="mt-4 max-w-[62ch] text-sm leading-relaxed text-fg-2 sm:text-base">Choose a live strategy and compare its quote with a constant-product pool holding the same inventory. Tide only calls it an advantage when the current quote proves it.</p>
+            <p className="mt-4 max-w-[62ch] text-sm leading-relaxed text-fg-2 sm:text-base">Enter an order and Tide compares every funded strategy for the pair, then routes you to the LP offering the most output. Tide only calls it an advantage when the live quote proves it.</p>
           </div>
           <Link href="/app" className="inline-flex items-center gap-2 text-sm text-fg-2 transition-colors hover:text-fg">
             Provide liquidity <ArrowRight size={14} />
@@ -157,15 +160,15 @@ function TradeMarket() {
           <Bezel small>
             <aside aria-label="Tide markets">
               <div className="flex items-center justify-between border-b border-line px-5 py-4">
-                <h2 className="text-sm font-medium">Markets</h2>
-                <span className="num text-xs text-fg-3">{rows ? `${rows.length} ${rows.length === 1 ? "strategy" : "strategies"}` : "– strategies"}</span>
+                <h2 className="text-sm font-medium">WETH / USDC</h2>
+                <span className="num text-xs text-fg-3">{rows ? `${rows.length} ${rows.length === 1 ? "LP" : "LPs"}` : "– LPs"}</span>
               </div>
               {rows === null && !error && (
                 <div className="space-y-2 p-3" aria-label="Loading markets">
                   {[0, 1, 2].map((item) => <div key={item} className="h-16 animate-pulse rounded-lg bg-white/[0.035]" />)}
                 </div>
               )}
-              {rows?.length === 0 && <p className="p-5 text-sm text-fg-3">No published strategies are currently ready to trade.</p>}
+              {rows?.length === 0 && <p className="p-5 text-sm text-fg-3">No funded Tide LP is currently ready to quote this pair.</p>}
               {rows && rows.length > 0 && (
                 <div className="max-h-[30rem] overflow-y-auto p-2 [scrollbar-width:thin]">
                   {rows.map((market) => {
@@ -174,21 +177,18 @@ function TradeMarket() {
                     const weth = units(market.market?.total.weth, 18);
                     const usdc = units(market.market?.total.usdc, 6);
                     return (
-                      <button
+                      <div
                         key={market.name}
-                        type="button"
-                        onClick={() => choose(market.name)}
-                        aria-pressed={active}
-                        className={`touch-exempt w-full rounded-lg px-3 py-3 text-left transition-colors ${active ? "bg-accent/[0.1]" : "hover:bg-white/[0.04]"}`}
+                        className={`w-full rounded-lg px-3 py-3 text-left transition-colors ${active ? "bg-accent/[0.1]" : "bg-white/[0.015]"}`}
                       >
                         <span className="flex items-start justify-between gap-4">
                           <span>
-                            <span className="block text-sm font-medium">WETH / USDC</span>
+                            <span className="block text-sm font-medium">Tide LP</span>
                             <span className="num mt-0.5 block text-[11px] text-fg-3">{market.name}</span>
                           </span>
                           <span className="text-right">
                             <span className={`num block text-sm ${active ? "text-accent" : "text-fg-2"}`}>{params ? `${params.N}×` : "–"}</span>
-                            <span className="block text-[10px] text-fg-3">depth</span>
+                            <span className="block text-[10px] text-fg-3">{active ? "best route" : "available"}</span>
                           </span>
                         </span>
                         <span className="mt-3 flex items-end justify-between gap-3 border-t border-white/[0.06] pt-2 text-[10px] text-fg-3">
@@ -198,7 +198,7 @@ function TradeMarket() {
                           </span>
                           <span className="num text-right">λ {params ? `${params.lambda / 100}%` : "–"}<br />δ {params ? `${params.delta / 100}%` : "–"}</span>
                         </span>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -227,6 +227,15 @@ function TradeMarket() {
                   totals={totals}
                   feeBps={feeBps}
                   mode="trade"
+                  sources={rows?.map((source) => ({
+                    strategy: source,
+                    totals: {
+                      weth: units(source.market?.total.weth, 18),
+                      usdc: units(source.market?.total.usdc, 6),
+                    },
+                    feeBps: source.market?.fee ?? source.records?.fee ?? 30,
+                  }))}
+                  onRoute={choose}
                   onFilled={() => setRefreshToken((value) => value + 1)}
                 />
                 <div className="grid border-t border-line sm:grid-cols-3 sm:divide-x sm:divide-line">
