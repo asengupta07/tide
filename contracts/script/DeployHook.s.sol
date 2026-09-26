@@ -100,11 +100,14 @@ contract DeployHook is Script {
     }
 }
 
-/// @notice One swap through the Sepolia pool: sell 0.01 WETH for USDC via a PoolSwapTest router.
-///   forge script script/DeployHook.s.sol --tc SwapHook --rpc-url $SEPOLIA_RPC_URL --broadcast --private-key $OWNER_PRIVATE_KEY
+/// @notice Swaps through the Sepolia pool via a PoolSwapTest router. HOOK_MODE selects: `in` (default, sell
+///         0.01 WETH), `out` (buy exactly 10 USDC with WETH), `reverse` (sell 20 USDC for WETH). Each prints
+///         the quote and the fill; they must match.
+///   HOOK_MODE=out forge script script/DeployHook.s.sol --tc SwapHook --rpc-url $SEPOLIA_RPC_URL --broadcast --private-key $OWNER_PRIVATE_KEY
 contract SwapHook is Script {
     address internal constant POOL_MANAGER = 0xE03A1074c86CFeDd5C142C4F04F1a1536e203543;
     address internal constant WETH = 0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14;
+    address internal constant USDC = 0x16f95D91DBa7dA3Aca778Ec053dF0FF6C6A8aA8e;
 
     function run() external {
         string memory j = vm.readFile("deployments/11155111-hook.json");
@@ -112,22 +115,27 @@ contract SwapHook is Script {
         address c0 = vm.parseJsonAddress(j, ".currency0");
         address c1 = vm.parseJsonAddress(j, ".currency1");
         address owner = vm.envAddress("OWNER_ADDRESS");
+        string memory mode = vm.envOr("HOOK_MODE", string("in"));
         PoolKey memory key =
             PoolKey(Currency.wrap(c0), Currency.wrap(c1), LPFeeLibrary.DYNAMIC_FEE_FLAG, 60, IHooks(hook));
-        bool zeroForOne = c0 == WETH; // sell WETH
-
-        uint256 amountIn = 0.01e18;
-        uint256 quoted = TideHook(payable(hook)).quote(zeroForOne, true, amountIn);
+        bool sellWeth = keccak256(bytes(mode)) != keccak256("reverse");
+        bool zeroForOne = sellWeth ? c0 == WETH : c0 == USDC;
+        bool exactIn = keccak256(bytes(mode)) != keccak256("out");
+        uint256 amount = !exactIn ? 10e6 : sellWeth ? 0.01e18 : 20e6;
+        address tokenIn = sellWeth ? WETH : USDC;
+        uint256 quoted = TideHook(payable(hook)).quote(zeroForOne, exactIn, amount);
+        uint256 needIn = exactIn ? amount : quoted;
 
         vm.startBroadcast(owner);
         PoolSwapTest router = new PoolSwapTest(IPoolManager(POOL_MANAGER));
-        if (IERC20(WETH).balanceOf(owner) < amountIn) IWETH(WETH).deposit{ value: amountIn }();
-        IERC20(WETH).approve(address(router), amountIn);
+        if (tokenIn == WETH && IERC20(WETH).balanceOf(owner) < needIn) IWETH(WETH).deposit{ value: needIn }();
+        if (tokenIn == USDC && IERC20(USDC).balanceOf(owner) < needIn) IMintable(USDC).mint(owner, needIn * 2);
+        IERC20(tokenIn).approve(address(router), needIn);
         BalanceDelta d = router.swap(
             key,
             SwapParams({
                 zeroForOne: zeroForOne,
-                amountSpecified: -int256(amountIn),
+                amountSpecified: exactIn ? -int256(amount) : int256(amount),
                 sqrtPriceLimitX96: zeroForOne
                     ? 4_295_128_740
                     : 1_461_446_703_485_210_103_287_273_052_203_988_822_378_723_970_341
@@ -136,9 +144,11 @@ contract SwapHook is Script {
             ""
         );
         vm.stopBroadcast();
-        int128 out = zeroForOne ? d.amount1() : d.amount0();
-        console.log("quoted out", quoted);
-        console.log("swap out  ", uint256(int256(out)));
+        (int128 dIn, int128 dOut) = zeroForOne ? (d.amount0(), d.amount1()) : (d.amount1(), d.amount0());
+        console.log("mode", mode);
+        console.log("quoted   ", quoted);
+        console.log("filled in", uint256(-int256(dIn)));
+        console.log("filled out", uint256(int256(dOut)));
         console.log("swap router", address(router));
     }
 }

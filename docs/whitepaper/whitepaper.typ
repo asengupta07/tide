@@ -125,7 +125,7 @@ where the fee term is first order in $f$ and $kappa$ prices tracking error. LVR 
 
 One Solidity library, `TideMath`, holds the split, the $N$-scaled quotes, the drift test, the solvency bound, the fee arithmetic and the parameter box @eq:feebound. It is checked against an integer Python reference on 24 vectors, and both venues import it.
 
-*1inch Aqua.* Tide is a SwapVM program of three custom opcodes in unallocated slots, `ACTIVE_SPLIT` (0x92), `VIRTUAL_XYC` (0x52) and `BUFFER_GUARD` (0x22), dispatched by a router that is the swap-vm template with the opcode set extended. Instruction order is security-critical; every Tide opcode scans the program and reverts unless the three appear once each in that order. The maker's inventory never leaves the wallet: Aqua records balances at `ship` and pulls only at fill time, which is the natural home for a design in which the pool does not hold what the virtual curve promises.
+*1inch Aqua.* Tide is a SwapVM program of three custom opcodes in unallocated slots, `ACTIVE_SPLIT` (0x92), `VIRTUAL_XYC` (0x52) and `BUFFER_GUARD` (0x22), dispatched by a router that is the swap-vm template with the opcode set extended. Instruction order is security-critical; every Tide opcode scans the program and reverts unless the three appear once each in that order with nothing else but `Salt`, so no control-flow opcode can route around the guard. The maker's inventory never leaves the wallet: Aqua records balances at `ship` and pulls only at fill time, which is the natural home for a design in which the pool does not hold what the virtual curve promises.
 
 *Uniswap v4.* The same steps run inside `beforeSwap` of a `BaseCustomCurve` hook that returns a `BeforeSwapDelta` for the whole amount, holds its reserves as ERC-6909 claims, mints pro-rata shares and refuses liquidity changes in any block that already saw a swap. A cross-venue test runs one trade sequence on both venues and asserts identical amounts.
 
@@ -144,9 +144,9 @@ One Solidity library, `TideMath`, holds the split, the $N$-scaled quotes, the dr
   caption: [Gas measured in Foundry, `taker.swap` alone with the input pre-minted. The overhead is one parameter read per opcode, the block state, one balance read and the program scan.],
 )
 
-The suite has 48 tests: vector parity, every opcode, two swaps in one block, the lazy re-split, re-pricing of an informed-sized follow-on trade, exact-output beyond inventory, buffer top-up, fee netting, quote-equals-fill in both directions and modes, program-order reverts, governance and guardrails, the round trip of Proposition 3, hook liquidity guards and cross-venue parity.
+The suite has 53 tests: vector parity, every opcode, two swaps in one block, the lazy re-split, re-pricing of an informed-sized follow-on trade, exact-output beyond inventory, buffer top-up, fee netting, quote-equals-fill in both directions and modes, program-order reverts, governance and guardrails, the round trip of Proposition 3, hook liquidity guards and cross-venue parity.
 
-The reference deployment is on Sepolia (router `0x4D11…7776`, parameters `0x3DC8…9C58`, hook `0xD0AE…Ea88`) with a WETH/USDC strategy shipped at $lambda = 0.5$, $N = 4$, $delta = 20$ bp, $f = 30$ bp (the manager has since moved $lambda$ and $delta$ with volatility), one filled Aqua order and one hook swap in which the quote equalled the fill. A fork script reproduces the flow against the mainnet Aqua registry with real WETH and USDC.
+The reference deployment is on Sepolia (router `0x65a2…a31e`, parameters `0x1685…72aD`, hook `0x1391…AA88`) with a WETH/USDC strategy shipped at $lambda = 0.5$, $N = 4$, $delta = 20$ bp, $f = 30$ bp (the manager has since moved $lambda$ and $delta$ with volatility), one filled Aqua order and one hook swap in which the quote equalled the fill. A fork script reproduces the flow against the mainnet Aqua registry with real WETH and USDC.
 
 = Governance
 

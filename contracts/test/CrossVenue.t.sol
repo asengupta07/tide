@@ -94,12 +94,12 @@ contract CrossVenueTest is TideAquaBase {
         (ISwapVM.Order memory order,) = _ship();
 
         // block 1: informed fill, retail follow-on, an informed-sized follow-on, an exact-out reverse trade
-        uint256[5] memory amounts = [uint256(1e18), 0.1e18, 3e18, 1500e18, 0.4e18];
-        bool[5] memory exactIn = [true, true, true, true, false];
-        bool[5] memory aToB = [true, true, true, false, true];
+        uint256[8] memory amounts = [uint256(1e18), 0.1e18, 3e18, 1500e18, 0.4e18, 0.3e18, 0.05e18, 2e18];
+        bool[8] memory exactIn = [true, true, true, true, false, false, true, false];
+        bool[8] memory aToB = [true, true, true, false, true, false, true, true];
 
-        for (uint256 i; i < 5; i++) {
-            if (i == 3) vm.roll(block.number + 1); // new block: lazy re-split on both venues
+        for (uint256 i; i < 8; i++) {
+            if (i == 3 || i == 6) vm.roll(block.number + 1); // new block: lazy re-split on both venues
             (uint256 aIn, uint256 aOut) = _swap(order, amounts[i], exactIn[i], aToB[i]);
             (uint256 hIn, uint256 hOut) = _hookSwap(aToB[i], exactIn[i], amounts[i]);
             assertEq(aIn, hIn, string.concat("amountIn step ", vm.toString(i)));

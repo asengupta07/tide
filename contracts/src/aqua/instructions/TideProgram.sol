@@ -20,6 +20,7 @@ import { Opcode } from "@1inch/swap-vm/libs/OpcodeList.sol";
 library TideProgram {
     error TideProgramOrder(uint256 activeSplitAt, uint256 virtualXycAt, uint256 bufferGuardAt);
     error TideProgramDuplicate(uint8 opcode);
+    error TideProgramForeignOpcode(uint8 opcode);
 
     Opcode internal constant ACTIVE_SPLIT = Opcode._92;
     Opcode internal constant VIRTUAL_XYC = Opcode._52;
@@ -28,7 +29,9 @@ library TideProgram {
     uint256 private constant NOT_FOUND = type(uint256).max;
 
     /// @dev Parse the whole program once and verify the three Tide opcodes are each present once and
-    ///      in canonical order. Pure calldata scan; no state.
+    ///      in canonical order, and that nothing else but `Salt` is in the program. The scan is static, so a
+    ///      control-flow opcode such as `Jump` could otherwise route around `BUFFER_GUARD`; refusing every
+    ///      foreign opcode makes the static order the runtime order. Pure calldata scan; no state.
     function check(Context memory ctx) internal pure {
         bytes calldata program = ctx.program();
         uint256 splitAt = NOT_FOUND;
@@ -49,6 +52,8 @@ library TideProgram {
             } else if (opcode == uint8(BUFFER_GUARD)) {
                 if (guardAt != NOT_FOUND) revert TideProgramDuplicate(opcode);
                 guardAt = pc;
+            } else if (opcode != uint8(Opcode.Salt)) {
+                revert TideProgramForeignOpcode(opcode);
             }
             pc += 2 + argsLength;
         }

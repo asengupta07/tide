@@ -2,9 +2,7 @@
 
 Read `docs/tide-idea-brief.md` first (product, flow, user stories, acceptance criteria), then
 [`MATHEMATICS_MODEL.md`](MATHEMATICS_MODEL.md) for the implemented formulas, block-by-block state
-transitions, worked examples, parameter trade-offs, and research-frontier assumptions. Use
-`docs/ethglobal-tokyo-2026-dossier.html` (Product A section) for architecture, build plan, sponsor
-requirements, and prior art. `docs/DEPLOYMENT.md` is the redeploy / credentials / public-host guide and
+transitions, worked examples, parameter trade-offs, and research-frontier assumptions. `docs/DEPLOYMENT.md` is the redeploy / credentials / public-host guide and
 `CHANGELOG.md` the dated log: update both whenever the process or the deployment changes.
 
 ## What we are building
@@ -18,7 +16,7 @@ A partially-active AMM with a collateral buffer (arXiv 2602.09887 + arXiv 2605.1
 Repo layout (decided Sep 25): `contracts/` is the Foundry project (all Solidity, tests, deploy scripts);
 `client/` is a Next.js app-router TypeScript app holding the dashboard and the backend (agent, World ID,
 ENS writes as API routes and scripts); `research/` holds the Python reference math and simulations;
-`docs/` holds the brief, dossier, world debrief and whitepaper sources. Keep the shared math in one
+`docs/` holds the brief, world debrief, deployment guide and whitepaper sources. Keep the shared math in one
 library (`contracts/src/lib/TideMath.sol`); both venues import it.
 
 ## Non-negotiable sponsor requirements
@@ -40,7 +38,7 @@ step-up plus the owner's wallet outside them. Backend actions that spend gas or 
 (`client/src/lib/auth.ts`); the tick endpoint needs `AGENT_TICK_SECRET`. Open: team/socials in README, video,
 public deployment of `client/` (new hostname = new World client + re-bind; needs a persistent MongoDB).
 
-## Build order (from the dossier)
+## Build order
 
 1. Foundry repo, fork script, Aqua hackathon template compiling
 2. `TideMath` with unit tests against `research/frontier.py` reference values
