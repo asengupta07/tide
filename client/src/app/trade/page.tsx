@@ -25,7 +25,7 @@ export default async function TradeLanding({ searchParams }: { searchParams: Pro
           <Reveal className="relative z-[1] max-w-[39rem]">
             <div className="mb-5 inline-flex items-center rounded-full bg-white/[0.045] px-3 py-1.5 text-xs text-fg-2 ring-1 ring-white/[0.09]">Tide-only execution</div>
             <h1 className="text-[clamp(2.8rem,6vw,5.4rem)] font-semibold leading-[0.96] tracking-[-0.04em]">Trade against deeper liquidity.</h1>
-            <p className="mt-6 max-w-[34rem] text-base leading-relaxed text-fg-2 sm:text-lg">One order. Every funded Tide LP compared live. The strongest executable quote wins.</p>
+            <p className="mt-6 max-w-[34rem] text-base leading-relaxed text-fg-2 sm:text-lg">Place one order. Tide checks every available liquidity source and finds the price that gives you the most.</p>
             <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
               <Link href="/trade/market" className="pill pill-primary pill-hero group">
                 <span>Open terminal</span>
@@ -60,7 +60,7 @@ export default async function TradeLanding({ searchParams }: { searchParams: Pro
                     </div>
                     <div className="max-w-[28rem]">
                       <h3 className="text-2xl font-medium">Best route, automatically</h3>
-                      <p className="mt-3 max-w-[52ch] text-sm leading-relaxed text-fg-2">Tide quotes every eligible LP in one call, excludes your own liquidity, and executes the strongest single route.</p>
+                      <p className="mt-3 max-w-[52ch] text-sm leading-relaxed text-fg-2">Tide checks every available liquidity source, skips your own, and sends the order to the one with the best price.</p>
                       <div className="mt-6 flex items-center gap-2" aria-hidden="true"><span className="num text-[10px] uppercase tracking-[0.14em] text-fg-3">scan</span><span className="h-px flex-1 bg-gradient-to-r from-accent/70 via-accent/25 to-transparent" /><span className="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_14px_rgba(88,201,182,0.9)]" /></div>
                     </div>
                   </div>
@@ -75,7 +75,7 @@ export default async function TradeLanding({ searchParams }: { searchParams: Pro
                   <div className="absolute left-7 right-7 top-24 flex items-center gap-3 opacity-75" aria-hidden="true"><span className="num text-[10px] text-accent">TIDE</span><span className="h-px flex-1 bg-accent/70"/><span className="num text-[10px] text-fg-3">CPMM</span><span className="h-px w-[31%] bg-white/25"/></div>
                   <div className="relative z-[1] flex w-full flex-col justify-between">
                     <span className="flex h-11 w-11 items-center justify-center rounded-full border border-accent/25 bg-bg/45 text-accent backdrop-blur-sm"><ChartLineUp size={23} weight="light" /></span>
-                    <div><h3 className="text-2xl font-medium">Prove the price live</h3><p className="mt-3 text-sm leading-relaxed text-fg-2">Every quote is compared with a constant-product pool holding the same inventory.</p></div>
+                    <div><h3 className="text-2xl font-medium">See how the price compares</h3><p className="mt-3 text-sm leading-relaxed text-fg-2">Every live price is compared with a standard pool holding the same amount of liquidity.</p></div>
                   </div>
                 </div>
               </div>
@@ -88,7 +88,7 @@ export default async function TradeLanding({ searchParams }: { searchParams: Pro
                   <div className="absolute left-0 right-0 top-[42%] h-px bg-accent/30 shadow-[0_0_30px_rgba(88,201,182,0.35)]" aria-hidden="true" />
                   <div className="relative z-[1] flex w-full flex-col justify-between">
                     <div className="flex items-center justify-between"><span className="flex h-11 w-11 items-center justify-center rounded-full border border-accent/25 bg-bg/45 text-accent backdrop-blur-sm"><ShieldCheck size={23} weight="light" /></span><span className="num text-[10px] uppercase tracking-[0.16em] text-accent">limit locked</span></div>
-                    <div><h3 className="text-2xl font-medium">Bounded execution</h3><p className="mt-3 text-sm leading-relaxed text-fg-2">Exact allowances and a visible slippage limit keep the transaction legible before signing.</p></div>
+                    <div><h3 className="text-2xl font-medium">Know your limit before signing</h3><p className="mt-3 text-sm leading-relaxed text-fg-2">You see the maximum price movement up front, and Tide only asks permission for the amount you enter.</p></div>
                   </div>
                 </div>
               </div>
@@ -101,7 +101,7 @@ export default async function TradeLanding({ searchParams }: { searchParams: Pro
                   <div className="absolute bottom-8 right-7 top-8 hidden w-[39%] grid-cols-2 gap-2 opacity-75 sm:grid" aria-hidden="true"><span className="rounded-md border border-white/10 bg-bg/35"/><span className="rounded-md border border-accent/20 bg-accent/[0.06]"/><span className="col-span-2 rounded-md border border-white/10 bg-bg/35"/><span className="rounded-md border border-accent/15 bg-bg/40"/><span className="rounded-md border border-white/10 bg-bg/35"/></div>
                   <div className="relative z-[1] flex w-full max-w-[31rem] flex-col justify-between">
                     <span className="flex h-11 w-11 items-center justify-center rounded-full border border-accent/25 bg-bg/45 text-accent backdrop-blur-sm"><CirclesFour size={23} weight="light" /></span>
-                    <div><h3 className="text-2xl font-medium">All market context, one screen</h3><p className="mt-3 max-w-[52ch] text-sm leading-relaxed text-fg-2">Candles, recent fills, route liquidity, curve parameters, and the order ticket stay visible together.</p></div>
+                    <div><h3 className="text-2xl font-medium">The whole market, one screen</h3><p className="mt-3 max-w-[52ch] text-sm leading-relaxed text-fg-2">Price history, recent trades, available liquidity, and your order stay visible together.</p></div>
                   </div>
                 </div>
               </div>

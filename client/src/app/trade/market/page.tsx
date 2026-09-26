@@ -165,8 +165,8 @@ function TradeMarket() {
             </div>
           </div>
           <div className="flex items-center gap-5 text-[11px] text-fg-3">
-            <span><strong className="num mr-1.5 font-normal text-fg-2">{rows?.length ?? 0}</strong>funded LPs</span>
-            <span><strong className="num mr-1.5 font-normal text-fg-2">0.5%</strong>slippage limit</span>
+            <span><strong className="num mr-1.5 font-normal text-fg-2">{rows?.length ?? 0}</strong>liquidity sources</span>
+            <span><strong className="num mr-1.5 font-normal text-fg-2">0.5%</strong>maximum price movement</span>
           </div>
         </header>
 
@@ -179,7 +179,7 @@ function TradeMarket() {
               <aside aria-label="Tide liquidity routes">
                 <div className="flex items-center justify-between border-b border-line px-4 py-3">
                   <div><h2 className="text-xs font-medium">Liquidity routes</h2><p className="mt-0.5 text-[10px] text-fg-3">Click to inspect</p></div>
-                  <span className="num text-[10px] text-fg-3">{rows?.length ?? 0} LPs</span>
+                  <span className="num text-[10px] text-fg-3">{rows?.length ?? 0} sources</span>
                 </div>
                 <div className="max-h-[calc(100dvh-12rem)] overflow-y-auto p-1.5 [scrollbar-width:thin]">
                   {rows?.map((market) => {
@@ -192,9 +192,9 @@ function TradeMarket() {
                       <button key={market.name} type="button" onClick={() => choose(market.name)} aria-pressed={viewing} aria-label={`Inspect ${market.name}${best ? ", current best route" : ""}`} className={`touch-exempt w-full rounded-lg px-3 py-3 text-left transition-colors duration-200 ${best ? "bg-accent/[0.09]" : viewing ? "bg-white/[0.055]" : "hover:bg-white/[0.035]"}`}>
                         <span className="flex items-start justify-between gap-2">
                           <span className="min-w-0"><span className="num block truncate text-[11px] text-fg-2">{market.name}</span><span className="num mt-1 block text-[10px] text-fg-3">{weth.toFixed(3)} WETH / {usdc.toLocaleString(undefined, { maximumFractionDigits: 0 })} USDC</span></span>
-                          <span className={`num shrink-0 text-xs ${best ? "text-accent" : "text-fg-2"}`}>{params?.N ?? "-"}×</span>
+                          <span className={`num shrink-0 text-xs ${best ? "text-accent" : "text-fg-2"}`}>{params ? `${params.N}× lower impact` : "-"}</span>
                         </span>
-                        <span className="mt-2 flex items-center justify-between text-[10px] text-fg-3"><span>{best ? "Best route" : viewing ? "Viewing" : short(market.owner)}</span><span className="num">λ {params ? params.lambda / 100 : "-"}%</span></span>
+                        <span className="mt-2 flex items-center justify-between text-[10px] text-fg-3"><span>{best ? "Best price" : viewing ? "Viewing" : short(market.owner)}</span><span className="num">{params ? `${params.lambda / 100}% available` : "-"}</span></span>
                       </button>
                     );
                   })}
@@ -212,7 +212,7 @@ function TradeMarket() {
               <div className="grid gap-3 lg:grid-cols-2">
                 <Bezel small>
                   <section className="p-4" aria-label="Price impact">
-                    <div className="flex items-baseline justify-between gap-2"><h2 className="text-xs font-medium">WETH to USDC impact</h2><span className="text-[10px] text-fg-3">live reserves</span></div>
+                    <div className="flex items-baseline justify-between gap-2"><h2 className="text-xs font-medium">Price impact for WETH → USDC</h2><span className="text-[10px] text-fg-3">current liquidity</span></div>
                     <div className="mt-3"><ImpactCurve totalIn={totals.weth} totalOut={totals.usdc} lambda={activeSnapshot.records.lambda / 10_000} N={activeSnapshot.records.N} deltaBps={activeSnapshot.records.delta} /></div>
                   </section>
                 </Bezel>
@@ -225,18 +225,18 @@ function TradeMarket() {
             <div className="order-1 min-w-0 space-y-3 xl:order-3 xl:sticky xl:top-24">
               <Bezel small>
                 <div className="border-b border-line px-4 py-3">
-                  <div className="flex items-center justify-between gap-3"><div><div className="text-xs font-medium">Auto-routed order</div><div className="mt-0.5 text-[10px] text-fg-3">Best executable quote across {rows?.length ?? 0} funded LPs</div></div><ChartLineUp size={16} className="text-accent" /></div>
+                  <div className="flex items-center justify-between gap-3"><div><div className="text-xs font-medium">Your order</div><div className="mt-0.5 text-[10px] text-fg-3">Best live price across {rows?.length ?? 0} liquidity sources</div></div><ChartLineUp size={16} className="text-accent" /></div>
                 </div>
                 <TradePanel strategy={activeSnapshot.strategy} totals={totals} feeBps={feeBps} mode="trade" compact sources={sources} onRoute={markRoute} onFilled={() => setRefreshToken((value) => value + 1)} />
               </Bezel>
               <Bezel small>
                 <div className="grid grid-cols-3 divide-x divide-line">
-                  <MarketFact value={`${activeSnapshot.records.N}×`} label="depth" />
-                  <MarketFact value={`${activeSnapshot.records.delta / 100}%`} label="guard" />
-                  <MarketFact value={`${activeSnapshot.records.lambda / 100}%`} label="visible" />
+                  <MarketFact value={`${activeSnapshot.records.N}×`} label="lower price impact" />
+                  <MarketFact value={`${activeSnapshot.records.delta / 100}%`} label="price-move range" />
+                  <MarketFact value={`${activeSnapshot.records.lambda / 100}%`} label="available each block" />
                 </div>
               </Bezel>
-              <p className="px-2 text-[10px] leading-relaxed text-fg-3">The inspected LP drives charts and fills. Swap execution still uses the strongest live route across every eligible Tide LP.</p>
+              <p className="px-2 text-[10px] leading-relaxed text-fg-3">Charts show the selected liquidity source. Your order still uses whichever Tide source gives you the most.</p>
             </div>
           </div>
         )}

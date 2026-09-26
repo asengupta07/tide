@@ -22,9 +22,9 @@ function niceStep(v: number) {
 }
 
 const LEGEND = [
-  { key: "follow", color: "var(--accent)", label: "Tide, follow-on fill inside δ (N-curve)", dashed: false },
-  { key: "first", color: "var(--bad)", label: "Tide, first fill of the block or outside δ (λ slice)", dashed: true },
-  { key: "plain", color: "var(--fg-2)", label: "plain pool, same inventory", dashed: false },
+  { key: "follow", color: "var(--accent)", label: "Tide after another trade", dashed: false },
+  { key: "first", color: "var(--bad)", label: "Tide first trade", dashed: true },
+  { key: "plain", color: "var(--fg-2)", label: "standard pool", dashed: false },
 ];
 
 export function ImpactCurve({ totalIn, totalOut, lambda, N, deltaBps }: { totalIn: number; totalOut: number; lambda: number; N: number; deltaBps: number }) {
@@ -59,11 +59,11 @@ export function ImpactCurve({ totalIn, totalOut, lambda, N, deltaBps }: { totalI
   const mono = { fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" } as const;
   return (
     <div className="space-y-2">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Price impact by trade size for the plain pool, Tide's first fill and Tide's follow-on fills">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Price impact by order size for a standard pool and Tide trades">
         {ticks.map((t) => (
           <g key={t}>
             <line x1={PAD.l} x2={W - PAD.r} y1={Y(t)} y2={Y(t)} stroke="rgba(255,255,255,0.06)" />
-            <text x={PAD.l - 6} y={Y(t) + 3.5} textAnchor="end" fontSize="9" style={mono} className="fill-[var(--fg-3)]">{t.toFixed(0)} bp</text>
+            <text x={PAD.l - 6} y={Y(t) + 3.5} textAnchor="end" fontSize="9" style={mono} className="fill-[var(--fg-3)]">{formatImpact(t)}</text>
           </g>
         ))}
         {xt.map((f) => (
@@ -73,7 +73,7 @@ export function ImpactCurve({ totalIn, totalOut, lambda, N, deltaBps }: { totalI
           <g>
             <rect x={PAD.l} y={PAD.t} width={X(bandEnd) - PAD.l} height={H - PAD.t - PAD.b} fill="rgba(88,201,182,0.06)" />
             <line x1={X(bandEnd)} x2={X(bandEnd)} y1={PAD.t} y2={H - PAD.b} stroke="var(--accent)" strokeDasharray="3 4" opacity={0.6} />
-            <text x={X(bandEnd) + 5} y={PAD.t + 10} fontSize="9" style={mono} className="fill-[var(--accent)]">δ band ends here</text>
+            <text x={X(bandEnd) + 5} y={PAD.t + 10} fontSize="9" style={mono} className="fill-[var(--accent)]">lower-slippage window ends</text>
           </g>
         )}
         <path d={path(pts.plain)} fill="none" stroke="var(--fg-2)" strokeWidth={1.5} />
@@ -90,4 +90,9 @@ export function ImpactCurve({ totalIn, totalOut, lambda, N, deltaBps }: { totalI
       </ul>
     </div>
   );
+}
+
+function formatImpact(bps: number) {
+  const percent = bps / 100;
+  return `${percent.toFixed(percent < 1 ? 2 : 1)}%`;
 }

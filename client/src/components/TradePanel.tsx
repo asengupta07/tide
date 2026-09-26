@@ -110,11 +110,6 @@ export function TradePanel({ strategy, totals, feeBps, lambdaBps, N, deltaBps, o
     const maxNetIn = params.N * activeIn * (1 / Math.sqrt(1 - drift) - 1);
     return maxNetIn / (1 - routeFeeBps / 1e4);
   };
-  const demoAmount = (() => {
-    const limits = sources?.map((source) => laneLimit(source.totals, source.feeBps, source.params)).filter((value) => value > 0) ?? [];
-    const safe = limits.length ? Math.min(...limits) * 0.5 : currentParams ? laneLimit(currentTotals, currentFeeBps, currentParams) * 0.5 : 0;
-    return safe > 0 ? safe : null;
-  })();
   const followOn = (() => {
     if (!okAmount || !currentParams || !(currentTotals.weth > 0 && currentTotals.usdc > 0) || currentParams.N <= 1) return null;
     const [totalIn, totalOut] = sellEth ? [currentTotals.weth, currentTotals.usdc] : [currentTotals.usdc, currentTotals.weth];
@@ -141,7 +136,6 @@ export function TradePanel({ strategy, totals, feeBps, lambdaBps, N, deltaBps, o
       impactMultiple: deepImpact > 0 ? plainImpact / deepImpact : currentParams.N,
       maxGrossIn,
       N: currentParams.N,
-      deltaBps: currentParams.deltaBps,
     };
   })();
 
@@ -184,7 +178,7 @@ export function TradePanel({ strategy, totals, feeBps, lambdaBps, N, deltaBps, o
           <ArrowsLeftRight size={12} /> {sellEth ? "WETH → USDC" : "USDC → WETH"}
         </button>
       </div>
-      <p className={`${compact ? "mt-1.5 text-[11px]" : "mt-2 text-xs"} leading-relaxed text-fg-3`}>{autoRoute ? "Every available Tide LP is quoted live; the route with the most output wins." : "Quoted live by the router. Follow-on flow gets the deeper virtual curve while the live quote accounts for your actual place in the block."}</p>
+      <p className={`${compact ? "mt-1.5 text-[11px]" : "mt-2 text-xs"} leading-relaxed text-fg-3`}>{autoRoute ? "Tide checks every available liquidity source and chooses the one that gives you the most." : "This price is live and reflects when your order is expected to land."}</p>
 
       <label className={`${compact ? "mt-3" : "mt-5"} block text-xs text-fg-3`}>
         You pay
@@ -200,29 +194,24 @@ export function TradePanel({ strategy, totals, feeBps, lambdaBps, N, deltaBps, o
         </div>
         <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-fg-3">
           <dt>price</dt><dd className="num text-right text-fg-2">{price ? `$${price.toLocaleString(undefined, { maximumFractionDigits: 2 })} / ETH` : "-"}</dd>
-          <dt>executable vs full-inventory pool</dt><dd className={`num text-right ${vsPlain === null ? "text-fg-2" : vsPlain >= 0 ? "text-accent" : "text-fg-2"}`}>{vsPlain === null ? "-" : `${vsPlain >= 0 ? "+" : ""}${vsPlain.toFixed(1)} bp`}</dd>
-          <dt>fee, kept by the maker</dt><dd className="num text-right text-fg-2">{currentFeeBps / 100}%</dd>
+          <dt>compared with a standard pool</dt><dd className={`num text-right ${vsPlain === null ? "text-fg-2" : vsPlain >= 0 ? "text-accent" : "text-fg-2"}`}>{vsPlain === null ? "-" : formatComparison(vsPlain)}</dd>
+          <dt>liquidity provider fee</dt><dd className="num text-right text-fg-2">{currentFeeBps / 100}%</dd>
           {autoRoute && <><dt>best route</dt><dd className="num truncate text-right text-fg-2">{currentQuote ? currentStrategy.name : "-"}</dd></>}
-          {autoRoute && <><dt>LP quotes compared</dt><dd className="num text-right text-fg-2">{currentQuote?.checked ?? "-"}</dd></>}
+          {autoRoute && <><dt>liquidity sources checked</dt><dd className="num text-right text-fg-2">{currentQuote?.checked ?? "-"}</dd></>}
         </dl>
       </div>
 
       {followOn && (
         <div className={`${compact ? "mt-2 py-2.5" : "mt-3 py-3"} rounded-xl bg-accent/[0.08] px-4 text-accent`} role="status">
           <div className="flex items-center justify-between gap-4">
-            <span className="flex items-center gap-2 text-xs font-medium"><TrendUp size={15} aria-hidden="true" />Tide follow-on lane</span>
-            <strong className="num text-sm">+{followOn.outputBps.toFixed(1)} bp output</strong>
+            <span className="flex items-center gap-2 text-xs font-medium"><TrendUp size={15} aria-hidden="true" />Lower-slippage window</span>
+            <strong className="num text-sm">up to {formatPercent(followOn.outputBps)} more</strong>
           </div>
           <p className="mt-1.5 text-[10px] leading-relaxed text-fg-2">
             {followOn.eligible
-              ? `This order fits the ${followOn.deltaBps} bp guard after the block's first fill: ${followOn.impactMultiple.toFixed(2)}× less price impact on the ${followOn.N}× curve.`
-              : `This order is above the ${followOn.deltaBps} bp guard. Follow-on fills up to ${formatLaneAmount(followOn.maxGrossIn, sellEth)} ${sellEth ? "WETH" : "USDC"} model ${followOn.impactMultiple.toFixed(2)}× less price impact on the ${followOn.N}× curve.`}
+              ? `If another trade lands first in this block, this order can have about ${followOn.impactMultiple.toFixed(2)}× less price impact.`
+              : `After the first trade in a block, orders up to ${formatLaneAmount(followOn.maxGrossIn, sellEth)} ${sellEth ? "WETH" : "USDC"} can have about ${followOn.impactMultiple.toFixed(2)}× less price impact.`}
           </p>
-          {!followOn.eligible && demoAmount && (
-            <button type="button" onClick={() => setAmount(inputAmount(demoAmount, sellEth))} className="touch-exempt mt-2 rounded-full border border-accent/25 px-2.5 py-1 text-[10px] font-medium text-accent transition-colors hover:border-accent/50 hover:bg-accent/[0.06]">
-              Use a live demo size · {formatLaneAmount(demoAmount, sellEth)} {sellEth ? "WETH" : "USDC"}
-            </button>
-          )}
         </div>
       )}
 
@@ -241,7 +230,7 @@ export function TradePanel({ strategy, totals, feeBps, lambdaBps, N, deltaBps, o
             <span className="ico">{busy && busy !== "quote" ? <CircleNotch size={13} className="animate-spin" /> : <ArrowRight size={13} />}</span>
           </button>
         )}
-        <span className="text-[11px] text-fg-3">0.5% slippage limit, exact allowance</span>
+        <span className="text-[11px] text-fg-3">Maximum 0.5% price movement · only this amount is approved</span>
       </div>
       {isOwner && mode === "trade" && <p className="mt-3 text-xs leading-relaxed text-fg-3">This wallet supplies the strategy, so Tide keeps the swap disabled. Switch to a trader wallet to fill it.</p>}
       {done && <p className="mt-3 text-xs text-fg-2">Filled: {done.out} {outLabel} landed in your wallet. <a className="text-accent" href={`https://sepolia.etherscan.io/tx/${done.tx}`}>receipt ↗</a></p>}
@@ -257,6 +246,12 @@ function formatLaneAmount(value: number, weth: boolean) {
   });
 }
 
-function inputAmount(value: number, weth: boolean) {
-  return value.toFixed(weth ? 8 : 4).replace(/0+$/, "").replace(/\.$/, "");
+function formatPercent(bps: number) {
+  const percent = Math.abs(bps) / 100;
+  return `${percent.toFixed(percent < 0.1 ? 2 : 1)}%`;
+}
+
+function formatComparison(bps: number) {
+  if (Math.abs(bps) < 0.05) return "about the same";
+  return `${formatPercent(bps)} ${bps > 0 ? "more" : "less"}`;
 }

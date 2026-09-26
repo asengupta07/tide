@@ -18,6 +18,8 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
   alternating fills in same-block waves. The live demo was seeded with 34 new successful swaps; the three
   LPs now expose 17, 13, and 10 verifiable fills in the terminal. Dense chart annotations are grouped by
   candle and direction into compact count markers instead of overlapping one label per transaction.
+- Rewrote the trading experience in plain language: percentages replace basis points, route and
+  price-impact labels explain what traders actually get, and the demo-size shortcut is gone.
 
 **Dashboard polish**
 - "Get a suggestion" opens the manager's answer in a modal (Escape, backdrop or X closes it); the
