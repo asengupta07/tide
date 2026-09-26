@@ -144,7 +144,7 @@ One Solidity library, `TideMath`, holds the split, the $N$-scaled quotes, the dr
   caption: [Gas measured in Foundry, `taker.swap` alone with the input pre-minted. The overhead is one parameter read per opcode, the block state, one balance read and the program scan.],
 )
 
-The suite has 49 tests: vector parity, every opcode, two swaps in one block, the lazy re-split, re-pricing of an informed-sized follow-on trade, exact-output beyond inventory, buffer top-up, fee netting, quote-equals-fill in both directions and modes, program-order reverts, governance and guardrails, the round trip of Proposition 3, hook liquidity guards and cross-venue parity.
+The suite has 53 tests: vector parity, every opcode, two swaps in one block, the lazy re-split, re-pricing of an informed-sized follow-on trade, exact-output beyond inventory, buffer top-up, fee netting, quote-equals-fill in both directions and modes, program-order reverts, governance and guardrails, the round trip of Proposition 3, hook liquidity guards and cross-venue parity.
 
 The reference deployment is on Sepolia (router `0x65a2…a31e`, parameters `0x1685…72aD`, hook `0x1391…AA88`) with a WETH/USDC strategy shipped at $lambda = 0.5$, $N = 4$, $delta = 20$ bp, $f = 30$ bp (the manager has since moved $lambda$ and $delta$ with volatility), one filled Aqua order and one hook swap in which the quote equalled the fill. A fork script reproduces the flow against the mainnet Aqua registry with real WETH and USDC.
 

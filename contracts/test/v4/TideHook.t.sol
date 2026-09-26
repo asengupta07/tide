@@ -2,6 +2,7 @@
 pragma solidity 0.8.30;
 
 import { Test } from "forge-std/Test.sol";
+import { Vm } from "forge-std/Vm.sol";
 
 import { PoolSwapTest } from "@uniswap/v4-core/src/test/PoolSwapTest.sol";
 import { PoolModifyLiquidityTest } from "@uniswap/v4-core/src/test/PoolModifyLiquidityTest.sol";
@@ -243,6 +244,87 @@ contract TideHookTest is Test {
         assertEq(_swapExactOut(true, 45e18), q3);
         uint256 q4 = hook.quote(false, false, 0.03e18);
         assertEq(_swapExactOut(false, 0.03e18), q4);
+    }
+
+    /// @dev Round trip on the hook: sell on the active curve first in the block, buy back on the N-curve inside
+    ///      delta. Under (N - 1) * delta <= 2 * fee the taker loses and the pool is worth no less at the old price.
+    function test_RoundTrip_ActiveThenVirtual_LosesMoneyUnderFeeBound() public {
+        (uint256 r0, uint256 r1) = hook.reserves();
+        uint256 p = r1 * 1e18 / r0; // token1 per token0 before the attack
+        uint256 active0 = r0 * LAMBDA / BPS;
+
+        // leg 1: sell token0, ~2 delta worth on the active slice
+        uint256 in1 = 2 * active0 * DELTA / BPS;
+        uint256 out1 = _swapExactIn(true, in1);
+
+        // leg 2: buy token0 back with token1, the most the guard admits on the N-curve
+        TideHook.BlockState memory st = hook.state();
+        uint256 lo = 0;
+        uint256 hi = out1 * 10;
+        for (uint256 i = 0; i < 40; i++) {
+            uint256 mid = (lo + hi) / 2;
+            uint256 net = mid - TideMath.feeOnInput(mid, FEE);
+            bool virt = hook.quote(false, true, mid) == TideMath.quoteExactIn(net, st.active1, st.active0, N);
+            if (virt) lo = mid;
+            else hi = mid;
+        }
+        uint256 in2 = lo;
+        uint256 out2 = _swapExactIn(false, in2);
+
+        int256 pnlIn1 = int256(out1) + int256(out2 * p / 1e18) - int256(in1 * p / 1e18) - int256(in2);
+        assertLt(pnlIn1, 0, "round trip loses money");
+        (uint256 q0, uint256 q1) = hook.reserves();
+        assertGe(q0 * p / 1e18 + q1, r0 * p / 1e18 + r1, "pool worth no less at the old price");
+    }
+
+    /// @dev The fee is netted inside the pricing and reported through HookSwap for indexers.
+    function test_HookSwap_ReportsFee() public {
+        uint256 amountIn = 1e18;
+        vm.recordLogs();
+        _swapExactIn(true, amountIn);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bytes32 sig = keccak256("HookSwap(bytes32,address,int128,int128,uint128,uint128)");
+        bool seen;
+        for (uint256 i; i < logs.length; i++) {
+            if (logs[i].topics[0] != sig) continue;
+            (int128 a0, int128 a1, uint128 fee0, uint128 fee1) =
+                abi.decode(logs[i].data, (int128, int128, uint128, uint128));
+            assertEq(uint256(uint128(a0)), amountIn, "amount0 = gross input");
+            assertEq(uint256(fee0), TideMath.feeOnInput(amountIn, FEE), "fee reported on the input side");
+            assertEq(uint256(fee1), 0);
+            assertGt(a1, 0, "output reported");
+            seen = true;
+        }
+        assertTrue(seen, "HookSwap emitted");
+    }
+
+    /// @dev Exact-out is grossed up for the fee on the hook exactly as on Aqua: the input the taker pays is
+    ///      the curve's net input plus ceil(net * fee / (BPS - fee)).
+    function test_ExactOut_GrossedUpForFee() public {
+        uint256 want = 100e18; // token1
+        uint256 net = TideMath.quoteExactOut(want, BAL_0 * LAMBDA / BPS, BAL_1 * LAMBDA / BPS, 1);
+        uint256 gross = net + TideMath.feeOnNet(net, FEE);
+        assertEq(hook.quote(true, false, want), gross, "quote grossed up");
+        assertEq(_swapExactOut(true, want), gross, "swap == quote");
+        TideHook.BlockState memory s = hook.state();
+        assertEq(s.active0, BAL_0 * LAMBDA / BPS + net, "only the net input enters the active slice");
+    }
+
+    /// @dev The manager is bound by the owner's guardrails on the hook's key like on Aqua's.
+    function test_Guardrails_BindTheManagerOnTheHookKey() public {
+        bytes32 k = PoolId.unwrap(poolId);
+        vm.prank(manager_);
+        vm.expectRevert(abi.encodeWithSelector(TideParams.OutsideBounds.selector, k, "lambda", 900));
+        params.set(k, 900, N, DELTA);
+        vm.prank(manager_);
+        params.set(k, 3500, N, DELTA);
+        vm.roll(block.number + 1);
+        (uint256 t0, uint256 t1) = hook.reserves();
+        assertEq(
+            hook.quote(true, true, 1e18),
+            _xyc(_net(1e18), t0 * 3500 / BPS, t1 * 3500 / BPS),
+            "new lambda at the re-split"
+        );
     }
 
     function test_Params_NewLambda_AppliesAtNextResplit() public {

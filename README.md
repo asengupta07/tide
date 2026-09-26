@@ -50,7 +50,7 @@ Prerequisites: Foundry ≥ 1.3, Node 22 + pnpm, Python 3.11+ with numpy/matplotl
 git clone --recurse-submodules git@github.com:asengupta07/tide.git && cd tide
 ```
 
-Contracts and tests (49 tests: math vectors, three opcodes, hook, cross-venue parity, program-order reverts, two-swaps-in-one-block, fee bound, round trip, guardrails, key claiming):
+Contracts and tests (53 tests: math vectors, three opcodes, hook, cross-venue parity, program-order reverts, two-swaps-in-one-block, fee bound, round trip, guardrails, key claiming):
 
 ```bash
 cd contracts && forge test
@@ -105,7 +105,7 @@ pnpm tsx --env-file=../.env scripts/ens-revoke.ts        # one EAC call per reco
 ### Uniswap v4
 
 - Hook: `contracts/src/v4/TideHook.sol`; pricing in `_getUnspecifiedAmount` and `_compute`, fee reported through `_getSwapFeeAmount`; the pool claims its parameter key in `_beforeInitialize`; JIT guard in `addLiquidity`/`removeLiquidity`; first deposit burns 1000 dead shares. Permissions: `beforeInitialize`, `beforeSwap` + `beforeSwapReturnDelta`, `beforeAddLiquidity`, `beforeRemoveLiquidity`.
-- Cross-venue parity test: `contracts/test/CrossVenue.t.sol` (same trade sequence, identical amounts on Aqua and v4).
+- Cross-venue parity test: `contracts/test/CrossVenue.t.sol` (eight trades over three blocks, exact-in and exact-out both directions, identical amounts on Aqua and v4). Hook-side tests also cover the round trip under the fee bound, the fee reported in `HookSwap`, exact-out gross-up and the guardrails on the pool key.
 - [FEEDBACK.md](FEEDBACK.md) at the repo root; Developer Feedback Form submitted with its link.
 - Sepolia: pool `0x910eb666…80ae`, swap `0xdc2ccf75…13944` (0.01 WETH → 27.198 USDC, quote == fill, fee included).
 
@@ -127,7 +127,7 @@ pnpm tsx --env-file=../.env scripts/ens-revoke.ts        # one EAC call per reco
 
 ### Tests and gas
 
-49 Foundry tests (`forge test`). Gas, swap only, measured by `test/BaselineGas.t.sol`: plain `XYCSwap` fill 57,402; Tide first fill of a block 77,234 (+19,832); later fill 76,241 (+18,839).
+53 Foundry tests (`forge test`). Gas, swap only, measured by `test/BaselineGas.t.sol`: plain `XYCSwap` fill 57,402; Tide first fill of a block 77,234 (+19,832); later fill 76,241 (+18,839).
 
 ### Curvegrid
 

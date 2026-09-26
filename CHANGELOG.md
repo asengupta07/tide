@@ -5,6 +5,11 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
 
 ## Sep 27, 2026
 
+**Hook verification**
+- Four hook tests (round trip under the fee bound, `HookSwap` fee report, exact-out gross-up, guardrails on the
+  pool key); cross-venue parity extended to eight trades over three blocks with exact-out both ways. 53 tests.
+  `SwapHook` script gained `HOOK_MODE=in|out|reverse`; all three ran on the Sepolia pool with quote equal to fill.
+
 **Audit fixes**
 - `TideProgram.check` refuses any opcode other than the three Tide ones and `Salt`, so a `Jump` cannot
   route around `BUFFER_GUARD`; the static order is the runtime order. Router and app redeployed.
