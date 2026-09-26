@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useAccount, useSignMessage } from "wagmi";
 import { getAddress } from "viem";
-import { ArrowUpRight, ArrowRight, ShieldCheck, Fingerprint, Sparkle, CaretDown, CircleNotch } from "@phosphor-icons/react";
+import { ArrowUpRight, ArrowRight, ShieldCheck, Fingerprint, Sparkle, CaretDown, CircleNotch, Fire } from "@phosphor-icons/react";
 
 import { Nav, Bezel, Status, Pill } from "@/components/ui";
 import { FrontierChart } from "@/components/FrontierChart";
@@ -114,6 +114,9 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
   const fills = [...s.fills].reverse();
   const syncing = s.onchain && (s.onchain.lambda !== s.records.lambda || s.onchain.N !== s.records.N || s.onchain.delta !== s.records.delta);
   const volatilityLabel = sigma <= 0.35 ? "Calm" : sigma <= 0.7 ? "Normal" : sigma <= 1 ? "Volatile" : "Wild";
+  const volatilityProgress = Math.round(((sigma - 0.2) / 1) * 100);
+  const isHot = sigma >= 0.75;
+  const volatilityHeat = Math.max(0, Math.min(1, (volatilityProgress - 55) / 45));
 
   return (
     <>
@@ -235,8 +238,27 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
                     <label htmlFor="volatility-scenario" className="text-xs font-medium text-fg-2">What-if volatility</label>
                     <span className="whitespace-nowrap text-xs text-fg-3"><span className="num text-sm text-fg">{Math.round(sigma * 100)}%</span> · {volatilityLabel}</span>
                   </div>
-                  <input id="volatility-scenario" type="range" min={0.2} max={1.2} step={0.05} value={sigma} onChange={(e) => setSigma(Number(e.target.value))} className="mt-2 w-full" />
-                  <div className="mt-1 flex justify-between text-[10px] text-fg-3"><span>Calm</span><span>Wild</span></div>
+                  <input
+                    id="volatility-scenario"
+                    type="range"
+                    min={0.2}
+                    max={1.2}
+                    step={0.05}
+                    value={sigma}
+                    onChange={(e) => setSigma(Number(e.target.value))}
+                    className={`volatility-slider mt-2 w-full ${isHot ? "volatility-slider-hot" : ""}`}
+                    style={{
+                      "--volatility-progress": `${volatilityProgress}%`,
+                      "--volatility-heat": volatilityHeat,
+                    } as React.CSSProperties}
+                  />
+                  <div className="mt-1 flex justify-between text-[10px] text-fg-3">
+                    <span>Calm</span>
+                    <span className={`inline-flex origin-right items-center gap-1 transition-colors ${isHot ? "volatility-wild-hot text-[#ff8a5c]" : ""}`}>
+                      {isHot && <Fire size={14} weight="fill" className="volatility-flame" />}
+                      Wild
+                    </span>
+                  </div>
                 </div>
 
                 <button onClick={propose} disabled={busy || !!pending} className="pill pill-primary pill-sm mt-5 self-start disabled:opacity-40">
