@@ -73,7 +73,9 @@ Sepolia (already done, scripts are idempotent): `Deploy.s.sol`, `SepoliaDemo.s.s
 App (landing, strategies, wizard, per-strategy dashboard) and agent:
 
 ```bash
-cd client && pnpm install && pnpm dev          # http://localhost:3000, connect a Sepolia wallet (RainbowKit)
+cd client && pnpm install
+mkcert -key-file certificates/localhost-key.pem -cert-file certificates/localhost.pem localhost 127.0.0.1 ::1   # once; `mkcert -install` too if you want the browser to trust it
+pnpm dev:https                                  # https://localhost:3000; the World ID sandbox only accepts HTTPS callbacks
 # /app/new: name it (<label>.tide.eth to your wallet, own resolver, records seeded), approve, TideParams.init,
 #           Aqua.ship, optional one-multicall delegation to manager.tide.eth. Four signatures.
 pnpm tsx --env-file=../.env scripts/e2e-new-strategy.ts  # same flow with a throwaway wallet, end to end
@@ -116,6 +118,7 @@ pnpm tsx --env-file=../.env scripts/ens-revoke.ts        # one EAC call per reco
 
 - Official dev environment (`https://sandbox.auth.world.org`), discovery read at runtime. Bind → request → completion → validated result → protected action: `client/src/lib/world.ts` (`beginAuth` line 78 sets `prompt=login`, `max_age=0`; `completeAuth` line 109 verifies signature, `iss`, `aud`, `nonce`, `iat`, `auth_time`) and `client/src/lib/agent.ts` (`handleCallback` line 98, pairwise-subject match line 146).
 - Denied / expired / cancelled / replayed / forged paths leave the records unchanged: `client/scripts/test-agent-flow.ts`.
+- Live run (Sepolia): client `Tide manager` registered through the World ID MCP; proposal `3509d7d32778` approved with a fresh proof, then ENS `setText` `0xfec2442d…bffdcb` and `TideParams.set` `0xe032df2b…3069a5` (λ 5000 → 3300, δ 20 → 15 bps).
 - Client secret only in the server module; never in the repo (`.env.example`).
 - Debrief: [docs/world-debrief.md](docs/world-debrief.md).
 

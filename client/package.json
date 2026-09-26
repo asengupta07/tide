@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "ens:setup": "tsx --env-file=../.env scripts/ens-setup.ts",
-    "agent": "tsx --env-file=../.env scripts/agent.ts"
+    "agent": "tsx --env-file=../.env scripts/agent.ts",
+    "dev:https": "next dev --port 3000 --experimental-https --experimental-https-key ./certificates/localhost-key.pem --experimental-https-cert ./certificates/localhost.pem"
   },
   "dependencies": {
     "@paper-design/shaders-react": "^0.0.81",
