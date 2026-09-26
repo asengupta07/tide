@@ -7,6 +7,9 @@ import { ArrowUpRight, ShieldCheck, Fingerprint, Sparkle, CaretDown } from "@pho
 
 import { Nav, Bezel, Status, Pill } from "@/components/ui";
 import { FrontierChart } from "@/components/FrontierChart";
+import { DitherField } from "@/components/shaders";
+
+type Mgr = { sigma: number | null; measuredAt: number | null; ethPrice: number | null; lambdaStar: number | null; lastTick?: number; nextTick?: number; lastResult?: string; tickMinutes: number; minMoveBps: number };
 
 type Snapshot = {
   strategy: { label: string; name: string; owner: string; resolver: string; orderHash: string; tokenA: string; tokenB: string };
@@ -49,10 +52,19 @@ export default function Dashboard() {
   const [sigma, setSigma] = useState(0.8);
   const [busy, setBusy] = useState(false);
   const [advanced, setAdvanced] = useState(false);
+  const [mgr, setMgr] = useState<Mgr | null>(null);
+  const [sigmaTouched, setSigmaTouched] = useState(false);
 
   const refresh = async () => {
-    const r = await fetch(`/api/state?strategy=${encodeURIComponent(name)}`, { cache: "no-store" });
+    const [r, m] = await Promise.all([
+      fetch(`/api/state?strategy=${encodeURIComponent(name)}`, { cache: "no-store" }),
+      fetch(`/api/agent/status`, { cache: "no-store" }).then((x) => x.json()).catch(() => null),
+    ]);
     setS(await r.json());
+    if (m) {
+      setMgr(m);
+      if (!sigmaTouched && m.sigma) setSigma(Math.round(m.sigma * 20) / 20);
+    }
   };
   useEffect(() => {
     refresh();
@@ -82,14 +94,14 @@ export default function Dashboard() {
         ) : s.error ? (
           <div className="rounded-3xl border border-bad/30 p-6 text-bad">{s.error}</div>
         ) : (
-          <Body s={s} sigma={sigma} setSigma={setSigma} propose={propose} busy={busy} isOwner={!!address && address.toLowerCase() === s.strategy.owner.toLowerCase()} justShipped={q.get("new") === "1"} advanced={advanced} setAdvanced={setAdvanced} />
+          <Body s={s} mgr={mgr} sigma={sigma} setSigma={(v) => { setSigmaTouched(true); setSigma(v); }} propose={propose} busy={busy} isOwner={!!address && address.toLowerCase() === s.strategy.owner.toLowerCase()} justShipped={q.get("new") === "1"} advanced={advanced} setAdvanced={setAdvanced} />
         )}
       </main>
     </>
   );
 }
 
-function Body({ s, sigma, setSigma, propose, busy, isOwner, justShipped, advanced, setAdvanced }: { s: Snapshot; sigma: number; setSigma: (n: number) => void; propose: () => void; busy: boolean; isOwner: boolean; justShipped: boolean; advanced: boolean; setAdvanced: (b: boolean) => void }) {
+function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, advanced, setAdvanced }: { s: Snapshot; mgr: Mgr | null; sigma: number; setSigma: (n: number) => void; propose: () => void; busy: boolean; isOwner: boolean; justShipped: boolean; advanced: boolean; setAdvanced: (b: boolean) => void }) {
   const lambda = s.records.lambda / 100;
   const delta = s.records.delta / 100;
   const w = { a: num(s.block?.active.weth, 18), t: num(s.block?.total.weth, 18) };
@@ -167,8 +179,12 @@ function Body({ s, sigma, setSigma, propose, busy, isOwner, justShipped, advance
         {s.agentEnabled && (
           <div className="mt-5 grid gap-4 md:grid-cols-[1fr_1.3fr]">
             <Bezel small>
-              <div className="p-5">
-                <div className="flex items-center gap-2 text-sm font-medium">
+              <div className="relative overflow-hidden rounded-[calc(1rem-0.25rem)] p-5">
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 opacity-30">
+                  <DitherField />
+                  <div className="absolute inset-0 bg-gradient-to-b from-panel via-panel/40 to-transparent" />
+                </div>
+                <div className="relative flex items-center gap-2 text-sm font-medium">
                   <Fingerprint size={16} className="text-accent" /> Your World ID
                 </div>
                 {s.bound ? (
@@ -181,12 +197,22 @@ function Body({ s, sigma, setSigma, propose, busy, isOwner, justShipped, advance
                 ) : (
                   <p className="mt-2 text-sm text-fg-3">The owner has not bound a World ID yet.</p>
                 )}
+                {mgr && (
+                  <p className="relative mt-5 text-xs text-fg-3">
+                    Autopilot: the manager checks the market every {mgr.tickMinutes} min
+                    {mgr.nextTick ? `, next in ${Math.max(0, Math.round((mgr.nextTick - Date.now()) / 60000))} min` : ""}. It only speaks up when the suggested visibility moves by {mgr.minMoveBps / 100} points or more.
+                  </p>
+                )}
               </div>
             </Bezel>
             <Bezel small>
               <div className="p-5">
                 <div className="text-sm font-medium">Ask for a suggestion</div>
-                <p className="mt-1 text-xs text-fg-3">Tell the manager how volatile the market feels. It reads the frontier and proposes a new visibility level.</p>
+                <p className="mt-1 text-xs text-fg-3">
+                  {mgr?.sigma
+                    ? `ETH has moved about ${Math.round(mgr.sigma * 100)}% a year lately (hourly, last two weeks${mgr.ethPrice ? `, $${Math.round(mgr.ethPrice)}` : ""}). The frontier says ${mgr.lambdaStar !== null ? `${(mgr.lambdaStar ?? 0) / 100}%` : "…"} visibility for that. Slide to ask "what if".`
+                    : "Tell the manager how volatile the market feels. It reads the frontier and proposes a new visibility level."}
+                </p>
                 <div className="mt-4 flex items-center gap-4">
                   <input type="range" min={0.2} max={1.2} step={0.05} value={sigma} onChange={(e) => setSigma(Number(e.target.value))} className="w-full" />
                   <span className="num w-24 shrink-0 text-right text-sm">{sigma <= 0.35 ? "calm" : sigma <= 0.7 ? "normal" : sigma <= 1 ? "volatile" : "wild"} · {Math.round(sigma * 100)}%</span>

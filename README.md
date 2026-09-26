@@ -75,6 +75,9 @@ cd client && pnpm install && pnpm dev          # http://localhost:3000, connect 
 #           Aqua.ship, optional one-multicall delegation to manager.tide.eth. Four signatures.
 pnpm tsx --env-file=../.env scripts/e2e-new-strategy.ts  # same flow with a throwaway wallet, end to end
 pnpm agent propose --sigma 0.8 --strategy eth-usdc.tide.eth   # agent proposes λ*, prints the approval URL
+# Autopilot: the server measures realised ETH volatility (Coinbase hourly candles) every AGENT_TICK_MINUTES and
+# proposes on its own when λ* moves ≥ AGENT_MIN_MOVE_BPS, only for strategies with a delegated manager and a
+# bound owner. POST /api/agent/tick runs a check now; GET /api/agent/status shows σ, λ* and the next check.
 pnpm tsx --env-file=../.env scripts/test-agent-flow.ts   # denied / replayed / expired / forged paths
 pnpm tsx --env-file=../.env scripts/ens-agent-check.ts   # agent can set lambda, cannot touch anything else
 pnpm tsx --env-file=../.env scripts/ens-revoke.ts        # one EAC call per record + drop on-chain manager
