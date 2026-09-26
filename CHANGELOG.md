@@ -6,6 +6,9 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
 ## Sep 27, 2026
 
 **Audit fixes**
+- `TideProgram.check` refuses any opcode other than the three Tide ones and `Salt`, so a `Jump` cannot
+  route around `BUFFER_GUARD`; the static order is the runtime order. Router and app redeployed.
+- Planning notes, the event dossier and scratch files removed from the repo.
 - Contracts: `TideParams` keys are claimed only through the venues (`TideApp.init` checks the maker,
   `TideHook` claims its PoolId at initialize for an explicit owner), closing key squatting; hook burns 1000
   dead shares on the first deposit; `setBounds` rejects cooldown 0; `withinBounds` takes delta and applies
@@ -28,8 +31,8 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
   README headline, whitepaper abstract, ENS agent record, brief note); stale gas and test counts; broken
   file:line pointers replaced by symbol names; `FEEDBACK.md` function name; planning notes marked
   superseded; `.env.example` pruned to what the code reads.
-- Redeployed: params `0x3DC8…9C58`, router `0x4D11…7776`, app `0xbCB2…A832`, hook `0xD0AE…Ea88`, pool
-  `0xeba8…e883`, strategy hash `0x660a…612d`; fill `0x6066…6d77`, hook swap `0x2183…3909`.
+- Redeployed: params `0x1685…72aD`, router `0x65a2…a31e`, app `0x47ba…D12c`, hook `0x1391…AA88`, pool
+  `0xeba8…e883`, strategy hash `0xd218…da70`; fill `0x214c…c3c0`, hook swap `0xdc2c…3944`.
 
 - **MongoDB for all off-chain state.** `client/src/lib/db.ts` (one client per process, indexes on first use);
   `store.ts` and `registry.ts` are async over six collections: `strategies`, `proposals`, `authRequests`

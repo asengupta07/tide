@@ -221,6 +221,30 @@ contract TideAquaTest is TideAquaBase {
     // Program order is security-critical
     // ---------------------------------------------------------------------------------------------
 
+    function test_ForeignOpcode_Reverts() public {
+        address p = address(params);
+        // a Jump (0x03) between the curve and the guard could route around BUFFER_GUARD at runtime
+        bytes memory jump = abi.encodePacked(uint8(0x03), uint8(1), uint8(0));
+        _expectProgramRevert(
+            bytes.concat(
+                _build(TideProgram.ACTIVE_SPLIT, p),
+                _build(TideProgram.VIRTUAL_XYC, p),
+                jump,
+                _build(TideProgram.BUFFER_GUARD, p)
+            )
+        );
+        // the fee lives in TideParams now; a FeeFlatIn prefix would charge it twice
+        bytes memory fee = abi.encodePacked(uint8(0x70), uint8(3), uint24(30_000));
+        _expectProgramRevert(
+            bytes.concat(
+                fee,
+                _build(TideProgram.ACTIVE_SPLIT, p),
+                _build(TideProgram.VIRTUAL_XYC, p),
+                _build(TideProgram.BUFFER_GUARD, p)
+            )
+        );
+    }
+
     function test_ReorderedProgram_Reverts() public {
         address p = address(params);
         bytes memory reordered = bytes.concat(

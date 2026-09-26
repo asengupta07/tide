@@ -13,3 +13,6 @@ contracts/broadcast/
 __pycache__/
 *.pyc
 contracts/deployments/31337.json
+.impeccable/
+PRODUCT.md
+WORKING.md

@@ -2,7 +2,7 @@
 
 Tide is a partially-active AMM that shows each block's arbitrageur only a fraction λ of the maker's inventory, quotes uninformed flow against an N-times deeper virtual curve funded by a fee, and lets a manager agent tune λ and δ inside guardrails the owner set on-chain; anything beyond them needs the owner, fresh, as a human (World ID), with the parameters living as ENSv2 records the agent may edit and nothing else.
 
-**Model guide:** [MATHEMATICS_MODEL.md](MATHEMATICS_MODEL.md) · **Ops:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), [CHANGELOG.md](CHANGELOG.md) · **Whitepaper:** [WHITEPAPER.pdf](WHITEPAPER.pdf) · **Video:** _(link)_ · **Live demo (Sepolia):** dashboard `client/` (see Run), records on [eth-usdc.tide.eth](https://sepolia.app.ens.domains/eth-usdc.tide.eth), fills on [TideRouter](https://sepolia.etherscan.io/address/0x4D11A7ea95c6733f8f6edB15472BCfcBAC867776), hook pool on [TideHook](https://sepolia.etherscan.io/address/0xD0AE7D8bE6f4604d5C90d3bCb57fF9Ae32E3Ea88)
+**Model guide:** [MATHEMATICS_MODEL.md](MATHEMATICS_MODEL.md) · **Ops:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), [CHANGELOG.md](CHANGELOG.md) · **Whitepaper:** [WHITEPAPER.pdf](WHITEPAPER.pdf) · **Video:** _(link)_ · **Live demo (Sepolia):** dashboard `client/` (see Run), records on [eth-usdc.tide.eth](https://sepolia.app.ens.domains/eth-usdc.tide.eth), fills on [TideRouter](https://sepolia.etherscan.io/address/0x65a22C65E24b78ea708DD420aEc29f7dce38a31e), hook pool on [TideHook](https://sepolia.etherscan.io/address/0x1391EC676d47884a1A4837Dc6F108aBfEf6cAA88)
 
 Built at ETHGlobal Tokyo 2026 on two 2026 papers with no prior implementation: *Partially Active AMMs* (Ko, [arXiv 2602.09887](https://arxiv.org/abs/2602.09887)) and *Collateralized Liquidity Scaling* (Kim & Park, [arXiv 2605.19267](https://arxiv.org/abs/2605.19267)).
 
@@ -31,14 +31,14 @@ Every fill pays a flat fee on tokenIn, read from `TideParams` by both venues, an
 | Contract | Address |
 | --- | --- |
 | Aqua registry (official 1inch) | `0x1111113CCf1426A8E30e2bfF5E005d929bF6a90a` |
-| TideRouter (redeployed AquaSwapVMRouter + Tide opcodes) | `0x4D11A7ea95c6733f8f6edB15472BCfcBAC867776` |
-| TideParams (λ, N, δ, fee) | `0x3DC88a5C0F3fEd80B0eBb71fC762D072688B9C58` |
-| TideApp (program/order builder) | `0xbCB23B75c1478C78A6b87848b6D18a4b1E2AA832` |
-| TideHook (Uniswap v4, PoolManager `0xE03A…3543`, pool `0xeba8e84c…e883`) | `0xD0AE7D8bE6f4604d5C90d3bCb57fF9Ae32E3Ea88` |
+| TideRouter (redeployed AquaSwapVMRouter + Tide opcodes) | `0x65a22C65E24b78ea708DD420aEc29f7dce38a31e` |
+| TideParams (λ, N, δ, fee) | `0x1685850e16Ea6A6D5f3fF6FBA824B4d834eb72aD` |
+| TideApp (program/order builder) | `0x47ba13504B02E0Bf40C3C80Bb2B1aa3dF8EDD12c` |
+| TideHook (Uniswap v4, PoolManager `0xE03A…3543`, pool `0x910eb666…80ae`) | `0x1391EC676d47884a1A4837Dc6F108aBfEf6cAA88` |
 | ENS user registry for `tide.eth` | `0xC02D402724B76c1CBa8d35988CAA8F9e1E31b97C` |
 | Strategy resolver (`eth-usdc.tide.eth`) | `0x42a719F03f4921783367A1017F389Ee310c16B2E` |
 | Agent resolver (`manager.tide.eth`) | `0x3553ff32412FC570182b6e37935A11F8555Bd5F5` |
-| Strategy hash (Aqua order hash) | `0x660a4e8b9ad4f0c95f1642ddc66d22d81f8ecb0e89154264f4d80c995634612d` |
+| Strategy hash (Aqua order hash) | `0xd218d485ab0bed7f90372d0cc150681398d2f49f1d976ff72050725c6a71da70` |
 
 Owner `0xF23be0fbE9DEf26570278F91f3F150Af015a3ECf`, manager agent `0xedbA94c7292Aef84AC220E14ffF642aC4D749647`. Transaction hashes cited below are on Sepolia Etherscan; the deployment scripts print them and `CHANGELOG.md` records them.
 
@@ -50,7 +50,7 @@ Prerequisites: Foundry ≥ 1.3, Node 22 + pnpm, Python 3.11+ with numpy/matplotl
 git clone --recurse-submodules git@github.com:asengupta07/tide.git && cd tide
 ```
 
-Contracts and tests (48 tests: math vectors, three opcodes, hook, cross-venue parity, program-order reverts, two-swaps-in-one-block, fee bound, round trip, guardrails, key claiming):
+Contracts and tests (49 tests: math vectors, three opcodes, hook, cross-venue parity, program-order reverts, two-swaps-in-one-block, fee bound, round trip, guardrails, key claiming):
 
 ```bash
 cd contracts && forge test
@@ -97,7 +97,7 @@ pnpm tsx --env-file=../.env scripts/ens-revoke.ts        # one EAC call per reco
 - Three custom opcodes in reserved third-party slots of `OpcodeList.sol`, one per family bank, no 1inch opcode overwritten: `ACTIVE_SPLIT` 0x92, `VIRTUAL_XYC` 0x52, `BUFFER_GUARD` 0x22 (`contracts/src/aqua/instructions/TideProgram.sol:24-26`). Dispatch extends `AquaOpcodes` (`contracts/src/aqua/TideOpcodes.sol:16`).
 - Instruction order is security-critical and enforced on-chain: every Tide opcode scans the program and reverts unless the order is `ACTIVE_SPLIT → VIRTUAL_XYC → BUFFER_GUARD`, each exactly once (`TideProgram.sol:32`). Tests: reordered, missing and duplicated programs revert (`contracts/test/aqua/TideAqua.t.sol`, `test_ReorderedProgram_Reverts` and neighbours).
 - Lazy re-split, fee on tokenIn and two swaps in one block: `ActiveSplit.exec` in `contracts/src/aqua/instructions/ActiveSplit.sol`, test `test_TwoSwapsInOneBlock_ThenLazyResplitNextBlock`.
-- Onchain token transfers: Sepolia fill `0x606605bc…ca6d77` (0.02 WETH → 55.40 USDC through Aqua `pull`/`push`, 0.3 % fee kept by the maker), plus the mainnet-fork demo above with real WETH/USDC.
+- Onchain token transfers: Sepolia fill `0x214ce80b…cc3c0` (0.02 WETH → 55.40 USDC through Aqua `pull`/`push`, 0.3 % fee kept by the maker), plus the mainnet-fork demo above with real WETH/USDC.
 - Side by side on a mainnet fork: `contracts/script/side-by-side.sh` ships two strategies from the same wallet, a plain `FeeFlatIn XYCSwap Salt` program and the Tide program, same inventory, same router, same registry, then runs eight blocks of the same price path with an arbitrageur, a retail order and one informed-sized order against both, all real `Aqua.push`/`Aqua.pull` fills. The renderer decodes the `Swapped` events from the receipts: arbitrage extraction about 35 % lower on Tide (theory 33 %), retail 6 bp better on the deep curve, the guard re-pricing the large order, and the honest cost of a retail order that lands first in a block. `--fast` skips the animation.
 - Program layout: `TideApp.program()` (`contracts/src/aqua/TideApp.sol:43`). The fee is not an instruction argument: `ACTIVE_SPLIT` reads it from `TideParams`, so a fill always pays the fee the parameter box was checked against.
 - Fee-rebate bound and the round-trip test: `TideMath.checkParams`, `TideParams.initFor` / `set` / `setFee`, tests `test_Params_FeeBound_RejectsDeltaTheFeeCannotBack` and `test_RoundTrip_ActiveThenVirtual_LosesMoneyUnderFeeBound` in `contracts/test/aqua/TideAqua.t.sol`.
@@ -107,7 +107,7 @@ pnpm tsx --env-file=../.env scripts/ens-revoke.ts        # one EAC call per reco
 - Hook: `contracts/src/v4/TideHook.sol`; pricing in `_getUnspecifiedAmount` and `_compute`, fee reported through `_getSwapFeeAmount`; the pool claims its parameter key in `_beforeInitialize`; JIT guard in `addLiquidity`/`removeLiquidity`; first deposit burns 1000 dead shares. Permissions: `beforeInitialize`, `beforeSwap` + `beforeSwapReturnDelta`, `beforeAddLiquidity`, `beforeRemoveLiquidity`.
 - Cross-venue parity test: `contracts/test/CrossVenue.t.sol` (same trade sequence, identical amounts on Aqua and v4).
 - [FEEDBACK.md](FEEDBACK.md) at the repo root; Developer Feedback Form submitted with its link.
-- Sepolia: pool `0xeba8e84c…e883`, swap `0x21839a83…d03909` (0.01 WETH → 27.198 USDC, quote == fill, fee included).
+- Sepolia: pool `0x910eb666…80ae`, swap `0xdc2ccf75…13944` (0.01 WETH → 27.198 USDC, quote == fill, fee included).
 
 ### ENSv2 (Sepolia)
 
@@ -127,7 +127,7 @@ pnpm tsx --env-file=../.env scripts/ens-revoke.ts        # one EAC call per reco
 
 ### Tests and gas
 
-48 Foundry tests (`forge test`). Gas, swap only, measured by `test/BaselineGas.t.sol`: plain `XYCSwap` fill 57,402; Tide first fill of a block 77,234 (+19,832); later fill 76,241 (+18,839).
+49 Foundry tests (`forge test`). Gas, swap only, measured by `test/BaselineGas.t.sol`: plain `XYCSwap` fill 57,402; Tide first fill of a block 77,234 (+19,832); later fill 76,241 (+18,839).
 
 ### Curvegrid
 
@@ -143,6 +143,6 @@ Team Tide. Arnab Sengupta ([@asengupta07](https://github.com/asengupta07)). _(ad
 contracts/   Foundry: src/lib, src/aqua, src/v4, TideParams, tests, scripts, deployments/
 client/      Next.js app router (TypeScript): dashboard, API routes, agent, ENS + World libs, scripts/
 research/    tide_math.py (vectors), frontier.py, sim.py, figures, JSON outputs
-docs/        idea brief, dossier, world-debrief.md, DEPLOYMENT.md (redeploy, World client, public host), whitepaper source
+docs/        idea brief, world-debrief.md, DEPLOYMENT.md (redeploy, World client, public host), whitepaper source
 CHANGELOG.md dated log of what changed and why
 ```
