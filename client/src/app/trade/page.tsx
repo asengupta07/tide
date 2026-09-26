@@ -26,12 +26,15 @@ export default async function TradeLanding({ searchParams }: { searchParams: Pro
             <div className="mb-5 inline-flex items-center rounded-full bg-white/[0.045] px-3 py-1.5 text-xs text-fg-2 ring-1 ring-white/[0.09]">Tide-only execution</div>
             <h1 className="text-[clamp(2.8rem,6vw,5.4rem)] font-semibold leading-[0.96] tracking-[-0.04em]">Trade against deeper liquidity.</h1>
             <p className="mt-6 max-w-[34rem] text-base leading-relaxed text-fg-2 sm:text-lg">One order. Every funded Tide LP compared live. The strongest executable quote wins.</p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link href="/trade/market" className="pill pill-primary group">
+            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
+              <Link href="/trade/market" className="pill pill-primary pill-hero group">
                 <span>Open terminal</span>
-                <span className="ico transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-x-0.5"><ArrowRight size={15} /></span>
+                <span className="ico"><ArrowRight size={14} /></span>
               </Link>
-              <Link href="/#mechanism" className="pill pill-ghost">How Tide prices</Link>
+              <Link href="/#mechanism" className="group inline-flex min-h-11 items-center gap-2 px-1 text-sm font-medium text-fg-2 transition-colors duration-200 hover:text-fg">
+                <span>How Tide prices</span>
+                <ArrowRight size={14} className="transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-x-0.5" />
+              </Link>
             </div>
           </Reveal>
           <div className="relative z-[1] pb-8 lg:translate-y-5"><TradeHeroLive /></div>
