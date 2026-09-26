@@ -4,6 +4,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { col, clean } from "./db";
 import { getAddress, type Address, type Hex } from "viem";
 
 export type Strategy = {
@@ -19,62 +20,53 @@ export type Strategy = {
   txs: Record<string, Hex>;
 };
 
-const FILE = path.join(process.cwd(), "data", "strategies.json");
-const ENS_FILE = path.join(process.cwd(), "data", "ens.json");
 const DEP_FILE = path.join(process.cwd(), "..", "contracts", "deployments", "11155111.json");
 
 export const SEPOLIA_WETH = getAddress("0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14");
 export const SEPOLIA_USDC = getAddress("0x16f95d91dba7da3aca778ec053df0ff6c6a8aa8e");
 export const PARENT = process.env.ENS_PARENT_NAME ?? "tide.eth";
 
-function migrate(): Strategy[] {
-  try {
-    const ens = JSON.parse(fs.readFileSync(ENS_FILE, "utf8"));
-    const owner = getAddress(process.env.OWNER_ADDRESS!);
-    const [tokenA, tokenB] = SEPOLIA_WETH.toLowerCase() < SEPOLIA_USDC.toLowerCase() ? [SEPOLIA_WETH, SEPOLIA_USDC] : [SEPOLIA_USDC, SEPOLIA_WETH];
-    return [
-      {
-        label: ens.strategyName.split(".")[0],
-        name: ens.strategyName,
-        owner,
-        resolver: getAddress(ens.strategyResolver),
-        orderHash: ens.strategyHash,
-        tokenA,
-        tokenB,
-        salt: "1",
-        createdAt: Date.parse("2026-09-25T12:00:00Z"),
-        txs: ens.txs ?? {},
-      },
-    ];
-  } catch {
-    return [];
-  }
+const strategies = () => col<Strategy>("strategies");
+
+/** Oldest first. This is an index of names created through this app; `pnpm reindex` rebuilds it from chain. */
+export async function listStrategies(): Promise<Strategy[]> {
+  return (await strategies()).find({}, { projection: { _id: 0 } }).sort({ createdAt: 1 }).toArray();
 }
 
-export function listStrategies(): Strategy[] {
-  try {
-    return JSON.parse(fs.readFileSync(FILE, "utf8")) as Strategy[];
-  } catch {
-    const s = migrate();
-    saveStrategies(s);
-    return s;
-  }
+export async function saveStrategies(list: Strategy[]) {
+  const c = await strategies();
+  await c.deleteMany({});
+  if (list.length) await c.insertMany(list.map((s) => ({ ...s })));
 }
 
-export function saveStrategies(s: Strategy[]) {
-  fs.mkdirSync(path.dirname(FILE), { recursive: true });
-  fs.writeFileSync(FILE, JSON.stringify(s, null, 2));
-}
-
-export function getStrategy(nameOrLabel: string): Strategy | undefined {
+export async function getStrategy(nameOrLabel: string): Promise<Strategy | null> {
   const key = nameOrLabel.toLowerCase();
-  return listStrategies().find((s) => s.name.toLowerCase() === key || s.label.toLowerCase() === key || s.orderHash.toLowerCase() === key);
+  const esc = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return clean(await (await strategies()).findOne({ $or: [{ label: key }, { name: key }, { orderHash: { $regex: `^${esc}$`, $options: "i" } }] }));
 }
 
-export function addStrategy(s: Strategy) {
-  const all = listStrategies().filter((x) => x.name.toLowerCase() !== s.name.toLowerCase());
-  all.push(s);
-  saveStrategies(all);
+export async function addStrategy(s: Strategy) {
+  await (await strategies()).replaceOne({ label: s.label }, { ...s }, { upsert: true });
+}
+
+/** State of the tide.eth setup (registry, resolvers, tx hashes), written by scripts/ens-setup.ts. */
+export type EnsState = {
+  parent: string;
+  strategyName: string;
+  agentName: string;
+  userRegistry?: Address;
+  strategyResolver?: Address;
+  agentResolver?: Address;
+  strategyHash?: Hex;
+  txs: Record<string, Hex>;
+};
+
+export async function getEnsState(parent = PARENT): Promise<EnsState | null> {
+  return clean(await (await col<EnsState>("ens")).findOne({ parent }));
+}
+
+export async function saveEnsState(state: EnsState) {
+  await (await col<EnsState>("ens")).replaceOne({ parent: state.parent }, { ...state }, { upsert: true });
 }
 
 export function deployment() {

@@ -5,6 +5,13 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
 
 ## Sep 27, 2026
 
+- **MongoDB for all off-chain state.** `client/src/lib/db.ts` (one client per process, indexes on first use);
+  `store.ts` and `registry.ts` are async over six collections: `strategies`, `proposals`, `authRequests`
+  (TTL one hour, deleted on use), `bound`, `log`, `ens`. Agent, scheduler, routes, approved page and the
+  scripts (`ens:setup`, `ens-revoke`, `ens-agent-check`, `reindex`, `test-agent-flow`) ported. `pnpm db:import`
+  loads the old `client/data/*.json` files once. `MONGODB_URI` in `.env`; the dev server must be restarted
+  to pick it up. The denied-path harness now forces proposals outside the guardrails so they take the
+  step-up path.
 - `pnpm reindex`: rebuilds `client/data/strategies.json` from chain (`ETHRegistry.getSubregistry`,
   `LabelRegistered` events, `strategyHash` records, `findOwner`, Universal Resolver). Makes the JSON index
   disposable; `state.json` stays the agent's off-chain working memory (auth sessions, proposals, log).

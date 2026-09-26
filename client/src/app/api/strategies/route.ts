@@ -5,7 +5,7 @@ import { currentRecords, agentEnabled } from "@/lib/agent";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const all = listStrategies();
+  const all = await listStrategies();
   const rows = await Promise.all(
     all.map(async (s) => {
       const [records, enabled] = await Promise.all([currentRecords(s).catch(() => null), agentEnabled(s).catch(() => false)]);

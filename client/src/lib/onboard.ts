@@ -4,26 +4,25 @@
  * `<label>.tide.eth` to the user's wallet. Everything else (params, shipping, delegating to the agent) is
  * signed by the user in their own wallet; this backend never holds their funds or their roles.
  */
-import fs from "node:fs";
-import path from "node:path";
 import { decodeEventLog, encodeFunctionData, getAddress, parseAbi, type Address, type Hex } from "viem";
 import { namehash } from "viem/ens";
 
 import { publicClient, walletClient, labelhash, setTextCalldata, userRegistryAbi, resolverAbi, factoryAbi } from "./ens/client";
 import { ENS_SEPOLIA, RegistryRoles, ResolverRoles, withAdmin } from "./ens/config";
-import { PARENT, deployment, type Strategy } from "./registry";
+import { PARENT, deployment, getEnsState, type Strategy } from "./registry";
 import tideAppAbi from "@/abi/tide/TideApp.json";
 
 const pc = publicClient();
 const registrar = () => walletClient(process.env.OWNER_PRIVATE_KEY!);
 
-function userRegistry(): Address {
-  const ens = JSON.parse(fs.readFileSync(path.join(process.cwd(), "data", "ens.json"), "utf8"));
+async function userRegistry(): Promise<Address> {
+  const ens = await getEnsState();
+  if (!ens?.userRegistry) throw new Error("tide.eth is not set up yet: run pnpm ens:setup");
   return getAddress(ens.userRegistry);
 }
 
 export async function labelAvailable(label: string): Promise<boolean> {
-  const st = (await pc.readContract({ address: userRegistry(), abi: userRegistryAbi, functionName: "getState", args: [labelhash(label)] })) as { status: number };
+  const st = (await pc.readContract({ address: await userRegistry(), abi: userRegistryAbi, functionName: "getState", args: [labelhash(label)] })) as { status: number };
   return st.status === 0;
 }
 
@@ -89,7 +88,7 @@ export async function createName(input: CreateInput): Promise<Strategy> {
 
   // 2. register the subname to the user with the user-facing roles
   const subRoles = withAdmin(RegistryRoles.SET_RESOLVER) | withAdmin(RegistryRoles.SET_SUBREGISTRY) | withAdmin(RegistryRoles.RENEW) | RegistryRoles.CAN_TRANSFER_ADMIN;
-  const h2 = await wc.writeContract({ address: userRegistry(), abi: userRegistryAbi, functionName: "register", args: [input.label, input.owner, "0x0000000000000000000000000000000000000000", resolver, subRoles, 2n ** 64n - 1n], chain: wc.chain, account: wc.account });
+  const h2 = await wc.writeContract({ address: await userRegistry(), abi: userRegistryAbi, functionName: "register", args: [input.label, input.owner, "0x0000000000000000000000000000000000000000", resolver, subRoles, 2n ** 64n - 1n], chain: wc.chain, account: wc.account });
   const rc2 = await pc.waitForTransactionReceipt({ hash: h2 });
   if (rc2.status !== "success") throw new Error("register reverted");
   txs.register = h2;

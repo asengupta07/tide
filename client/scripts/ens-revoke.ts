@@ -3,20 +3,22 @@
  *   pnpm tsx --env-file=../.env scripts/ens-revoke.ts            revoke
  *   pnpm tsx --env-file=../.env scripts/ens-revoke.ts --restore  grant again
  */
-import fs from "node:fs";
 import { getAddress, type Address } from "viem";
+import { getEnsState } from "../src/lib/registry";
 import { publicClient, walletClient, canSetText, setTextCalldata, textKeyResource, resolverAbi } from "../src/lib/ens/client";
 import { GOVERNED_KEYS, ResolverRoles } from "../src/lib/ens/config";
 import { deployment } from "../src/lib/tide";
 import tideParamsAbi from "../src/abi/tide/TideParams.json";
 
 const restore = process.argv.includes("--restore");
-const ens = JSON.parse(fs.readFileSync("data/ens.json", "utf8")) as { strategyName: string; strategyResolver: Address; strategyHash: `0x${string}` };
+let ens: { strategyName: string; strategyResolver: Address; strategyHash: `0x${string}` };
 const pc = publicClient();
 const owner = walletClient(process.env.OWNER_PRIVATE_KEY!);
 const agent = getAddress(process.env.AGENT_ADDRESS!);
 
 async function main() {
+  ens = (await getEnsState()) as unknown as typeof ens;
+  if (!ens) throw new Error("tide.eth setup not found in MongoDB: run pnpm ens:setup");
   for (const key of GOVERNED_KEYS) {
     const has = await canSetText(pc, ens.strategyResolver, key, agent);
     if (restore && !has) {
@@ -35,4 +37,4 @@ async function main() {
   console.log(`TideParams manager ${restore ? "restored" : "revoked"} -> ${h}`);
   for (const key of GOVERNED_KEYS) console.log(`  agent may set ${key}: ${await canSetText(pc, ens.strategyResolver, key, agent)}`);
 }
-main().catch((e) => { console.error(e); process.exit(1); });
+main().then(() => process.exit(process.exitCode ?? 0)).catch((e) => { console.error(e); process.exit(1); });

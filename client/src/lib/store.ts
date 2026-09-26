@@ -1,10 +1,10 @@
 /**
- * JSON file store for the backend: bound owner identities (per wallet), pending auth requests, proposals
- * and the agent log. client/data/state.json, git-ignored. Single process; fine for the demo.
+ * Off-chain state of the manager agent, in MongoDB: proposals, pending OIDC requests, World ID bindings and
+ * the log. Everything a strategy *is* lives on-chain (ENS records, TideParams, Aqua balances, router events);
+ * this is the agent's working memory and the audit trail of its requests.
  */
-import fs from "node:fs";
-import path from "node:path";
 import type { AuthRequest, VerifiedIdentity } from "./world";
+import { col, clean } from "./db";
 
 export type ProposalStatus = "pending" | "approved" | "applied" | "blocked" | "expired" | "failed";
 
@@ -28,57 +28,84 @@ export type Proposal = {
 };
 
 export type LogEntry = { at: number; level: "info" | "warn" | "error"; msg: string; proposalId?: string; strategy?: string };
+export type Bound = VerifiedIdentity & { owner: string; boundAt: number };
 
-export type State = {
-  /** lowercased owner wallet -> bound World identity */
-  bound: Record<string, VerifiedIdentity & { boundAt: number }>;
-  authRequests: Record<string, AuthRequest>;
-  proposals: Proposal[];
-  log: LogEntry[];
-};
+const proposals = () => col<Proposal>("proposals");
+const authRequests = () => col<AuthRequest & { expiresAt: Date }>("authRequests");
+const bound = () => col<Bound>("bound");
+const logs = () => col<LogEntry>("log");
 
-const FILE = path.join(process.cwd(), "data", "state.json");
-
-export function load(): State {
-  try {
-    const s = JSON.parse(fs.readFileSync(FILE, "utf8")) as Partial<State> & { bound?: unknown };
-    // migrate the single-owner shape
-    const bound = s.bound && typeof s.bound === "object" && "subject" in (s.bound as object)
-      ? { [(process.env.OWNER_ADDRESS ?? "").toLowerCase()]: s.bound as unknown as State["bound"][string] }
-      : ((s.bound as State["bound"]) ?? {});
-    return { bound, authRequests: s.authRequests ?? {}, proposals: s.proposals ?? [], log: s.log ?? [] };
-  } catch {
-    return { bound: {}, authRequests: {}, proposals: [], log: [] };
-  }
+// ---- proposals -------------------------------------------------------------------------------------
+export async function insertProposal(p: Proposal) {
+  await (await proposals()).insertOne({ ...p });
 }
 
-export function save(state: State) {
-  fs.mkdirSync(path.dirname(FILE), { recursive: true });
-  fs.writeFileSync(FILE, JSON.stringify(state, null, 2));
+export async function getProposal(id: string): Promise<Proposal | null> {
+  return clean(await (await proposals()).findOne({ id }));
 }
 
-export function update<T>(fn: (s: State) => T): T {
-  const s = load();
-  const r = fn(s);
-  save(s);
-  return r;
+/** $set the defined fields of `patch`; undefined values are left untouched. */
+export async function updateProposal(id: string, patch: Partial<Proposal>) {
+  const set = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
+  await (await proposals()).updateOne({ id }, { $set: set });
 }
 
-export function log(state: State, level: LogEntry["level"], msg: string, proposalId?: string, strategy?: string) {
-  state.log.unshift({ at: Date.now(), level, msg, proposalId, strategy });
-  state.log = state.log.slice(0, 300);
+export async function listProposals(strategy?: string, limit = 100): Promise<Proposal[]> {
+  return (await proposals()).find(strategy ? { strategy } : {}, { projection: { _id: 0 } }).sort({ createdAt: -1 }).limit(limit).toArray();
 }
 
+export async function hasPending(strategy: string) {
+  return !!(await (await proposals()).findOne({ strategy, status: "pending" }, { projection: { _id: 1 } }));
+}
+
+// ---- OIDC requests (one shot; the TTL index sweeps abandoned ones after an hour) ----------------------
+export async function putAuthRequest(req: AuthRequest) {
+  await (await authRequests()).insertOne({ ...req, expiresAt: new Date(Date.now() + 60 * 60_000) });
+}
+
+/** Return and delete the request for `state`, so a callback can only be used once. */
+export async function takeAuthRequest(state: string): Promise<AuthRequest | null> {
+  const doc = await (await authRequests()).findOneAndDelete({ state });
+  if (!doc) return null;
+  const { _id: _a, expiresAt: _b, ...req } = doc;
+  void _a;
+  void _b;
+  return req as AuthRequest;
+}
+
+// ---- World ID bindings ------------------------------------------------------------------------------
+export async function getBound(owner: string): Promise<Bound | null> {
+  return clean(await (await bound()).findOne({ owner: owner.toLowerCase() }));
+}
+
+export async function setBound(owner: string, identity: VerifiedIdentity) {
+  const o = owner.toLowerCase();
+  await (await bound()).updateOne({ owner: o }, { $set: { ...identity, owner: o, boundAt: Date.now() } }, { upsert: true });
+}
+
+// ---- log --------------------------------------------------------------------------------------------
+export async function appendLog(level: LogEntry["level"], msg: string, proposalId?: string, strategy?: string) {
+  const entry: LogEntry = { at: Date.now(), level, msg };
+  if (proposalId) entry.proposalId = proposalId;
+  if (strategy) entry.strategy = strategy;
+  await (await logs()).insertOne(entry);
+}
+
+/** Newest first. With a strategy: that strategy's entries plus the global ones. */
+export async function listLog(strategy?: string, limit = 300): Promise<LogEntry[]> {
+  const q = strategy ? { $or: [{ strategy }, { strategy: { $exists: false } }] } : {};
+  return (await logs()).find(q, { projection: { _id: 0 } }).sort({ at: -1 }).limit(limit).toArray();
+}
+
+// ---- housekeeping -----------------------------------------------------------------------------------
 export const approvalTimeoutMs = () => Number(process.env.WORLD_APPROVAL_TIMEOUT_SECONDS ?? "180") * 1000;
 
-export function expireStale(state: State) {
-  const now = Date.now();
-  for (const p of state.proposals) {
-    if (p.status === "pending" && now - p.createdAt > approvalTimeoutMs()) {
-      p.status = "expired";
-      p.decidedAt = now;
-      p.blockedReason = "approval window elapsed, no fresh authentication received";
-      log(state, "warn", `proposal ${p.id} blocked: timed out waiting for the owner`, p.id, p.strategy);
-    }
+/** Pending proposals whose approval window elapsed become `expired`; nothing was written for them. */
+export async function expireStale() {
+  const cutoff = Date.now() - approvalTimeoutMs();
+  const stale = await (await proposals()).find({ status: "pending", createdAt: { $lt: cutoff } }, { projection: { _id: 0 } }).toArray();
+  for (const p of stale) {
+    await updateProposal(p.id, { status: "expired", decidedAt: Date.now(), blockedReason: "approval window elapsed, no fresh authentication received" });
+    await appendLog("warn", `proposal ${p.id} blocked: timed out waiting for the owner`, p.id, p.strategy);
   }
 }

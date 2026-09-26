@@ -17,6 +17,7 @@ rediscovering the traps. Keep this current when the process changes; log what ch
 | `WORLD_ISSUER`, `WORLD_CLIENT_ID`, `WORLD_CLIENT_SECRET`, `WORLD_REDIRECT_URI` | World step-up | see §5 |
 | `PUBLIC_APP_URL` | ENS agent records (`agent-endpoint*`) | rewrite records with `pnpm ens:setup` after changing it |
 | `AGENT_TICK_MINUTES`, `AGENT_MIN_MOVE_BPS` | autopilot | defaults 15 and 500 |
+| `MONGODB_URI` | everything off-chain | database name in the path; collections below. Needs a server restart to pick up |
 
 Foundry scripts read `OWNER_ADDRESS`/`AGENT_ADDRESS` with `vm.envAddress`, which needs **exported**
 variables. `source .env` alone is not enough in a script; use `set -a; source .env; set +a`.
@@ -120,12 +121,21 @@ The fee record is informational and owner-only; the agent has no role on it.
 New strategies from `/app/new` get their own resolver (owner = the user's wallet) and subname; the
 backend (owner key) is the registrar, nothing else.
 
-`client/data/` is a cache, not the truth. `pnpm reindex` rebuilds `strategies.json` from chain: it finds
-the user registry through `ETHRegistry.getSubregistry("tide")`, scans `LabelRegistered` events, keeps every
-label whose name resolves a `strategyHash` record, and reads owner and resolver from the registry and the
-Universal Resolver. `state.json` (World bindings, pending OIDC requests, proposal history, log) is the
-agent's working memory and has no on-chain counterpart by design; on a real deploy it belongs in a
-database. Applied changes are on-chain regardless (`ParamsUpdated`, ENS records).
+Off-chain state lives in MongoDB (`MONGODB_URI`), one database, six collections, indexes created on first
+use by `client/src/lib/db.ts`:
+
+| Collection | Holds | Rebuildable from chain? |
+| --- | --- | --- |
+| `strategies` | index of names created through the app (label, owner, resolver, order hash, tokens, salt, tx hashes) | yes, `pnpm reindex` (`ETHRegistry.getSubregistry`, `LabelRegistered` events, `strategyHash` records) |
+| `proposals` | the manager's proposals and what happened to them | applied ones yes (`ParamsUpdated`, records); requests themselves are off-chain by nature |
+| `authRequests` | pending OIDC requests (state, nonce, PKCE verifier), TTL one hour, deleted on use | no, and must not be |
+| `bound` | owner wallet → pairwise World ID subject | no; re-bind |
+| `log` | the agent's audit trail | no |
+| `ens` | tide.eth setup state (registry, resolvers, tx hashes), written by `ens:setup` | yes |
+
+`pnpm db:import` loads the old `client/data/*.json` files into these collections (upserts, safe to re-run).
+`pnpm db:check` prints the counts and the dashboard snapshot the API would serve. The app never reads the
+files any more. Scripts call `process.exit` when done; the driver's pool would otherwise keep them alive.
 
 Beta contract addresses and ABIs: `client/src/lib/ens/config.ts` (contracts-v2 commit `71a3b733`).
 

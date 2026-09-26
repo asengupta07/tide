@@ -6,14 +6,14 @@
  *   - registry.setResolver on the strategy name reverts (the agent owns no roles there)
  *   pnpm tsx --env-file=../.env scripts/ens-agent-check.ts
  */
-import fs from "node:fs";
 import { encodeFunctionData, getAddress, type Address, type Hex } from "viem";
+import { getEnsState } from "../src/lib/registry";
 import { publicClient, walletClient, dnsName, labelhash, readText, setTextCalldata, resolverAbi, userRegistryAbi } from "../src/lib/ens/client";
 
-const ens = JSON.parse(fs.readFileSync("data/ens.json", "utf8")) as { strategyName: string; strategyResolver: Address; userRegistry: Address };
+let ens: { strategyName: string; strategyResolver: Address; userRegistry: Address };
 const pc = publicClient();
 const agent = walletClient(process.env.AGENT_PRIVATE_KEY!);
-const name = ens.strategyName;
+let name: string;
 
 async function expectRevert(label: string, fn: () => Promise<unknown>) {
   try {
@@ -28,6 +28,9 @@ async function expectRevert(label: string, fn: () => Promise<unknown>) {
 }
 
 async function main() {
+  ens = (await getEnsState()) as unknown as typeof ens;
+  if (!ens) throw new Error("tide.eth setup not found in MongoDB: run pnpm ens:setup");
+  name = ens.strategyName;
   console.log(`agent ${agent.account.address} on ${name}, resolver ${ens.strategyResolver}`);
   const before = await readText(pc, name, "lambda");
 
@@ -52,4 +55,4 @@ async function main() {
     pc.simulateContract({ address: ens.userRegistry, abi: userRegistryAbi, functionName: "unregister", args: [labelhash(name.split(".")[0])], account: agent.account }));
   void encodeFunctionData; void getAddress; void setTextCalldata;
 }
-main().catch((e) => { console.error(e); process.exit(1); });
+main().then(() => process.exit(process.exitCode ?? 0)).catch((e) => { console.error(e); process.exit(1); });

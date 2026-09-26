@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAddress, verifyMessage, type Address, type Hex } from "viem";
 import { beginAuth } from "@/lib/world";
-import { update } from "@/lib/store";
+import { putAuthRequest } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +28,7 @@ export async function GET(req: Request) {
     if (!ok) return NextResponse.json({ error: "signature does not match owner" }, { status: 401 });
 
     const { request, url } = await beginAuth("bind", { owner });
-    update((s) => {
-      s.authRequests[request.state] = request;
-    });
+    await putAuthRequest(request);
     return NextResponse.redirect(url);
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

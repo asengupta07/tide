@@ -13,6 +13,7 @@
  *
  *   pnpm ens:setup
  */
+import { getEnsState, saveEnsState, type EnsState } from "../src/lib/registry";
 import fs from "node:fs";
 import path from "node:path";
 import { encodeFunctionData, getAddress, parseAbi, type Address, type Hex } from "viem";
@@ -51,28 +52,15 @@ const OWNER = walletClient(env("OWNER_PRIVATE_KEY"));
 const AGENT_ADDRESS = getAddress(env("AGENT_ADDRESS"));
 const pc = publicClient();
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const OUT = path.join(DATA_DIR, "ens.json");
 const FOREVER = 2n ** 64n - 1n;
 
-type State = {
-  parent: string;
-  strategyName: string;
-  agentName: string;
-  userRegistry?: Address;
-  strategyResolver?: Address;
-  agentResolver?: Address;
-  strategyHash?: Hex;
-  txs: Record<string, Hex>;
-};
+type State = EnsState;
 
-function load(): State {
-  if (fs.existsSync(OUT)) return JSON.parse(fs.readFileSync(OUT, "utf8"));
-  return { parent: PARENT, strategyName: STRATEGY_NAME, agentName: AGENT_NAME, txs: {} };
+async function load(): Promise<State> {
+  return (await getEnsState(PARENT)) ?? { parent: PARENT, strategyName: STRATEGY_NAME, agentName: AGENT_NAME, txs: {} };
 }
-function save(s: State) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(OUT, JSON.stringify(s, null, 2));
+async function save(s: State) {
+  await saveEnsState(s);
 }
 
 async function send(label: string, state: State, req: Parameters<typeof OWNER.writeContract>[0]) {
@@ -81,7 +69,7 @@ async function send(label: string, state: State, req: Parameters<typeof OWNER.wr
   const rc = await pc.waitForTransactionReceipt({ hash });
   if (rc.status !== "success") throw new Error(`${label} reverted`);
   state.txs[label] = hash;
-  save(state);
+  await save(state);
   return rc;
 }
 
@@ -118,7 +106,7 @@ async function strategyHashFromChain(): Promise<Hex> {
 }
 
 async function main() {
-  const state = load();
+  const state = await load();
   console.log(`owner ${OWNER.account.address}, agent ${AGENT_ADDRESS}`);
   console.log(`parent ${PARENT}, strategy ${STRATEGY_NAME}, agent name ${AGENT_NAME}`);
 
@@ -162,7 +150,7 @@ async function main() {
         args: [[{ account: OWNER.account.address, roleBitmap: ownerRoles }]],
       });
       state.userRegistry = await deployProxy("deployUserRegistry", state, ENS_SEPOLIA.userRegistryImpl as Address, BigInt(namehash(PARENT)), init);
-      save(state);
+      await save(state);
       console.log(`✓ user registry deployed: ${state.userRegistry}`);
     }
     await send("setSubregistry", state, {
@@ -191,11 +179,11 @@ async function main() {
   });
   if (!state.strategyResolver) {
     state.strategyResolver = await deployProxy("deployStrategyResolver", state, ENS_SEPOLIA.permissionedResolverImpl as Address, BigInt(namehash(STRATEGY_NAME)), resolverInit);
-    save(state);
+    await save(state);
   }
   if (!state.agentResolver) {
     state.agentResolver = await deployProxy("deployAgentResolver", state, ENS_SEPOLIA.permissionedResolverImpl as Address, BigInt(namehash(AGENT_NAME)), resolverInit);
-    save(state);
+    await save(state);
   }
   console.log(`✓ resolvers: strategy ${state.strategyResolver}, agent ${state.agentResolver}`);
 
@@ -288,11 +276,13 @@ async function main() {
   for (const [k] of records) console.log(`  ${k} = ${await readText(pc, STRATEGY_NAME, k)}`);
   console.log(`  agent may set strategyHash? ${await canSetText(pc, state.strategyResolver, "strategyHash", AGENT_ADDRESS)} (expected false)`);
   console.log(`  agent may set lambda?       ${await canSetText(pc, state.strategyResolver, "lambda", AGENT_ADDRESS)} (expected true)`);
-  save(state);
-  console.log(`saved ${OUT}`);
+  await save(state);
+  console.log("saved to MongoDB (collection ens)");
 }
 
-main().catch((e) => {
+main()
+  .then(() => process.exit(0)) // the MongoDB client keeps the loop alive otherwise
+  .catch((e) => {
   console.error(e);
   process.exit(1);
 });

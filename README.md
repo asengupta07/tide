@@ -17,7 +17,7 @@ Built at ETHGlobal Tokyo 2026 on two 2026 papers with no prior implementation: *
 | Governed parameters | [`contracts/src/TideParams.sol`](contracts/src/TideParams.sol) | on-chain mirror of the ENS records λ, N, δ plus the fee; owner-set guardrails (λ range, max step, N max, cooldown) that bind the manager; enforces `(N − 1)·δ ≤ 2·fee` |
 | ENSv2 (Sepolia) | [`client/scripts/ens-setup.ts`](client/scripts/ens-setup.ts), [`client/src/lib/ens/`](client/src/lib/ens) | `tide.eth` → user registry → `eth-usdc.tide.eth` (strategy) and `manager.tide.eth` (ENSIP-26 agent); per-key EAC role for the agent |
 | World ID for Agents | [`client/src/lib/world.ts`](client/src/lib/world.ts), [`client/src/lib/agent.ts`](client/src/lib/agent.ts) | bind owner (wallet-signed), RFC 9470 step-up for changes outside the guardrails, server-side validation, denied paths |
-| Dashboard + agent | [`client/`](client) | Next.js app: records, active/passive split, fills, proposals, approve/deny, agent log, frontier chart. `client/data/` is a cache; `pnpm reindex` rebuilds the strategy list from the ENS registry and records |
+| Dashboard + agent | [`client/`](client) | Next.js app: records, active/passive split, fills, proposals, approve/deny, agent log, frontier chart. Off-chain state (strategy index, proposals, OIDC requests, World bindings, log) in MongoDB; `pnpm reindex` rebuilds the strategy index from the ENS registry and records |
 | Research | [`research/`](research) | frontier solver, Monte-Carlo, test vectors, figures |
 
 ## Mechanism in one paragraph
@@ -44,7 +44,7 @@ Owner `0xF23be0fbE9DEf26570278F91f3F150Af015a3ECf`, manager agent `0xedbA94c7292
 
 ## Run it
 
-Prerequisites: Foundry ≥ 1.3, Node 22 + pnpm, Python 3.11+ with numpy/matplotlib, an Ethereum mainnet RPC (fork only, no spend) and a Sepolia RPC. Copy `.env.example` to `.env`.
+Prerequisites: Foundry ≥ 1.3, Node 22 + pnpm, Python 3.11+ with numpy/matplotlib, an Ethereum mainnet RPC (fork only, no spend), a Sepolia RPC and a MongoDB connection string (`MONGODB_URI`, Atlas free tier is fine). Copy `.env.example` to `.env`.
 
 ```bash
 git clone --recurse-submodules git@github.com:asengupta07/tide.git && cd tide

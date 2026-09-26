@@ -1,12 +1,11 @@
-import { load } from "@/lib/store";
+import { getProposal } from "@/lib/store";
 import { Nav, Status, Bezel, Pill } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
 export default async function Approved({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const q = await searchParams;
-  const s = load();
-  const p = q.proposal ? s.proposals.find((x) => x.id === q.proposal) : undefined;
+  const p = q.proposal ? (await getProposal(q.proposal)) ?? undefined : undefined;
   const ok = !q.error && (q.purpose === "bind" || p?.status === "applied" || p?.status === "approved");
   return (
     <>

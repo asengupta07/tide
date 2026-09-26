@@ -50,7 +50,9 @@ async function main() {
     console.log("usage: pnpm agent propose --sigma 0.8 | status | records");
   }
 }
-main().catch((e) => {
+main()
+  .then(() => process.exit(0)) // the MongoDB client keeps the loop alive otherwise
+  .catch((e) => {
   console.error(e.message);
   process.exit(1);
 });

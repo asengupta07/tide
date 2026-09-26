@@ -25,7 +25,7 @@ async function main() {
   const logs = await getLogsChunked(logsClient, { address: registry, event: event as never }, fromBlock, latest);
   console.log(`${logs.length} LabelRegistered events since block ${fromBlock}`);
 
-  const existing = listStrategies();
+  const existing = await listStrategies();
   const byLabel = new Map<string, Strategy>();
   const agentLabel = process.env.ENS_AGENT_LABEL ?? "manager";
   const [tokenA, tokenB] = SEPOLIA_WETH.toLowerCase() < SEPOLIA_USDC.toLowerCase() ? [SEPOLIA_WETH, SEPOLIA_USDC] : [SEPOLIA_USDC, SEPOLIA_WETH];
@@ -63,11 +63,13 @@ async function main() {
     console.log(`  ${name}: owner ${owner.slice(0, 10)}…  resolver ${resolver.slice(0, 10)}…  hash ${strategyHash.slice(0, 10)}…  venue ${venue || "?"}`);
   }
   const out = [...byLabel.values()].sort((a, b) => a.createdAt - b.createdAt);
-  saveStrategies(out);
-  console.log(`wrote ${out.length} strategies to data/strategies.json`);
+  await saveStrategies(out);
+  console.log(`wrote ${out.length} strategies to MongoDB (collection strategies)`);
 }
 
-main().catch((e) => {
+main()
+  .then(() => process.exit(0)) // the MongoDB client keeps the loop alive otherwise
+  .catch((e) => {
   console.error(e);
   process.exit(1);
 });

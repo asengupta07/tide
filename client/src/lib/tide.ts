@@ -112,7 +112,16 @@ export async function getLogsChunked<T extends Parameters<PublicClient["getLogs"
   const out: Awaited<ReturnType<PublicClient["getLogs"]>> = [];
   for (let a = from; a <= to; a += step) {
     const b = a + step - 1n < to ? a + step - 1n : to;
-    out.push(...(await client.getLogs({ ...(params as object), fromBlock: a, toBlock: b } as never)));
+    // public nodes rate-limit bursts; back off and retry a few times before giving up
+    for (let attempt = 1; ; attempt++) {
+      try {
+        out.push(...(await client.getLogs({ ...(params as object), fromBlock: a, toBlock: b } as never)));
+        break;
+      } catch (e) {
+        if (attempt >= 4) throw e;
+        await new Promise((r) => setTimeout(r, 1500 * attempt));
+      }
+    }
   }
   return out;
 }

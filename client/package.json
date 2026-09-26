@@ -11,7 +11,9 @@
     "agent": "tsx --env-file=../.env scripts/agent.ts",
     "sync:contracts": "tsx --env-file=../.env scripts/sync-contracts.ts",
     "dev:http": "next dev --port 3000",
-    "reindex": "tsx --env-file=../.env scripts/reindex.ts"
+    "reindex": "tsx --env-file=../.env scripts/reindex.ts",
+    "db:import": "tsx --env-file=../.env scripts/db-import.ts",
+    "db:check": "tsx --env-file=../.env scripts/db-check.ts"
   },
   "dependencies": {
     "@paper-design/shaders-react": "^0.0.81",
@@ -21,6 +23,7 @@
     "dotenv": "^18.0.3",
     "geist": "^1.7.2",
     "jose": "^6.2.12",
+    "mongodb": "^7.6.0",
     "motion": "^13.4.4",
     "next": "16.3.6",
     "react": "19.2.8",

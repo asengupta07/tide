@@ -5,7 +5,7 @@
  * 500). Proposals still go through the owner's fresh World ID approval; the clock never writes.
  */
 import { listStrategies } from "./registry";
-import { load, update, log } from "./store";
+import { getBound, hasPending, appendLog } from "./store";
 import { agentEnabled, currentRecords, deltaStar, lambdaStar, propose, strategyFee } from "./agent";
 import { realisedVolatility } from "./volatility";
 
@@ -30,14 +30,13 @@ export async function tick(reason = "schedule"): Promise<string> {
     info.sigma = vol.sigma;
     info.measuredAt = vol.measuredAt;
     const target = lambdaStar(vol.sigma);
-    const state = load();
-    for (const s of listStrategies()) {
+    for (const s of await listStrategies()) {
       if (!(await agentEnabled(s).catch(() => false))) continue;
-      if (!state.bound[s.owner.toLowerCase()]) {
+      if (!(await getBound(s.owner))) {
         out.push(`${s.label}: owner not bound`);
         continue;
       }
-      if (state.proposals.some((p) => p.strategy === s.name && p.status === "pending")) {
+      if (await hasPending(s.name)) {
         out.push(`${s.label}: proposal pending`);
         continue;
       }
@@ -54,12 +53,12 @@ export async function tick(reason = "schedule"): Promise<string> {
       out.push(`${s.label}: ${p.auto ? "applied" : "proposed, needs the owner"} lambda ${p.from.lambda} -> ${p.to.lambda}, delta ${p.from.delta} -> ${p.to.delta}`);
     }
     const summary = `σ ${(vol.sigma * 100).toFixed(0)}%, λ* ${target}: ${out.join("; ") || "no strategies"}`;
-    update((st) => log(st, "info", `manager check (${reason}): ${summary}`));
+    await appendLog("info", `manager check (${reason}): ${summary}`);
     info.lastResult = summary;
     return summary;
   } catch (e) {
     const msg = `manager check failed: ${(e as Error).message}`;
-    update((st) => log(st, "warn", msg));
+    await appendLog("warn", msg);
     info.lastResult = msg;
     return msg;
   } finally {

@@ -11,7 +11,7 @@ import type { Address, Hex } from "viem";
 import { publicClient, walletClient, readText, setTextCalldata, resolverAbi, canSetText } from "./ens/client";
 import { GOVERNED_KEYS } from "./ens/config";
 import { beginAuth, completeAuth, WorldAuthError, type AuthRequest } from "./world";
-import { load, save, update, log, expireStale, type Proposal, type State } from "./store";
+import { insertProposal, getProposal, updateProposal, listProposals, putAuthRequest, takeAuthRequest, getBound, setBound, appendLog, listLog, expireStale, type Proposal } from "./store";
 import { applyParams, readParams, readBounds, withinBounds, maxDeltaBps } from "./tide";
 import { getStrategy, listStrategies, type Strategy } from "./registry";
 
@@ -77,7 +77,7 @@ export async function agentEnabled(s: Strategy) {
 
 /** Create a proposal and start the step-up for the strategy's owner. Nothing is written yet. */
 export async function propose(strategyName: string, sigma: number, overrides?: Partial<{ N: number; delta: number }>): Promise<Proposal> {
-  const strat = getStrategy(strategyName);
+  const strat = await getStrategy(strategyName);
   if (!strat) throw new Error(`unknown strategy ${strategyName}`);
   if (!(await agentEnabled(strat))) throw new Error("the manager agent is not enabled on this strategy");
   const rec = await currentRecords(strat);
@@ -102,29 +102,18 @@ export async function propose(strategyName: string, sigma: number, overrides?: P
   if (wb.ok) {
     const autoId = randomBytes(6).toString("hex");
     const auto: Proposal = { id: autoId, createdAt: Date.now(), strategy: strat.name, owner: strat.owner, from, to, reason: `${reason}; inside the owner's guardrails`, sigma, status: "applied", auto: true };
-    update((s) => {
-      expireStale(s);
-      s.proposals.unshift(auto);
-      log(s, "info", `proposal ${autoId} on ${strat.name}: lambda ${from.lambda} -> ${to.lambda}, delta ${from.delta} -> ${to.delta}; inside guardrails, applying`, autoId, strat.name);
-    });
+    await expireStale();
+    await insertProposal(auto);
+    await appendLog("info", `proposal ${autoId} on ${strat.name}: lambda ${from.lambda} -> ${to.lambda}, delta ${from.delta} -> ${to.delta}; inside guardrails, applying`, autoId, strat.name);
     try {
       const txs = await writeApproved(auto);
-      update((s) => {
-        const p = s.proposals.find((x) => x.id === autoId)!;
-        p.txs = txs;
-        p.decidedAt = Date.now();
-        p.status = txs.params ? "applied" : "failed";
-        p.blockedReason = txs.params ? undefined : txs.outside;
-        log(s, txs.params ? "info" : "error", txs.params ? `proposal ${autoId} applied by the manager: ENS ${txs.ens}, TideParams ${txs.params}` : `proposal ${autoId}: guardrails moved under us (${txs.outside})`, autoId, strat.name);
-      });
-      return { ...auto, txs };
+      const status: Proposal["status"] = txs.params ? "applied" : "failed";
+      await updateProposal(autoId, { txs: { ens: txs.ens, params: txs.params }, decidedAt: Date.now(), status, blockedReason: txs.params ? undefined : txs.outside });
+      await appendLog(txs.params ? "info" : "error", txs.params ? `proposal ${autoId} applied by the manager: ENS ${txs.ens}, TideParams ${txs.params}` : `proposal ${autoId}: guardrails moved under us (${txs.outside})`, autoId, strat.name);
+      return { ...auto, status, txs };
     } catch (e) {
-      update((s) => {
-        const p = s.proposals.find((x) => x.id === autoId)!;
-        p.status = "failed";
-        p.blockedReason = (e as Error).message;
-        log(s, "error", `proposal ${autoId} manager write failed: ${(e as Error).message}`, autoId, strat.name);
-      });
+      await updateProposal(autoId, { status: "failed", blockedReason: (e as Error).message });
+      await appendLog("error", `proposal ${autoId} manager write failed: ${(e as Error).message}`, autoId, strat.name);
       throw e;
     }
   }
@@ -133,39 +122,32 @@ export async function propose(strategyName: string, sigma: number, overrides?: P
   const id = randomBytes(6).toString("hex");
   const { request, url } = await beginAuth("stepup", { proposalId: id, owner: strat.owner });
   const proposal: Proposal = { id, createdAt: Date.now(), strategy: strat.name, owner: strat.owner, from, to, reason, sigma, status: "pending", approvalUrl: url, authState: request.state, outside: wb.why };
-  update((s) => {
-    expireStale(s);
-    s.authRequests[request.state] = request;
-    s.proposals.unshift(proposal);
-    log(s, "info", `proposal ${id} on ${strat.name}: lambda ${from.lambda} -> ${to.lambda} (${reason}); awaiting fresh World ID auth`, id, strat.name);
-  });
+  await expireStale();
+  await putAuthRequest(request);
+  await insertProposal(proposal);
+  await appendLog("info", `proposal ${id} on ${strat.name}: lambda ${from.lambda} -> ${to.lambda} (${reason}); awaiting fresh World ID auth`, id, strat.name);
   return proposal;
 }
 
 /** OIDC callback. Every non-approved outcome blocks the proposal and writes nothing. */
 export async function handleCallback(query: URLSearchParams): Promise<{ purpose: AuthRequest["purpose"]; proposal?: Proposal; owner?: string; error?: string }> {
   const state = query.get("state") ?? "";
-  const s = load();
-  expireStale(s);
-  const req = s.authRequests[state];
-  if (!req) {
-    save(s);
-    return { purpose: "stepup", error: "unknown state" };
-  }
-  delete s.authRequests[state];
-  const proposal = req.proposalId ? s.proposals.find((p) => p.id === req.proposalId) : undefined;
+  await expireStale();
+  const req = await takeAuthRequest(state);
+  if (!req) return { purpose: "stepup", error: "unknown state" };
+  const proposal = req.proposalId ? await getProposal(req.proposalId) : null;
 
-  const fail = (code: string, msg: string) => {
+  const fail = async (code: string, msg: string) => {
     if (proposal && proposal.status === "pending") {
       proposal.status = "blocked";
       proposal.decidedAt = Date.now();
       proposal.blockedReason = `${code}: ${msg}`;
-      log(s, "warn", `proposal ${proposal.id} blocked (${code}): ${msg}. Records unchanged.`, proposal.id, proposal.strategy);
+      await updateProposal(proposal.id, { status: "blocked", decidedAt: proposal.decidedAt, blockedReason: proposal.blockedReason });
+      await appendLog("warn", `proposal ${proposal.id} blocked (${code}): ${msg}. Records unchanged.`, proposal.id, proposal.strategy);
     } else {
-      log(s, "warn", `${req.purpose} failed (${code}): ${msg}`);
+      await appendLog("warn", `${req.purpose} failed (${code}): ${msg}`);
     }
-    save(s);
-    return { purpose: req.purpose, proposal, owner: req.owner, error: `${code}: ${msg}` };
+    return { purpose: req.purpose, proposal: proposal ?? undefined, owner: req.owner, error: `${code}: ${msg}` };
   };
 
   const oidcError = query.get("error");
@@ -183,46 +165,33 @@ export async function handleCallback(query: URLSearchParams): Promise<{ purpose:
 
   if (req.purpose === "bind") {
     if (!req.owner) return fail("no_owner", "bind request without a wallet");
-    s.bound[req.owner] = { ...identity, boundAt: Date.now() };
-    log(s, "info", `owner ${req.owner.slice(0, 10)}… bound to World subject ${identity.subject.slice(0, 10)}…`);
-    save(s);
+    await setBound(req.owner, identity);
+    await appendLog("info", `owner ${req.owner.slice(0, 10)}… bound to World subject ${identity.subject.slice(0, 10)}…`);
     return { purpose: "bind", owner: req.owner };
   }
 
   if (!proposal) return fail("no_proposal", "step-up without a proposal");
   if (proposal.status !== "pending") return fail("not_pending", `proposal is ${proposal.status}`);
-  const bound = s.bound[proposal.owner.toLowerCase()];
+  const bound = await getBound(proposal.owner);
   if (!bound) return fail("not_bound", "the strategy owner has not bound a World ID yet");
   if (bound.subject !== identity.subject || bound.issuer !== identity.issuer) return fail("wrong_subject", "the authenticated human is not the strategy owner");
 
   proposal.status = "approved";
   proposal.decidedAt = Date.now();
-  log(s, "info", `proposal ${proposal.id} approved by the bound owner (auth_time ${identity.authTime}); writing records`, proposal.id, proposal.strategy);
-  save(s);
+  await updateProposal(proposal.id, { status: "approved", decidedAt: proposal.decidedAt });
+  await appendLog("info", `proposal ${proposal.id} approved by the bound owner (auth_time ${identity.authTime}); writing records`, proposal.id, proposal.strategy);
 
   try {
     const txs = await writeApproved(proposal);
-    update((st) => {
-      const p = st.proposals.find((x) => x.id === proposal.id)!;
-      p.txs = { ens: txs.ens, params: txs.params };
-      if (txs.params) {
-        p.status = "applied";
-        log(st, "info", `proposal ${p.id} applied: ENS ${txs.ens}, TideParams ${txs.params}`, p.id, p.strategy);
-      } else {
-        p.status = "approved";
-        p.outside = txs.outside;
-        log(st, "info", `proposal ${p.id}: records written (ENS ${txs.ens}); ${txs.outside}, so the owner's wallet applies it on-chain`, p.id, p.strategy);
-      }
-    });
-    proposal.status = txs.params ? "applied" : "approved";
-    proposal.txs = { ens: txs.ens, params: txs.params };
+    const patch: Partial<Proposal> = txs.params
+      ? { status: "applied", txs: { ens: txs.ens, params: txs.params } }
+      : { status: "approved", txs: { ens: txs.ens }, outside: txs.outside };
+    await updateProposal(proposal.id, patch);
+    await appendLog("info", txs.params ? `proposal ${proposal.id} applied: ENS ${txs.ens}, TideParams ${txs.params}` : `proposal ${proposal.id}: records written (ENS ${txs.ens}); ${txs.outside}, so the owner's wallet applies it on-chain`, proposal.id, proposal.strategy);
+    Object.assign(proposal, patch);
   } catch (e) {
-    update((st) => {
-      const p = st.proposals.find((x) => x.id === proposal.id)!;
-      p.status = "failed";
-      p.blockedReason = (e as Error).message;
-      log(st, "error", `proposal ${p.id} write failed: ${(e as Error).message}`, p.id, p.strategy);
-    });
+    await updateProposal(proposal.id, { status: "failed", blockedReason: (e as Error).message });
+    await appendLog("error", `proposal ${proposal.id} write failed: ${(e as Error).message}`, proposal.id, proposal.strategy);
     proposal.status = "failed";
   }
   return { purpose: "stepup", proposal, owner: req.owner };
@@ -232,7 +201,7 @@ export async function handleCallback(query: URLSearchParams): Promise<{ purpose:
 async function writeApproved(p: Proposal) {
   const agentKey = process.env.AGENT_PRIVATE_KEY;
   if (!agentKey) throw new Error("AGENT_PRIVATE_KEY missing");
-  const strat = getStrategy(p.strategy);
+  const strat = await getStrategy(p.strategy);
   if (!strat) throw new Error("strategy vanished");
   const pc = publicClient();
   const wc = walletClient(agentKey);
@@ -251,40 +220,33 @@ async function writeApproved(p: Proposal) {
 /** After the owner applied an out-of-bounds change with their own wallet: confirm on-chain, then mark it. */
 export async function markApplied(id: string, tx: Hex) {
   const pc = publicClient();
-  const s = load();
-  const p = s.proposals.find((x) => x.id === id);
+  const p = await getProposal(id);
   if (!p) throw new Error("unknown proposal");
-  const strat = getStrategy(p.strategy);
+  const strat = await getStrategy(p.strategy);
   if (!strat) throw new Error("strategy vanished");
   await pc.waitForTransactionReceipt({ hash: tx });
   const on = await readParams(pc, strat.orderHash);
   if (on.lambda !== p.to.lambda || on.N !== p.to.N || on.delta !== p.to.delta) throw new Error("on-chain values do not match the proposal");
-  update((st) => {
-    const q = st.proposals.find((x) => x.id === id)!;
-    q.status = "applied";
-    q.txs = { ...(q.txs ?? {}), params: tx };
-    q.decidedAt = Date.now();
-    log(st, "info", `proposal ${id} applied on-chain by the owner: ${tx}`, id, q.strategy);
-  });
+  await updateProposal(id, { status: "applied", txs: { ...(p.txs ?? {}), params: tx }, decidedAt: Date.now() });
+  await appendLog("info", `proposal ${id} applied on-chain by the owner: ${tx}`, id, p.strategy);
 }
 
 /** Everything the dashboard needs for one strategy. */
 export async function snapshot(strategyName?: string) {
-  const all = listStrategies();
-  const strat = strategyName ? getStrategy(strategyName) : all[0];
+  const all = await listStrategies();
+  const strat = strategyName ? await getStrategy(strategyName) : all[0];
   if (!strat) throw new Error("no strategies yet");
-  const s = update((st) => {
-    expireStale(st);
-    return st;
-  });
+  await expireStale();
   const pc = publicClient();
-  const [records, onchain, enabled, bounds] = await Promise.all([
+  const [records, onchain, enabled, bounds, bound, proposals, logEntries] = await Promise.all([
     currentRecords(strat),
     readParams(pc, strat.orderHash).catch(() => null),
     agentEnabled(strat),
     readBounds(pc, strat.orderHash).catch(() => null),
+    getBound(strat.owner),
+    listProposals(strat.name),
+    listLog(strat.name),
   ]);
-  const bound = s.bound[strat.owner.toLowerCase()];
   return {
     strategy: strat,
     records,
@@ -292,10 +254,9 @@ export async function snapshot(strategyName?: string) {
     bounds,
     agentEnabled: enabled,
     bound: bound ? { subject: bound.subject.slice(0, 12) + "…", issuer: bound.issuer, boundAt: bound.boundAt } : null,
-    proposals: s.proposals.filter((p) => p.strategy === strat.name),
-    log: s.log.filter((l) => !l.strategy || l.strategy === strat.name),
+    proposals,
+    log: logEntries,
   };
 }
 
 export type Snapshot = Awaited<ReturnType<typeof snapshot>>;
-export type { State };

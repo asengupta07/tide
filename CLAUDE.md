@@ -63,7 +63,8 @@ video, public deployment of `client/` for the ENS live-demo link (new hostname =
 - Solidity: Foundry, pinned solc, `forge fmt`, tests for every opcode including "two swaps in one block" and reordered-program-reverts
 - Extend `AquaOpcodes`, claim a reserved third-party opcode slot in `OpcodeList.sol`; never overwrite a 1inch opcode
 - Python research scripts live in `research/` and emit JSON the contracts' tests read
-- Never commit secrets; World client secret and RPC keys in `.env`, `.env.example` checked in
+- Never commit secrets; World client secret, RPC keys and `MONGODB_URI` in `.env`, `.env.example` checked in
+- Off-chain state is MongoDB (`client/src/lib/db.ts`, async `store.ts` / `registry.ts`); no JSON files, no sync stores
 - Commit messages: imperative, one change each, no AI attribution of any kind
 
 ## Known traps
