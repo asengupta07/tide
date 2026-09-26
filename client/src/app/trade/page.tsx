@@ -10,7 +10,6 @@ import { CandleChart } from "@/components/CandleChart";
 import { ImpactCurve } from "@/components/ImpactCurve";
 import { Bezel, Nav } from "@/components/ui";
 import { isTradeReady } from "@/lib/trade-readiness";
-import { short } from "@/lib/chain";
 import { ADDR, short } from "@/lib/chain";
 
 type StrategyRow = {
