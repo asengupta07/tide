@@ -5,6 +5,13 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
 
 ## Sep 26, 2026 (evening)
 
+**Side-by-side fork demo**
+- `contracts/script/side-by-side.sh`: plain `FeeFlatIn XYCSwap Salt` strategy vs Tide on a mainnet fork,
+  same maker, inventory, router, registry, price path. Eight blocks; each block one transaction that
+  fills both pools (arbitrageur, $200 retail, once a $5,000 order). Terminal renderer reads the
+  `Swapped` events from the receipts. Result: arbitrage extraction about 35 % lower on Tide, retail
+  6 bp better as a follow-on fill, guard visible on the large order, first-fill cost shown honestly.
+
 **Guardrails: autopilot inside bounds, human only outside**
 - `TideParams.Bounds` per strategy: λ range, largest λ move per write, N max, cooldown. Defaults at
   `init` (1000 to 9000, 2500, 8, 3600 s); owner changes with `setBounds`; `withinBounds` view. A manager

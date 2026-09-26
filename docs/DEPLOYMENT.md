@@ -97,10 +97,17 @@ Then by hand:
 
 The landing page's "On-chain, now" table reads `ADDR` from `chain.ts`, so it follows the sync.
 
-### 3.3 Mainnet fork demo
+### 3.3 Mainnet fork demos
 
 `contracts/script/fork-demo.sh` starts anvil (`--chain-id 31337`, `nohup`), funds the maker with real
 WETH/USDC via `anvil_setStorageAt`, deploys, ships and fills against the official Aqua registry.
+
+`contracts/script/side-by-side.sh [--fast]` is the comparison demo: plain Aqua strategy vs Tide, same
+maker, inventory, router, registry and price path, eight blocks, every leg a real fill in one transaction
+per block (`Bench.round`). `SideBySide.s.sol` writes `deployments/sidebyside.json` (gitignored);
+`side_by_side.py` decodes the `Swapped` events from `broadcast/SideBySide.s.sol/31337/run-latest.json`
+and renders. Re-running reuses the anvil already on :8545 and redeploys fresh. Kill anvil with
+`pkill anvil` to start from a clean fork.
 
 ## 4. ENS (Sepolia, ENSv2 beta)
 
