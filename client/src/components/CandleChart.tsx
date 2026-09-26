@@ -42,7 +42,7 @@ export function CandleChart({ fills, weth, compact = false }: { fills: Fill[]; w
       layout: { background: { color: "transparent" }, textColor: v("--fg-3") || "#8a94a3", fontFamily: v("--font-geist-mono") || "ui-monospace, monospace", fontSize: 11, attributionLogo: false },
       grid: { vertLines: { color: "rgba(255,255,255,0.04)" }, horzLines: { color: "rgba(255,255,255,0.04)" } },
       rightPriceScale: { borderColor: "rgba(255,255,255,0.08)" },
-      timeScale: { borderColor: "rgba(255,255,255,0.08)", timeVisible: tf !== "1d", secondsVisible: false },
+      timeScale: { borderColor: "rgba(255,255,255,0.08)", timeVisible: tf !== "1d", secondsVisible: false, rightOffset: 5 },
       crosshair: { vertLine: { color: "rgba(255,255,255,0.18)", labelBackgroundColor: v("--panel-2") || "#182029" }, horzLine: { color: "rgba(255,255,255,0.18)", labelBackgroundColor: v("--panel-2") || "#182029" } },
       handleScroll: { vertTouchDrag: false },
     });
@@ -57,14 +57,24 @@ export function CandleChart({ fills, weth, compact = false }: { fills: Fill[]; w
     // fills snapped to the candle they landed in
     const step = Number(GRAN[tf]);
     const first = candles[0].time;
-    const markers: SeriesMarker<Time>[] = fills
-      .filter((f) => f.at && f.at >= first)
-      .map((f) => {
-        const boughtEth = f.tokenIn.toLowerCase() !== weth.toLowerCase();
-        const t = (Math.floor(f.at! / step) * step) as UTCTimestamp;
-        const eth = boughtEth ? Number(BigInt(f.amountOut)) / 1e18 : Number(BigInt(f.amountIn)) / 1e18;
-        return { time: t, position: boughtEth ? "belowBar" : "aboveBar", color: boughtEth ? accent : bad, shape: boughtEth ? "arrowUp" : "arrowDown", text: `${boughtEth ? "bought" : "sold"} ${eth.toFixed(4)} ETH` } as SeriesMarker<Time>;
-      })
+    const grouped = new Map<string, { time: UTCTimestamp; boughtEth: boolean; count: number }>();
+    for (const fill of fills) {
+      if (!fill.at || fill.at < first) continue;
+      const boughtEth = fill.tokenIn.toLowerCase() !== weth.toLowerCase();
+      const time = (Math.floor(fill.at / step) * step) as UTCTimestamp;
+      const key = `${time}:${boughtEth ? "buy" : "sell"}`;
+      const current = grouped.get(key);
+      if (current) current.count += 1;
+      else grouped.set(key, { time, boughtEth, count: 1 });
+    }
+    const markers: SeriesMarker<Time>[] = [...grouped.values()]
+      .map(({ time, boughtEth, count }) => ({
+        time,
+        position: boughtEth ? "belowBar" : "aboveBar",
+        color: boughtEth ? accent : bad,
+        shape: boughtEth ? "arrowUp" : "arrowDown",
+        text: count > 1 ? `×${count}` : "",
+      }) as SeriesMarker<Time>)
       .sort((a, b) => (a.time as number) - (b.time as number));
     createSeriesMarkers(series, markers);
     chart.timeScale().fitContent();
@@ -77,8 +87,8 @@ export function CandleChart({ fills, weth, compact = false }: { fills: Fill[]; w
 
   return (
     <div className="relative">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="text-sm font-medium">ETH / USD <span className="text-fg-3">· fills against this strategy marked</span></div>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="min-w-0 text-sm font-medium">ETH / USD <span className="text-fg-3">· {fills.length} fills across {new Set(fills.map((fill) => fill.block)).size} blocks</span></div>
         <div className="flex gap-1 rounded-full border border-white/10 p-0.5">
           {(Object.keys(GRAN) as (keyof typeof GRAN)[]).map((k) => (
             <button key={k} onClick={() => setTf(k)} className={`touch-exempt rounded-full px-2.5 py-1 text-[11px] ${tf === k ? "bg-white/[0.08] text-fg" : "text-fg-3 hover:text-fg"}`}>{k}</button>
