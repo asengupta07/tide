@@ -126,6 +126,11 @@ def main() -> None:
         )
     print(f"retail slippage improvement at N=4: {slip_improvement_n4:.2f}x")
 
+    # downsampled wealth-vs-HODL series for the web chart (client/public/research/wealth_series.json)
+    series = {str(l): [round(float(v), 5) for v in wealth_paths(l)[::100]] for l in (1.0, 0.5, 0.25)}
+    with open(os.path.join(here, "wealth_series.json"), "w") as f:
+        json.dump({"hours_per_point": 100 * 12 / 3600, "series": series}, f)
+
     try:
         import matplotlib
 

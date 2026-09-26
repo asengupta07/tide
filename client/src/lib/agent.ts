@@ -1,28 +1,27 @@
 /**
- * The Tide manager agent: reads the activeness frontier (research/frontier.json, produced by
- * research/frontier.py), proposes lambda* for the current realised volatility, and, only after the owner
- * completes a fresh World ID authentication, writes the approved values to the strategy's ENSv2 records
- * (its scoped EAC role allows exactly lambda, N and delta) and mirrors them to TideParams on Sepolia.
+ * The Tide manager agent, per strategy. Reads the activeness frontier, proposes lambda* for a realised
+ * volatility, and, only after the strategy's owner completes a fresh World ID authentication, writes the
+ * approved values to that strategy's ENS records (scoped role) and mirrors them to TideParams on Sepolia.
  */
 import fs from "node:fs";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
 import type { Address, Hex } from "viem";
 
-import { publicClient, walletClient, readText, setTextCalldata, resolverAbi, findResolver } from "./ens/client";
+import { publicClient, walletClient, readText, setTextCalldata, resolverAbi, canSetText } from "./ens/client";
 import { GOVERNED_KEYS } from "./ens/config";
 import { beginAuth, completeAuth, WorldAuthError, type AuthRequest } from "./world";
 import { load, save, update, log, expireStale, type Proposal, type State } from "./store";
 import { applyParams, readParams } from "./tide";
+import { getStrategy, listStrategies, type Strategy } from "./registry";
 
 type Frontier = { kappa: number; fee: number; curves: { sigma: number; lambda_star: number; lambda_star_bps: number }[] };
 
 export function frontier(): Frontier {
-  const p = path.join(process.cwd(), "..", "research", "frontier.json");
-  return JSON.parse(fs.readFileSync(p, "utf8"));
+  return JSON.parse(fs.readFileSync(path.join(process.cwd(), "..", "research", "frontier.json"), "utf8"));
 }
 
-/** lambda* for a realised volatility, linear interpolation between the solved curves. */
+/** lambda* for a realised volatility, linear interpolation between solved curves, rounded to 100 bps. */
 export function lambdaStar(sigma: number): number {
   const curves = [...frontier().curves].sort((a, b) => a.sigma - b.sigma);
   if (sigma <= curves[0].sigma) return curves[0].lambda_star_bps;
@@ -37,65 +36,48 @@ export function lambdaStar(sigma: number): number {
   return curves[curves.length - 1].lambda_star_bps;
 }
 
-export function strategyName() {
-  return `${process.env.ENS_STRATEGY_LABEL ?? "eth-usdc"}.${process.env.ENS_PARENT_NAME ?? "tide.eth"}`;
-}
-
-export async function currentRecords() {
+export async function currentRecords(s: Strategy) {
   const pc = publicClient();
-  const name = strategyName();
-  const [lambda, N, delta, strategyHash] = await Promise.all(
-    ["lambda", "N", "delta", "strategyHash"].map((k) => readText(pc, name, k)),
-  );
-  return { name, lambda: Number(lambda), N: Number(N), delta: Number(delta), strategyHash: strategyHash as Hex };
+  const [lambda, N, delta, strategyHash] = await Promise.all(["lambda", "N", "delta", "strategyHash"].map((k) => readText(pc, s.name, k)));
+  return { name: s.name, lambda: Number(lambda), N: Number(N), delta: Number(delta), strategyHash: (strategyHash || s.orderHash) as Hex };
 }
 
-/**
- * Create a proposal from the frontier and start the World ID step-up. Returns the proposal with the URL
- * the owner must open. Nothing is written yet.
- */
-export async function propose(sigma: number, overrides?: Partial<{ N: number; delta: number }>): Promise<Proposal> {
-  const rec = await currentRecords();
+/** Is the agent currently delegated on this strategy (all three keys)? */
+export async function agentEnabled(s: Strategy) {
+  const pc = publicClient();
+  const agent = process.env.AGENT_ADDRESS as Address;
+  const ok = await Promise.all(GOVERNED_KEYS.map((k) => canSetText(pc, s.resolver, k, agent).catch(() => false)));
+  return ok.every(Boolean);
+}
+
+/** Create a proposal and start the step-up for the strategy's owner. Nothing is written yet. */
+export async function propose(strategyName: string, sigma: number, overrides?: Partial<{ N: number; delta: number }>): Promise<Proposal> {
+  const strat = getStrategy(strategyName);
+  if (!strat) throw new Error(`unknown strategy ${strategyName}`);
+  if (!(await agentEnabled(strat))) throw new Error("the manager agent is not enabled on this strategy");
+  const rec = await currentRecords(strat);
   const lambda = lambdaStar(sigma);
   const to = { lambda, N: overrides?.N ?? rec.N, delta: overrides?.delta ?? rec.delta };
   const from = { lambda: rec.lambda, N: rec.N, delta: rec.delta };
   const direction = to.lambda < from.lambda ? "down" : to.lambda > from.lambda ? "up" : "unchanged";
   const reason =
     `realised volatility ${(sigma * 100).toFixed(0)}% -> frontier lambda* = ${(lambda / 100).toFixed(0)}%; ` +
-    (direction === "down"
-      ? "expose less inventory per block to cut LVR"
-      : direction === "up"
-        ? "expose more inventory per block; fee income outweighs LVR at this volatility"
-        : "no change needed");
+    (direction === "down" ? "expose less inventory per block to cut LVR" : direction === "up" ? "expose more inventory per block; fee income outweighs LVR at this volatility" : "no change needed");
 
   const id = randomBytes(6).toString("hex");
-  const { request, url } = await beginAuth("stepup", id);
-  const proposal: Proposal = {
-    id,
-    createdAt: Date.now(),
-    strategy: rec.name,
-    from,
-    to,
-    reason,
-    sigma,
-    status: "pending",
-    approvalUrl: url,
-    authState: request.state,
-  };
+  const { request, url } = await beginAuth("stepup", { proposalId: id, owner: strat.owner });
+  const proposal: Proposal = { id, createdAt: Date.now(), strategy: strat.name, owner: strat.owner, from, to, reason, sigma, status: "pending", approvalUrl: url, authState: request.state };
   update((s) => {
     expireStale(s);
     s.authRequests[request.state] = request;
     s.proposals.unshift(proposal);
-    log(s, "info", `proposal ${id}: lambda ${from.lambda} -> ${to.lambda} (${reason}); awaiting fresh World ID auth`, id);
+    log(s, "info", `proposal ${id} on ${strat.name}: lambda ${from.lambda} -> ${to.lambda} (${reason}); awaiting fresh World ID auth`, id, strat.name);
   });
   return proposal;
 }
 
-/**
- * OIDC callback. Denied / cancelled / expired / invalid -> the proposal is blocked and no write happens.
- * Approved and fresh and bound -> the agent writes ENS records then mirrors to TideParams.
- */
-export async function handleCallback(query: URLSearchParams): Promise<{ purpose: AuthRequest["purpose"]; proposal?: Proposal; error?: string }> {
+/** OIDC callback. Every non-approved outcome blocks the proposal and writes nothing. */
+export async function handleCallback(query: URLSearchParams): Promise<{ purpose: AuthRequest["purpose"]; proposal?: Proposal; owner?: string; error?: string }> {
   const state = query.get("state") ?? "";
   const s = load();
   expireStale(s);
@@ -112,12 +94,12 @@ export async function handleCallback(query: URLSearchParams): Promise<{ purpose:
       proposal.status = "blocked";
       proposal.decidedAt = Date.now();
       proposal.blockedReason = `${code}: ${msg}`;
-      log(s, "warn", `proposal ${proposal.id} blocked (${code}): ${msg}. Records unchanged.`, proposal.id);
+      log(s, "warn", `proposal ${proposal.id} blocked (${code}): ${msg}. Records unchanged.`, proposal.id, proposal.strategy);
     } else {
       log(s, "warn", `${req.purpose} failed (${code}): ${msg}`);
     }
     save(s);
-    return { purpose: req.purpose, proposal, error: `${code}: ${msg}` };
+    return { purpose: req.purpose, proposal, owner: req.owner, error: `${code}: ${msg}` };
   };
 
   const oidcError = query.get("error");
@@ -134,22 +116,22 @@ export async function handleCallback(query: URLSearchParams): Promise<{ purpose:
   }
 
   if (req.purpose === "bind") {
-    s.bound = { ...identity, boundAt: Date.now() };
-    log(s, "info", `owner bound: pairwise subject ${identity.subject.slice(0, 10)}… from ${identity.issuer}`);
+    if (!req.owner) return fail("no_owner", "bind request without a wallet");
+    s.bound[req.owner] = { ...identity, boundAt: Date.now() };
+    log(s, "info", `owner ${req.owner.slice(0, 10)}… bound to World subject ${identity.subject.slice(0, 10)}…`);
     save(s);
-    return { purpose: "bind" };
+    return { purpose: "bind", owner: req.owner };
   }
 
   if (!proposal) return fail("no_proposal", "step-up without a proposal");
   if (proposal.status !== "pending") return fail("not_pending", `proposal is ${proposal.status}`);
-  if (!s.bound) return fail("not_bound", "no owner is bound to the agent yet");
-  if (s.bound.subject !== identity.subject || s.bound.issuer !== identity.issuer) {
-    return fail("wrong_subject", "the authenticated human is not the bound owner");
-  }
+  const bound = s.bound[proposal.owner.toLowerCase()];
+  if (!bound) return fail("not_bound", "the strategy owner has not bound a World ID yet");
+  if (bound.subject !== identity.subject || bound.issuer !== identity.issuer) return fail("wrong_subject", "the authenticated human is not the strategy owner");
 
   proposal.status = "approved";
   proposal.decidedAt = Date.now();
-  log(s, "info", `proposal ${proposal.id} approved by the bound owner (auth_time ${identity.authTime}); writing records`, proposal.id);
+  log(s, "info", `proposal ${proposal.id} approved by the bound owner (auth_time ${identity.authTime}); writing records`, proposal.id, proposal.strategy);
   save(s);
 
   try {
@@ -158,7 +140,7 @@ export async function handleCallback(query: URLSearchParams): Promise<{ purpose:
       const p = st.proposals.find((x) => x.id === proposal.id)!;
       p.status = "applied";
       p.txs = txs;
-      log(st, "info", `proposal ${p.id} applied: ENS ${txs.ens}, TideParams ${txs.params}`, p.id);
+      log(st, "info", `proposal ${p.id} applied: ENS ${txs.ens}, TideParams ${txs.params}`, p.id, p.strategy);
     });
     proposal.status = "applied";
     proposal.txs = txs;
@@ -167,38 +149,56 @@ export async function handleCallback(query: URLSearchParams): Promise<{ purpose:
       const p = st.proposals.find((x) => x.id === proposal.id)!;
       p.status = "failed";
       p.blockedReason = (e as Error).message;
-      log(st, "error", `proposal ${p.id} write failed: ${(e as Error).message}`, p.id);
+      log(st, "error", `proposal ${p.id} write failed: ${(e as Error).message}`, p.id, p.strategy);
     });
     proposal.status = "failed";
   }
-  return { purpose: "stepup", proposal };
+  return { purpose: "stepup", proposal, owner: req.owner };
 }
 
 /** The protected action. Only reachable from an approved, fresh, bound step-up. */
 async function writeApproved(p: Proposal) {
   const agentKey = process.env.AGENT_PRIVATE_KEY;
   if (!agentKey) throw new Error("AGENT_PRIVATE_KEY missing");
+  const strat = getStrategy(p.strategy);
+  if (!strat) throw new Error("strategy vanished");
   const pc = publicClient();
   const wc = walletClient(agentKey);
-  const resolver = await findResolver(pc, p.strategy);
   const values: Record<(typeof GOVERNED_KEYS)[number], string> = { lambda: String(p.to.lambda), N: String(p.to.N), delta: String(p.to.delta) };
   const calls = GOVERNED_KEYS.map((k) => setTextCalldata(p.strategy, k, values[k]));
-  const ens = await wc.writeContract({ address: resolver as Address, abi: resolverAbi, functionName: "multicall", args: [calls], chain: wc.chain, account: wc.account });
+  const ens = await wc.writeContract({ address: strat.resolver, abi: resolverAbi, functionName: "multicall", args: [calls], chain: wc.chain, account: wc.account });
   await pc.waitForTransactionReceipt({ hash: ens });
-
-  const strategyHash = (await readText(pc, p.strategy, "strategyHash")) as Hex;
-  const params = await applyParams(agentKey, strategyHash, p.to.lambda, p.to.N, p.to.delta);
+  const params = await applyParams(agentKey, strat.orderHash, p.to.lambda, p.to.N, p.to.delta);
   await pc.waitForTransactionReceipt({ hash: params });
   return { ens, params };
 }
 
-export async function snapshot(): Promise<State & { records: Awaited<ReturnType<typeof currentRecords>>; onchain: Awaited<ReturnType<typeof readParams>> | null }> {
+/** Everything the dashboard needs for one strategy. */
+export async function snapshot(strategyName?: string) {
+  const all = listStrategies();
+  const strat = strategyName ? getStrategy(strategyName) : all[0];
+  if (!strat) throw new Error("no strategies yet");
   const s = update((st) => {
     expireStale(st);
     return st;
   });
-  const records = await currentRecords();
-  const onchain = await readParams(publicClient(), records.strategyHash).catch(() => null);
-  const { authRequests: _hidden, ...pub } = s;
-  return { ...pub, authRequests: {}, records, onchain };
+  const pc = publicClient();
+  const [records, onchain, enabled] = await Promise.all([
+    currentRecords(strat),
+    readParams(pc, strat.orderHash).catch(() => null),
+    agentEnabled(strat),
+  ]);
+  const bound = s.bound[strat.owner.toLowerCase()];
+  return {
+    strategy: strat,
+    records,
+    onchain,
+    agentEnabled: enabled,
+    bound: bound ? { subject: bound.subject.slice(0, 12) + "…", issuer: bound.issuer, boundAt: bound.boundAt } : null,
+    proposals: s.proposals.filter((p) => p.strategy === strat.name),
+    log: s.log.filter((l) => !l.strategy || l.strategy === strat.name),
+  };
 }
+
+export type Snapshot = Awaited<ReturnType<typeof snapshot>>;
+export type { State };

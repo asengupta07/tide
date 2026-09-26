@@ -48,9 +48,9 @@ export async function applyParams(agentKey: string, key: Hex, lambda: number, N:
   return hash;
 }
 
-export async function blockState(pc: PublicClient, orderHash: Hex, maker: Address) {
+export async function blockState(pc: PublicClient, orderHash: Hex, maker: Address, tokens?: { tokenA: Address; tokenB: Address }) {
   const dep = deployment();
-  const [tokenA, tokenB] = dep.weth.toLowerCase() < SEPOLIA_USDC.toLowerCase() ? [dep.weth, SEPOLIA_USDC] : [SEPOLIA_USDC, dep.weth];
+  const [tokenA, tokenB] = tokens ? [tokens.tokenA, tokens.tokenB] : dep.weth.toLowerCase() < SEPOLIA_USDC.toLowerCase() ? [dep.weth, SEPOLIA_USDC] : [SEPOLIA_USDC, dep.weth];
   const [blockNumber, activeWeth, activeUsdc, balances] = await Promise.all([
     pc.readContract({ address: dep.tideRouter, abi: tideRouterAbi, functionName: "tideBlockNumber", args: [orderHash] }) as Promise<bigint>,
     pc.readContract({ address: dep.tideRouter, abi: tideRouterAbi, functionName: "tideActive", args: [orderHash, dep.weth] }) as Promise<bigint>,

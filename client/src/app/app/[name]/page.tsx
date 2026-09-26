@@ -1,0 +1,383 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import { useAccount } from "wagmi";
+import { ArrowUpRight, ShieldCheck, Fingerprint, Sparkle, CaretDown } from "@phosphor-icons/react";
+
+import { Nav, Bezel, Status, Pill } from "@/components/ui";
+import { FrontierChart } from "@/components/FrontierChart";
+import { DitherField } from "@/components/shaders";
+
+type Mgr = { sigma: number | null; measuredAt: number | null; ethPrice: number | null; lambdaStar: number | null; lastTick?: number; nextTick?: number; lastResult?: string; tickMinutes: number; minMoveBps: number };
+
+type Snapshot = {
+  strategy: { label: string; name: string; owner: string; resolver: string; orderHash: string; tokenA: string; tokenB: string };
+  agentEnabled: boolean;
+  records: { name: string; lambda: number; N: number; delta: number; strategyHash: string };
+  onchain: { lambda: number; N: number; delta: number; owner: string; manager: string } | null;
+  block: { blockNumber: number; active: { weth: string; usdc: string }; total: { weth: string; usdc: string } } | null;
+  fills: { block: number; tx: string; taker: string; tokenIn: string; tokenOut: string; amountIn: string; amountOut: string }[];
+  proposals: { id: string; status: string; from: { lambda: number; N: number; delta: number }; to: { lambda: number; N: number; delta: number }; reason: string; sigma: number; approvalUrl?: string; blockedReason?: string; txs?: { ens?: string; params?: string }; createdAt: number }[];
+  log: { at: number; level: string; msg: string }[];
+  deployment: { tideParams: string; tideRouter: string; tideApp: string; aqua: string; weth: string };
+  agent: string;
+  bound: { subject: string; issuer: string; boundAt: number } | null;
+  error?: string;
+};
+
+const num = (wei: string | undefined, dec: number) => (wei ? Number(BigInt(wei)) / 10 ** dec : 0);
+const fmt = (v: number, d = 2) => v.toLocaleString(undefined, { maximumFractionDigits: d });
+const short = (h?: string) => (h ? `${h.slice(0, 6)}…${h.slice(-4)}` : "");
+const WETH = "0xfff9976782d46cc05630d1f6ebab18b2324d6b14";
+const tx = (h?: string) => `https://sepolia.etherscan.io/tx/${h}`;
+const ago = (t: number) => {
+  const m = Math.round((Date.now() - t) / 60000);
+  return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`;
+};
+const STATUS_TEXT: Record<string, string> = {
+  pending: "Waiting for your approval",
+  approved: "Approved, writing…",
+  applied: "Applied",
+  blocked: "Declined, nothing changed",
+  expired: "Timed out, nothing changed",
+  failed: "Approved but the write failed",
+};
+
+export default function Dashboard() {
+  const { name } = useParams<{ name: string }>();
+  const q = useSearchParams();
+  const { address } = useAccount();
+  const [s, setS] = useState<Snapshot | null>(null);
+  const [sigma, setSigma] = useState(0.8);
+  const [busy, setBusy] = useState(false);
+  const [advanced, setAdvanced] = useState(false);
+  const [mgr, setMgr] = useState<Mgr | null>(null);
+  const [sigmaTouched, setSigmaTouched] = useState(false);
+
+  const refresh = async () => {
+    const [r, m] = await Promise.all([
+      fetch(`/api/state?strategy=${encodeURIComponent(name)}`, { cache: "no-store" }),
+      fetch(`/api/agent/status`, { cache: "no-store" }).then((x) => x.json()).catch(() => null),
+    ]);
+    setS(await r.json());
+    if (m) {
+      setMgr(m);
+      if (!sigmaTouched && m.sigma) setSigma(Math.round(m.sigma * 20) / 20);
+    }
+  };
+  useEffect(() => {
+    refresh();
+    const t = setInterval(refresh, 8000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name]);
+
+  const propose = async () => {
+    setBusy(true);
+    try {
+      const r = await fetch("/api/agent/propose", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ strategy: name, sigma }) });
+      const p = await r.json();
+      if (!r.ok) alert(p.error);
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <Nav current="app" />
+      <main className="mx-auto w-full max-w-5xl flex-1 px-6 pb-20 pt-32">
+        {!s ? (
+          <div className="space-y-4">{[0, 1, 2].map((i) => <div key={i} className="h-40 animate-pulse rounded-3xl bg-white/[0.03]" />)}</div>
+        ) : s.error ? (
+          <div className="rounded-3xl border border-bad/30 p-6 text-bad">{s.error}</div>
+        ) : (
+          <Body s={s} mgr={mgr} sigma={sigma} setSigma={(v) => { setSigmaTouched(true); setSigma(v); }} propose={propose} busy={busy} isOwner={!!address && address.toLowerCase() === s.strategy.owner.toLowerCase()} justShipped={q.get("new") === "1"} advanced={advanced} setAdvanced={setAdvanced} />
+        )}
+      </main>
+    </>
+  );
+}
+
+function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, advanced, setAdvanced }: { s: Snapshot; mgr: Mgr | null; sigma: number; setSigma: (n: number) => void; propose: () => void; busy: boolean; isOwner: boolean; justShipped: boolean; advanced: boolean; setAdvanced: (b: boolean) => void }) {
+  const lambda = s.records.lambda / 100;
+  const delta = s.records.delta / 100;
+  const w = { a: num(s.block?.active.weth, 18), t: num(s.block?.total.weth, 18) };
+  const u = { a: num(s.block?.active.usdc, 6), t: num(s.block?.total.usdc, 6) };
+  const hasSplit = (s.block?.blockNumber ?? 0) > 0;
+  const pending = s.proposals.find((p) => p.status === "pending");
+  const fills = [...s.fills].reverse();
+  const syncing = s.onchain && (s.onchain.lambda !== s.records.lambda || s.onchain.N !== s.records.N || s.onchain.delta !== s.records.delta);
+
+  return (
+    <>
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <div className="text-sm text-fg-3">{isOwner ? "Your strategy" : `Strategy owned by ${short(s.strategy.owner)}`}</div>
+          <h1 className="num mt-1 text-3xl font-semibold tracking-tight md:text-4xl">{s.records.name}</h1>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-fg-2">
+            <ShieldCheck size={15} className="text-accent" /> Inventory in your wallet
+          </span>
+          {s.agentEnabled && (
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-fg-2">
+              <Sparkle size={15} className="text-accent" /> Manager on
+            </span>
+          )}
+        </div>
+      </div>
+
+      {justShipped && (
+        <div className="mt-6 rounded-2xl border border-accent/30 bg-accent/[0.06] p-5 text-sm leading-relaxed text-fg-2">
+          Shipped. Nothing left your wallet. From now on, the first trade of every block can only reach {lambda}% of what you hold.
+          {s.agentEnabled && !s.bound && isOwner ? " Next: bind your World ID below so the manager can ask you for approvals." : ""}
+        </div>
+      )}
+
+      {/* Plain-language settings */}
+      <section className="mt-10">
+        <h2 className="text-lg font-medium">How this strategy trades</h2>
+        <p className="mt-1 text-sm text-fg-3">Three settings, stored on your ENS name. Only you, or the manager with your approval, can change them.</p>
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <Setting big={`${lambda}%`} title="of your inventory is visible per block" body={`Arbitrage bots can only ever trade against ${lambda}% of your tokens in any block. The other ${100 - lambda}% is invisible to them until the next block.`} />
+          <Setting big={`${s.records.N}×`} title="deeper prices for normal traders" body={`After the block's first trade, regular traders are quoted as if your pool were ${s.records.N} times larger, so they pay far less slippage.`} />
+          <Setting big={`${delta}%`} title="safety limit on the deep price" body={`If a trade would move the price more than ${delta}% from where the block started, it is quoted on the normal curve instead. The deep curve cannot be drained.`} />
+        </div>
+        {syncing && <div className="mt-3 text-xs text-warn">A parameter change is still being applied on-chain.</div>}
+      </section>
+
+      {/* Inventory this block */}
+      <section className="mt-10">
+        <Bezel>
+          <div className="p-6 md:p-7">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-lg font-medium">Your inventory right now</h2>
+              <span className="text-xs text-fg-3">{hasSplit ? `last split at block ${s.block!.blockNumber}` : "no trades yet, first trade will do the split"}</span>
+            </div>
+            <div className="mt-6 grid gap-6 md:grid-cols-2">
+              <Inventory label="WETH" active={hasSplit ? w.a : w.t * (lambda / 100)} total={w.t} digits={4} />
+              <Inventory label="USDC" active={hasSplit ? u.a : u.t * (lambda / 100)} total={u.t} digits={2} />
+            </div>
+            <p className="mt-5 text-sm text-fg-3">Bright is tradeable this block. Dim stays put. Both halves are in your wallet the whole time; Aqua only pulls when a trade actually fills.</p>
+          </div>
+        </Bezel>
+      </section>
+
+      {/* Manager */}
+      <section className="mt-10">
+        <h2 className="text-lg font-medium">Manager</h2>
+        <p className="mt-1 max-w-[70ch] text-sm text-fg-3">
+          {s.agentEnabled
+            ? "A bot watches volatility and suggests how much of your inventory to show. It can never change anything on its own: every suggestion needs you to confirm with World ID first."
+            : "The manager is not enabled on this strategy. You change settings yourself."}
+        </p>
+
+        {s.agentEnabled && (
+          <div className="mt-5 grid gap-4 md:grid-cols-[1fr_1.3fr]">
+            <Bezel small>
+              <div className="relative overflow-hidden rounded-[calc(1rem-0.25rem)] p-5">
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 opacity-30">
+                  <DitherField />
+                  <div className="absolute inset-0 bg-gradient-to-b from-panel via-panel/40 to-transparent" />
+                </div>
+                <div className="relative flex items-center gap-2 text-sm font-medium">
+                  <Fingerprint size={16} className="text-accent" /> Your World ID
+                </div>
+                {s.bound ? (
+                  <p className="mt-2 text-sm text-fg-2">Bound {ago(s.bound.boundAt)}. Every approval asks you to sign in again, fresh.</p>
+                ) : isOwner ? (
+                  <>
+                    <p className="mt-2 text-sm text-fg-2">Bind once so the manager knows who is allowed to approve.</p>
+                    <div className="mt-4"><Pill href={`/api/world/bind?owner=${s.strategy.owner}`} size="sm" external>Bind World ID</Pill></div>
+                  </>
+                ) : (
+                  <p className="mt-2 text-sm text-fg-3">The owner has not bound a World ID yet.</p>
+                )}
+                {mgr && (
+                  <p className="relative mt-5 text-xs text-fg-3">
+                    Autopilot: the manager checks the market every {mgr.tickMinutes} min
+                    {mgr.nextTick ? `, next in ${Math.max(0, Math.round((mgr.nextTick - Date.now()) / 60000))} min` : ""}. It only speaks up when the suggested visibility moves by {mgr.minMoveBps / 100} points or more.
+                  </p>
+                )}
+              </div>
+            </Bezel>
+            <Bezel small>
+              <div className="p-5">
+                <div className="text-sm font-medium">Ask for a suggestion</div>
+                <p className="mt-1 text-xs text-fg-3">
+                  {mgr?.sigma
+                    ? `ETH has moved about ${Math.round(mgr.sigma * 100)}% a year lately (hourly, last two weeks${mgr.ethPrice ? `, $${Math.round(mgr.ethPrice)}` : ""}). The frontier says ${mgr.lambdaStar !== null ? `${(mgr.lambdaStar ?? 0) / 100}%` : "…"} visibility for that. Slide to ask "what if".`
+                    : "Tell the manager how volatile the market feels. It reads the frontier and proposes a new visibility level."}
+                </p>
+                <div className="mt-4 flex items-center gap-4">
+                  <input type="range" min={0.2} max={1.2} step={0.05} value={sigma} onChange={(e) => setSigma(Number(e.target.value))} className="w-full" />
+                  <span className="num w-24 shrink-0 text-right text-sm">{sigma <= 0.35 ? "calm" : sigma <= 0.7 ? "normal" : sigma <= 1 ? "volatile" : "wild"} · {Math.round(sigma * 100)}%</span>
+                </div>
+                <button onClick={propose} disabled={busy || !!pending} className="pill pill-primary pill-sm mt-4 disabled:opacity-40">
+                  <span>{busy ? "Thinking…" : pending ? "Suggestion waiting" : "Get a suggestion"}</span>
+                  <span className="ico"><ArrowUpRight size={13} /></span>
+                </button>
+              </div>
+            </Bezel>
+          </div>
+        )}
+
+        {/* Suggestions */}
+        {s.proposals.length > 0 && (
+          <div className="mt-6 space-y-3">
+            {s.proposals.map((p) => {
+              const dir = p.to.lambda < p.from.lambda ? "show less" : p.to.lambda > p.from.lambda ? "show more" : "keep";
+              return (
+                <Bezel small key={p.id}>
+                  <div className="p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="text-sm">
+                        <span className="font-medium">{dir === "keep" ? "Keep visibility at" : `${dir[0].toUpperCase()}${dir.slice(1)} of your inventory:`}</span>{" "}
+                        <span className="num">{p.from.lambda / 100}% → {p.to.lambda / 100}%</span>
+                      </div>
+                      <Status s={p.status} />
+                    </div>
+                    <p className="mt-2 text-sm text-fg-2">{humanReason(p.sigma, p.to.lambda, p.from.lambda)}</p>
+                    <div className="mt-2 text-xs text-fg-3">{STATUS_TEXT[p.status] ?? p.status} · {ago(p.createdAt)}</div>
+                    {p.status === "pending" && p.approvalUrl && isOwner && (
+                      <div className="mt-4 flex flex-wrap items-center gap-3">
+                        <Pill href={p.approvalUrl} size="sm" external>Approve with World ID</Pill>
+                        <span className="text-xs text-fg-3">or just ignore it: it expires on its own and nothing changes.</span>
+                      </div>
+                    )}
+                    {p.blockedReason && <div className="mt-2 text-xs text-bad">{p.blockedReason.replace(/^[a-z_]+: /, "")}</div>}
+                    {p.txs && (
+                      <div className="mt-2 flex gap-4 text-xs">
+                        <a className="text-accent" href={tx(p.txs.ens)}>ENS record ↗</a>
+                        <a className="text-accent" href={tx(p.txs.params)}>on-chain setting ↗</a>
+                      </div>
+                    )}
+                  </div>
+                </Bezel>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Activity */}
+      <section className="mt-10">
+        <h2 className="text-lg font-medium">Trades</h2>
+        <p className="mt-1 text-sm text-fg-3">Every fill against your inventory, newest first.</p>
+        <div className="mt-5">
+          {fills.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-white/10 p-6 text-sm text-fg-3">No trades yet. When a resolver fills against this strategy it shows up here.</div>
+          ) : (
+            <Bezel small>
+              <ul className="divide-y divide-white/[0.06]">
+                {fills.slice(0, 10).map((f) => {
+                  const inW = f.tokenIn.toLowerCase() === WETH;
+                  const a = inW ? `${fmt(num(f.amountIn, 18), 4)} WETH` : `${fmt(num(f.amountIn, 6))} USDC`;
+                  const b = inW ? `${fmt(num(f.amountOut, 6))} USDC` : `${fmt(num(f.amountOut, 18), 4)} WETH`;
+                  return (
+                    <li key={f.tx} className="flex items-center justify-between gap-4 px-5 py-3 text-sm">
+                      <span>
+                        A trader sold <span className="num">{a}</span> and received <span className="num">{b}</span> from you
+                      </span>
+                      <a className="num shrink-0 text-xs text-accent" href={tx(f.tx)}>block {f.block} ↗</a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </Bezel>
+          )}
+        </div>
+      </section>
+
+      {/* Advanced */}
+      <section className="mt-12">
+        <button onClick={() => setAdvanced(!advanced)} className="flex items-center gap-2 text-sm text-fg-3 hover:text-fg">
+          <CaretDown size={14} className={`transition-transform ${advanced ? "rotate-180" : ""}`} /> Technical details
+        </button>
+        {advanced && (
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <Bezel small>
+              <div className="num space-y-2 p-5 text-xs text-fg-2">
+                <Row k="ENS name" v={s.records.name} />
+                <Row k="Owner" v={s.strategy.owner} />
+                <Row k="Resolver" v={s.strategy.resolver} />
+                <Row k="Strategy hash" v={s.records.strategyHash} />
+                <Row k="Manager" v={s.agent} />
+                <Row k="Router" v={s.deployment.tideRouter} />
+                <Row k="Aqua" v={s.deployment.aqua} />
+                <Row k="Records (lambda / N / delta, bps)" v={`${s.records.lambda} / ${s.records.N} / ${s.records.delta}`} />
+                <Row k="On-chain TideParams" v={s.onchain ? `${s.onchain.lambda} / ${s.onchain.N} / ${s.onchain.delta}` : "–"} />
+              </div>
+            </Bezel>
+            <Bezel small>
+              <div className="p-5">
+                <div className="mb-2 text-xs text-fg-3">Activeness frontier the manager reads</div>
+                <FrontierChart sigma={sigma} />
+              </div>
+            </Bezel>
+            <Bezel small className="md:col-span-2">
+              <ul className="num max-h-64 space-y-1 overflow-auto p-5 text-xs">
+                {s.log.map((l, i) => (
+                  <li key={i} className={l.level === "warn" ? "text-warn" : l.level === "error" ? "text-bad" : "text-fg-2"}>
+                    <span className="text-fg-3">{new Date(l.at).toLocaleTimeString()}</span> {l.msg}
+                  </li>
+                ))}
+              </ul>
+            </Bezel>
+          </div>
+        )}
+      </section>
+    </>
+  );
+}
+
+function humanReason(sigma: number, to: number, from: number) {
+  const v = Math.round(sigma * 100);
+  if (to < from) return `Markets look volatile (about ${v}% a year). Showing less inventory per block cuts what bots can take from you, at the cost of your token mix drifting a bit more.`;
+  if (to > from) return `Markets look calm (about ${v}% a year). Bots take little at this volatility, so showing more inventory earns more fees than it loses.`;
+  return `At about ${v}% volatility the current setting is already the best trade-off.`;
+}
+
+function Setting({ big, title, body }: { big: string; title: string; body: string }) {
+  return (
+    <Bezel small>
+      <div className="p-5">
+        <div className="num text-4xl font-semibold tracking-tight text-accent">{big}</div>
+        <div className="mt-1 text-sm font-medium">{title}</div>
+        <p className="mt-2 text-xs leading-relaxed text-fg-3">{body}</p>
+      </div>
+    </Bezel>
+  );
+}
+
+function Inventory({ label, active, total, digits }: { label: string; active: number; total: number; digits: number }) {
+  const pct = total > 0 ? Math.min(100, (active / total) * 100) : 0;
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <span className="text-sm font-medium">{label}</span>
+        <span className="num text-sm text-fg-2">{fmt(total, digits)} total</span>
+      </div>
+      <div className="relative mt-3 h-3 w-full overflow-hidden rounded-full bg-white/[0.06]">
+        <div className="absolute inset-y-0 left-0 rounded-full bg-accent" style={{ width: `${pct}%`, transition: "width 900ms var(--ease-out)" }} />
+      </div>
+      <div className="mt-2 flex justify-between text-xs text-fg-3">
+        <span className="num text-accent">{fmt(active, digits)} tradeable now</span>
+        <span className="num">{fmt(total - active, digits)} held back</span>
+      </div>
+    </div>
+  );
+}
+
+function Row({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <span className="shrink-0 text-fg-3">{k}</span>
+      <span className="truncate">{v}</span>
+    </div>
+  );
+}

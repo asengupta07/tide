@@ -5,17 +5,26 @@ import { blockState, fills, deployment } from "@/lib/tide";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+/** Last good payload per strategy, served with `stale: true` when an RPC read fails. */
+const cache = new Map<string, unknown>();
+
+/** Full dashboard state for one strategy (`?strategy=<name>`), default the first registered one. */
+export async function GET(req: Request) {
+  const name = new URL(req.url).searchParams.get("strategy") ?? "";
   try {
-    const s = await snapshot();
+    const s = await snapshot(name || undefined);
     const pc = publicClient();
-    const owner = s.onchain?.owner;
-    const [state, swaps] = await Promise.all([
-      owner ? blockState(pc, s.records.strategyHash, owner).catch(() => null) : null,
-      fills(pc, s.records.strategyHash).catch(() => []),
+    const st = s.strategy;
+    const [block, swaps] = await Promise.all([
+      blockState(pc, st.orderHash, st.owner, { tokenA: st.tokenA, tokenB: st.tokenB }).catch(() => null),
+      fills(pc, st.orderHash).catch(() => []),
     ]);
-    return NextResponse.json({ ...s, block: state, fills: swaps, deployment: deployment(), agent: process.env.AGENT_ADDRESS, bound: s.bound ? { subject: s.bound.subject.slice(0, 12) + "…", issuer: s.bound.issuer, boundAt: s.bound.boundAt } : null });
+    const payload = { ...s, block, fills: swaps, deployment: deployment(), agent: process.env.AGENT_ADDRESS, stale: false };
+    cache.set(name, payload);
+    return NextResponse.json(payload);
   } catch (e) {
+    const last = cache.get(name);
+    if (last) return NextResponse.json({ ...(last as object), stale: true });
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }
