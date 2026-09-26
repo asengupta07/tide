@@ -44,9 +44,6 @@ export function Pill({ href, children, variant = "primary", external, size }: { 
 
 const LINKS = [
   ["Trade", "/trade"],
-  ["Mechanism", "/#mechanism"],
-  ["Results", "/#results"],
-  ["Governance", "/#governance"],
   ["LP dashboard", "/app"],
   ["Whitepaper", "/WHITEPAPER.pdf"],
 ] as const;
