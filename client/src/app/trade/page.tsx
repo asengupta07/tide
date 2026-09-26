@@ -72,6 +72,7 @@ function TradeMarket() {
   const requested = query.get("strategy")?.trim() || null;
   const [rows, setRows] = useState<StrategyRow[] | null>(null);
   const [selected, setSelected] = useState("");
+  const [routed, setRouted] = useState("");
   const [snapshot, setSnapshot] = useState<TradeSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
@@ -131,6 +132,7 @@ function TradeMarket() {
     setSelected(name);
     router.replace(`/trade?strategy=${encodeURIComponent(name)}`, { scroll: false });
   }, [router]);
+  const markRoute = useCallback((name: string) => setRouted(name), []);
 
   const activeSnapshot = snapshot && (snapshot.strategy.name === selected || snapshot.strategy.label === selected) ? snapshot : null;
   const totals = {
@@ -172,14 +174,20 @@ function TradeMarket() {
               {rows && rows.length > 0 && (
                 <div className="max-h-[30rem] overflow-y-auto p-2 [scrollbar-width:thin]">
                   {rows.map((market) => {
-                    const active = market.name === selected;
+                    const viewing = market.name === selected;
+                    const best = market.name === routed;
                     const params = market.market ?? market.records;
                     const weth = units(market.market?.total.weth, 18);
                     const usdc = units(market.market?.total.usdc, 6);
+                    const status = best && viewing ? "best route · viewing" : best ? "best route" : viewing ? "viewing" : "available";
                     return (
-                      <div
+                      <button
                         key={market.name}
-                        className={`w-full rounded-lg px-3 py-3 text-left transition-colors ${active ? "bg-accent/[0.1]" : "bg-white/[0.015]"}`}
+                        type="button"
+                        onClick={() => choose(market.name)}
+                        aria-pressed={viewing}
+                        aria-label={`Inspect ${market.name}${best ? ", current best route" : ""}`}
+                        className={`touch-exempt w-full rounded-lg px-3 py-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent ${best ? "bg-accent/[0.1]" : viewing ? "bg-white/[0.055]" : "bg-white/[0.015] hover:bg-white/[0.04]"}`}
                       >
                         <span className="flex items-start justify-between gap-4">
                           <span>
@@ -187,8 +195,8 @@ function TradeMarket() {
                             <span className="num mt-0.5 block text-[11px] text-fg-3">{market.name}</span>
                           </span>
                           <span className="text-right">
-                            <span className={`num block text-sm ${active ? "text-accent" : "text-fg-2"}`}>{params ? `${params.N}×` : "–"}</span>
-                            <span className="block text-[10px] text-fg-3">{active ? "best route" : "available"}</span>
+                            <span className={`num block text-sm ${best ? "text-accent" : "text-fg-2"}`}>{params ? `${params.N}×` : "–"}</span>
+                            <span className="block text-[10px] text-fg-3">{status}</span>
                           </span>
                         </span>
                         <span className="mt-3 flex items-end justify-between gap-3 border-t border-white/[0.06] pt-2 text-[10px] text-fg-3">
@@ -198,7 +206,7 @@ function TradeMarket() {
                           </span>
                           <span className="num text-right">λ {params ? `${params.lambda / 100}%` : "–"}<br />δ {params ? `${params.delta / 100}%` : "–"}</span>
                         </span>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -235,7 +243,7 @@ function TradeMarket() {
                     },
                     feeBps: source.market?.fee ?? source.records?.fee ?? 30,
                   }))}
-                  onRoute={choose}
+                  onRoute={markRoute}
                   onFilled={() => setRefreshToken((value) => value + 1)}
                 />
                 <div className="grid border-t border-line sm:grid-cols-3 sm:divide-x sm:divide-line">
