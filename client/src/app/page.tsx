@@ -32,7 +32,6 @@ export default function Landing() {
               <div className="rise rise-2 mt-9 flex flex-wrap gap-3">
                 <Pill href="/trade">Compare live quotes</Pill>
                 <Pill href="/app" variant="ghost">Provide liquidity</Pill>
-                <Pill href="/WHITEPAPER.pdf" variant="ghost" external>Read the whitepaper</Pill>
               </div>
             </div>
             <div className="rise rise-3 lg:col-span-5">
