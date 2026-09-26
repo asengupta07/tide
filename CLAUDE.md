@@ -1,6 +1,10 @@
 # Tide — ETHGlobal Tokyo 2026
 
-Read `docs/tide-idea-brief.md` first (product, flow, user stories, acceptance criteria), then `docs/ethglobal-tokyo-2026-dossier.html` (Product A section: architecture, math, build plan, sponsor requirements, prior art).
+Read `docs/tide-idea-brief.md` first (product, flow, user stories, acceptance criteria), then
+[`MATHEMATICS_MODEL.md`](MATHEMATICS_MODEL.md) for the implemented formulas, block-by-block state
+transitions, worked examples, parameter trade-offs, and research-frontier assumptions. Use
+`docs/ethglobal-tokyo-2026-dossier.html` (Product A section) for architecture, build plan, sponsor
+requirements, and prior art.
 
 ## What we are building
 

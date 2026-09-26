@@ -2,7 +2,7 @@
 
 Tide is a partially-active AMM that shows each block's arbitrageur only a fraction λ of the maker's inventory, quotes uninformed flow against an N-times deeper virtual curve backed by the idle remainder, and lets a manager agent tune λ only after a fresh World ID authentication, with the parameters living as ENSv2 records the agent may edit and nothing else.
 
-**Whitepaper:** [WHITEPAPER.pdf](WHITEPAPER.pdf) · **Video:** _(link)_ · **Live demo (Sepolia):** dashboard `client/` (see Run), records on [eth-usdc.tide.eth](https://sepolia.app.ens.domains/eth-usdc.tide.eth), fills on [TideRouter](https://sepolia.etherscan.io/address/0x9A5883AA2068a133779cdaEB2b67Cc22f16b85B3), hook pool on [TideHook](https://sepolia.etherscan.io/address/0x45DbC91351767e2C801623C87FbD88eA2Bc36A88)
+**Model guide:** [MATHEMATICS_MODEL.md](MATHEMATICS_MODEL.md) · **Whitepaper:** [WHITEPAPER.pdf](WHITEPAPER.pdf) · **Video:** _(link)_ · **Live demo (Sepolia):** dashboard `client/` (see Run), records on [eth-usdc.tide.eth](https://sepolia.app.ens.domains/eth-usdc.tide.eth), fills on [TideRouter](https://sepolia.etherscan.io/address/0x9A5883AA2068a133779cdaEB2b67Cc22f16b85B3), hook pool on [TideHook](https://sepolia.etherscan.io/address/0x45DbC91351767e2C801623C87FbD88eA2Bc36A88)
 
 Built at ETHGlobal Tokyo 2026 on two 2026 papers with no prior implementation: *Partially Active AMMs* (Ko, [arXiv 2602.09887](https://arxiv.org/abs/2602.09887)) and *Collateralized Liquidity Scaling* (Kim & Park, [arXiv 2605.19267](https://arxiv.org/abs/2605.19267)).
 
@@ -10,6 +10,7 @@ Built at ETHGlobal Tokyo 2026 on two 2026 papers with no prior implementation: *
 
 | Piece | Where | What it does |
 | --- | --- | --- |
+| Mathematical model | [`MATHEMATICS_MODEL.md`](MATHEMATICS_MODEL.md) | novice-first formulas, worked INR/JPY and ETH/USDC examples, block state, parameter choices, buffer solvency, and the agent frontier |
 | Shared math | [`contracts/src/lib/TideMath.sol`](contracts/src/lib/TideMath.sol) | active split, N-scaled quotes, drift bound, solvency bound; checked against `research/tide_math.py` vectors |
 | 1inch Aqua program | [`contracts/src/aqua/`](contracts/src/aqua) | three SwapVM opcodes on a redeployed `AquaSwapVMRouter`, shipped through the official Aqua registry |
 | Uniswap v4 hook | [`contracts/src/v4/TideHook.sol`](contracts/src/v4/TideHook.sol) | same math via `beforeSwap` + `BeforeSwapDelta`, hook-owned ERC-6909 reserves |
