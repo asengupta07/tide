@@ -107,16 +107,26 @@ function deployBlock(): bigint {
   }
 }
 
+/** Public nodes cap eth_getLogs ranges (publicnode: 50,000 blocks); scan in chunks. */
+export async function getLogsChunked<T extends Parameters<PublicClient["getLogs"]>[0]>(client: PublicClient, params: T, from: bigint, to: bigint, step = 45_000n) {
+  const out: Awaited<ReturnType<PublicClient["getLogs"]>> = [];
+  for (let a = from; a <= to; a += step) {
+    const b = a + step - 1n < to ? a + step - 1n : to;
+    out.push(...(await client.getLogs({ ...(params as object), fromBlock: a, toBlock: b } as never)));
+  }
+  return out;
+}
+
 /**
  * Fill history. Alchemy's free tier caps eth_getLogs at 10 blocks, so logs are read through
- * LOGS_RPC_URL (a public Sepolia node by default), which allows wide ranges.
+ * LOGS_RPC_URL (a public Sepolia node by default), in 45,000-block chunks.
  */
 export async function fills(pc: PublicClient, orderHash: Hex, fromBlock?: bigint) {
   const dep = deployment();
   const logsClient = createPublicClient({ chain: sepolia, transport: http(process.env.LOGS_RPC_URL ?? "https://ethereum-sepolia-rpc.publicnode.com") });
   const latest = await logsClient.getBlockNumber();
   const start = fromBlock ?? deployBlock();
-  const logs = await logsClient.getLogs({ address: dep.tideRouter, event: swappedEvent, fromBlock: start, toBlock: latest });
+  const logs = (await getLogsChunked(logsClient, { address: dep.tideRouter, event: swappedEvent }, start, latest)) as Awaited<ReturnType<typeof logsClient.getLogs<typeof swappedEvent>>>;
   void pc;
   return logs
     .filter((l) => l.args.orderHash?.toLowerCase() === orderHash.toLowerCase())

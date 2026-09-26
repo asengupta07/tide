@@ -10,7 +10,8 @@
     "ens:setup": "tsx --env-file=../.env scripts/ens-setup.ts",
     "agent": "tsx --env-file=../.env scripts/agent.ts",
     "sync:contracts": "tsx --env-file=../.env scripts/sync-contracts.ts",
-    "dev:http": "next dev --port 3000"
+    "dev:http": "next dev --port 3000",
+    "reindex": "tsx --env-file=../.env scripts/reindex.ts"
   },
   "dependencies": {
     "@paper-design/shaders-react": "^0.0.81",

@@ -3,6 +3,13 @@
 Dated, newest first. Addresses and transaction hashes for the current deployment live in `README.md`
 and `contracts/deployments/`. How to redeploy and what to touch afterwards: `docs/DEPLOYMENT.md`.
 
+## Sep 27, 2026
+
+- `pnpm reindex`: rebuilds `client/data/strategies.json` from chain (`ETHRegistry.getSubregistry`,
+  `LabelRegistered` events, `strategyHash` records, `findOwner`, Universal Resolver). Makes the JSON index
+  disposable; `state.json` stays the agent's off-chain working memory (auth sessions, proposals, log).
+- `eth_getLogs` reads go through a 45,000-block chunker (publicnode caps at 50,000).
+
 ## Sep 26, 2026 (evening)
 
 **Side-by-side fork demo**

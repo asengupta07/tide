@@ -120,6 +120,13 @@ The fee record is informational and owner-only; the agent has no role on it.
 New strategies from `/app/new` get their own resolver (owner = the user's wallet) and subname; the
 backend (owner key) is the registrar, nothing else.
 
+`client/data/` is a cache, not the truth. `pnpm reindex` rebuilds `strategies.json` from chain: it finds
+the user registry through `ETHRegistry.getSubregistry("tide")`, scans `LabelRegistered` events, keeps every
+label whose name resolves a `strategyHash` record, and reads owner and resolver from the registry and the
+Universal Resolver. `state.json` (World bindings, pending OIDC requests, proposal history, log) is the
+agent's working memory and has no on-chain counterpart by design; on a real deploy it belongs in a
+database. Applied changes are on-chain regardless (`ParamsUpdated`, ENS records).
+
 Beta contract addresses and ABIs: `client/src/lib/ens/config.ts` (contracts-v2 commit `71a3b733`).
 
 ## 5. World ID for Agents
