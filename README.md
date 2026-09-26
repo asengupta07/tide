@@ -2,7 +2,7 @@
 
 Tide is a partially-active AMM that shows each block's arbitrageur only a fraction λ of the maker's inventory, quotes uninformed flow against an N-times deeper virtual curve backed by the idle remainder, and lets a manager agent tune λ only after a fresh World ID authentication, with the parameters living as ENSv2 records the agent may edit and nothing else.
 
-**Model guide:** [MATHEMATICS_MODEL.md](MATHEMATICS_MODEL.md) · **Whitepaper:** [WHITEPAPER.pdf](WHITEPAPER.pdf) · **Video:** _(link)_ · **Live demo (Sepolia):** dashboard `client/` (see Run), records on [eth-usdc.tide.eth](https://sepolia.app.ens.domains/eth-usdc.tide.eth), fills on [TideRouter](https://sepolia.etherscan.io/address/0xfDD5a4E385cc5082d1be12F215fa696a3c4B0957), hook pool on [TideHook](https://sepolia.etherscan.io/address/0xEcbF515eEd6006270210db1c9bfcA1dB3AD1AA88)
+**Model guide:** [MATHEMATICS_MODEL.md](MATHEMATICS_MODEL.md) · **Ops:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), [CHANGELOG.md](CHANGELOG.md) · **Whitepaper:** [WHITEPAPER.pdf](WHITEPAPER.pdf) · **Video:** _(link)_ · **Live demo (Sepolia):** dashboard `client/` (see Run), records on [eth-usdc.tide.eth](https://sepolia.app.ens.domains/eth-usdc.tide.eth), fills on [TideRouter](https://sepolia.etherscan.io/address/0xfDD5a4E385cc5082d1be12F215fa696a3c4B0957), hook pool on [TideHook](https://sepolia.etherscan.io/address/0xEcbF515eEd6006270210db1c9bfcA1dB3AD1AA88)
 
 Built at ETHGlobal Tokyo 2026 on two 2026 papers with no prior implementation: *Partially Active AMMs* (Ko, [arXiv 2602.09887](https://arxiv.org/abs/2602.09887)) and *Collateralized Liquidity Scaling* (Kim & Park, [arXiv 2605.19267](https://arxiv.org/abs/2605.19267)).
 
@@ -136,5 +136,6 @@ _(name · GitHub · X handles: fill in)_
 contracts/   Foundry: src/lib, src/aqua, src/v4, TideParams, tests, scripts, deployments/
 client/      Next.js app router (TypeScript): dashboard, API routes, agent, ENS + World libs, scripts/
 research/    tide_math.py (vectors), frontier.py, sim.py, figures, JSON outputs
-docs/        idea brief, dossier, world-debrief.md, whitepaper source
+docs/        idea brief, dossier, world-debrief.md, DEPLOYMENT.md (redeploy, World client, public host), whitepaper source
+CHANGELOG.md dated log of what changed and why
 ```

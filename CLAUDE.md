@@ -4,7 +4,8 @@ Read `docs/tide-idea-brief.md` first (product, flow, user stories, acceptance cr
 [`MATHEMATICS_MODEL.md`](MATHEMATICS_MODEL.md) for the implemented formulas, block-by-block state
 transitions, worked examples, parameter trade-offs, and research-frontier assumptions. Use
 `docs/ethglobal-tokyo-2026-dossier.html` (Product A section) for architecture, build plan, sponsor
-requirements, and prior art.
+requirements, and prior art. `docs/DEPLOYMENT.md` is the redeploy / credentials / public-host guide and
+`CHANGELOG.md` the dated log: update both whenever the process or the deployment changes.
 
 ## What we are building
 

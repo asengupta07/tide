@@ -11,6 +11,7 @@ export const ADDR = {
   tideParams: "0x4608489C117E0719dD5cd88B58ED172A048344FF" as Address,
   tideRouter: "0xfDD5a4E385cc5082d1be12F215fa696a3c4B0957" as Address,
   tideApp: "0x246dbC0fd5FB6fF4De065f38Aa7B0dE1ea46705C" as Address,
+  tideHook: "0xEcbF515eEd6006270210db1c9bfcA1dB3AD1AA88" as Address,
   agent: "0xedbA94c7292Aef84AC220E14ffF642aC4D749647" as Address,
 };
 
