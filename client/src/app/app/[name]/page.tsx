@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useParams, useSearchParams } from 'next/navigation';
 import {
   useAccount,
@@ -20,6 +21,7 @@ import {
   CaretDown,
   CircleNotch,
   Fire,
+  X,
 } from '@phosphor-icons/react';
 
 import { Nav, Bezel, Status } from '@/components/ui';
@@ -164,8 +166,7 @@ export default function Dashboard() {
   const [sigmaTouched, setSigmaTouched] = useState(false);
   const sigmaTouchedRef = useRef(false); // the poll closes over the first render; a ref sees the click
   const [now, setNow] = useState<number | null>(null);
-  const [proposeErr, setProposeErr] = useState<string | null>(null);
-  const { signMessageAsync } = useSignMessage();
+  const [focusId, setFocusId] = useState<string | null>(null); // the suggestion shown in the modal
 
   const refresh = useCallback(async () => {
     // a failed poll (server restarting, offline) keeps the last snapshot on screen
@@ -215,6 +216,7 @@ export default function Dashboard() {
       });
       const p = await r.json();
       if (!r.ok) setProposeErr(p.error);
+      else setFocusId(p.id);
       await refresh();
     } catch (e) {
       setProposeErr((e as Error).message.split('\n')[0]);
@@ -245,10 +247,11 @@ export default function Dashboard() {
             s={s}
             refresh={refresh}
             proposeErr={proposeErr}
+            focusId={focusId}
+            setFocusId={setFocusId}
             mgr={mgr}
             now={now}
             sigma={sigma}
-            proposeErr={proposeErr}
             setSigma={(v) => {
               sigmaTouchedRef.current = true;
               setSigmaTouched(true);
@@ -284,15 +287,17 @@ function Body({
   advanced,
   setAdvanced,
   refresh,
-  proposeErr,
+  focusId,
+  setFocusId,
 }: {
   s: Snapshot;
   refresh: () => Promise<void>;
   proposeErr: string | null;
+  focusId: string | null;
+  setFocusId: (id: string | null) => void;
   mgr: Mgr | null;
   now: number | null;
   sigma: number;
-  proposeErr: string | null;
   setSigma: (n: number) => void;
   propose: () => void;
   busy: boolean;
@@ -312,6 +317,13 @@ function Body({
   const u = { a: num(s.block?.active.usdc, 6), t: num(s.block?.total.usdc, 6) };
   const hasSplit = (s.block?.blockNumber ?? 0) > 0;
   const pending = s.proposals.find((p) => p.status === 'pending');
+  const focus = focusId ? s.proposals.find((p) => p.id === focusId) : undefined;
+  useEffect(() => {
+    if (!focusId) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setFocusId(null);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [focusId, setFocusId]);
   const fills = [...s.fills].reverse();
   const syncing =
     s.onchain &&
@@ -680,92 +692,73 @@ function Body({
 
         {/* Suggestions */}
         {s.proposals.length > 0 && (
-          <div className="mt-6 space-y-3">
-            {s.proposals.map((p) => {
-              const dir =
-                p.to.lambda < p.from.lambda
-                  ? 'show less'
-                  : p.to.lambda > p.from.lambda
-                    ? 'show more'
-                    : 'keep';
-              return (
-                <Bezel small key={p.id}>
-                  <div className="p-5">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="text-sm">
-                        <span className="font-medium">
-                          {dir === 'keep'
-                            ? 'Keep visibility at'
-                            : `${dir[0].toUpperCase()}${dir.slice(1)} of your inventory:`}
-                        </span>{' '}
-                        <span className="num">
-                          {p.from.lambda / 100}% → {p.to.lambda / 100}%
-                        </span>
-                        {(p.to.N !== p.from.N ||
-                          p.to.delta !== p.from.delta) && (
-                          <span className="num text-fg-3">
-                            {' '}
-                            · deep curve {p.from.N}× within {p.from.delta / 100}
-                            % → {p.to.N}× within {p.to.delta / 100}%
-                          </span>
-                        )}
-                      </div>
-                      <Status s={p.status} />
-                    </div>
-                    <p className="mt-2 text-sm text-fg-2">
-                      {humanReason(p.sigma, p.to.lambda, p.from.lambda)}
-                      {p.to.delta !== p.from.delta &&
-                        ` The deep-curve band moves to ${p.to.delta / 100}%: about three one-block price moves at this volatility, so a stale first trade gives nobody an edge, and no more than the fee can back.`}
-                    </p>
-                    <div className="mt-2 text-xs text-fg-3">
-                      {p.auto && p.status === 'applied'
-                        ? 'Applied by the manager, inside your guardrails'
-                        : (STATUS_TEXT[p.status] ?? p.status)}
-                      {p.outside && p.status !== 'applied'
-                        ? ` (${p.outside})`
-                        : ''}{' '}
-                      · {ago(p.createdAt, now)}
-                    </div>
-                    {p.status === 'approved' && !p.txs?.params && isOwner && (
-                      <ApplyButton p={p} orderHash={s.strategy.orderHash} />
-                    )}
-                    {p.status === 'pending' && p.needsApproval && isOwner && (
-                      <div className="mt-4 flex flex-wrap items-center gap-3">
-                        <ApproveButton id={p.id} />
-                        <span className="text-xs text-fg-3">
-                          or ignore it: it expires{' '}
-                          {now === null
-                            ? 'shortly'
-                            : `${Math.max(0, Math.ceil((p.createdAt + (mgr?.approvalSeconds ?? 180) * 1000 - now) / 60000))} min from now`}{' '}
-                          and nothing changes.
-                        </span>
-                      </div>
-                    )}
-                    {p.blockedReason && (
-                      <div className="mt-2 text-xs text-bad">
-                        {p.blockedReason.replace(/^[a-z_]+: /, '')}
-                      </div>
-                    )}
-                    {p.txs && (
-                      <div className="mt-2 flex gap-4 text-xs">
-                        {p.txs.ens && (
-                          <a className="text-accent" href={tx(p.txs.ens)}>
-                            ENS record ↗
-                          </a>
-                        )}
-                        {p.txs.params && (
-                          <a className="text-accent" href={tx(p.txs.params)}>
-                            on-chain setting ↗
-                          </a>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </Bezel>
-              );
-            })}
+          <div className="mt-6">
+            <div className="mb-3 flex items-baseline justify-between">
+              <h3 className="text-sm font-medium">Suggestions</h3>
+              <span className="text-xs text-fg-3">
+                {s.proposals.length} so far, newest first
+              </span>
+            </div>
+            <div className="max-h-[26rem] space-y-3 overflow-y-auto pr-1 [scrollbar-width:thin]">
+              {s.proposals.map((p) => (
+                <ProposalCard
+                  key={p.id}
+                  p={p}
+                  now={now}
+                  mgr={mgr}
+                  isOwner={isOwner}
+                  orderHash={s.strategy.orderHash}
+                />
+              ))}
+            </div>
           </div>
         )}
+        <AnimatePresence>
+          {focus && (
+            <motion.div
+              className="fixed inset-0 z-40 flex items-end justify-center bg-bg/80 p-4 backdrop-blur-md sm:items-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setFocusId(null)}
+            >
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-label="The manager's suggestion"
+                className="w-full max-w-xl"
+                initial={{ opacity: 0, transform: 'translateY(16px)' }}
+                animate={{ opacity: 1, transform: 'translateY(0px)' }}
+                exit={{ opacity: 0, transform: 'translateY(16px)' }}
+                transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="mb-2 flex items-center justify-between px-1">
+                  <span className="text-sm text-fg-2">
+                    {focus.status === 'pending'
+                      ? 'The manager suggests'
+                      : 'The manager suggested'}
+                  </span>
+                  <button
+                    onClick={() => setFocusId(null)}
+                    aria-label="Close"
+                    className="rounded-full p-1.5 text-fg-3 hover:bg-white/5 hover:text-fg"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <ProposalCard
+                  p={focus}
+                  now={now}
+                  mgr={mgr}
+                  isOwner={isOwner}
+                  orderHash={s.strategy.orderHash}
+                />
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
 
       {/* Activity */}
@@ -887,6 +880,102 @@ function Body({
       </section>
     </>
   );
+}
+
+function ProposalCard({
+  p,
+  now,
+  mgr,
+  isOwner,
+  orderHash,
+}: {
+  p: Snapshot['proposals'][number];
+  now: number | null;
+  mgr: Mgr | null;
+  isOwner: boolean;
+  orderHash: string;
+}) {
+    const dir =
+      p.to.lambda < p.from.lambda
+        ? 'show less'
+        : p.to.lambda > p.from.lambda
+          ? 'show more'
+          : 'keep';
+    return (
+      <Bezel small>
+        <div className="p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="text-sm">
+              <span className="font-medium">
+                {dir === 'keep'
+                  ? 'Keep visibility at'
+                  : `${dir[0].toUpperCase()}${dir.slice(1)} of your inventory:`}
+              </span>{' '}
+              <span className="num">
+                {p.from.lambda / 100}% → {p.to.lambda / 100}%
+              </span>
+              {(p.to.N !== p.from.N ||
+                p.to.delta !== p.from.delta) && (
+                <span className="num text-fg-3">
+                  {' '}
+                  · deep curve {p.from.N}× within {p.from.delta / 100}
+                  % → {p.to.N}× within {p.to.delta / 100}%
+                </span>
+              )}
+            </div>
+            <Status s={p.status} />
+          </div>
+          <p className="mt-2 text-sm text-fg-2">
+            {humanReason(p.sigma, p.to.lambda, p.from.lambda)}
+            {p.to.delta !== p.from.delta &&
+              ` The deep-curve band moves to ${p.to.delta / 100}%: about three one-block price moves at this volatility, so a stale first trade gives nobody an edge, and no more than the fee can back.`}
+          </p>
+          <div className="mt-2 text-xs text-fg-3">
+            {p.auto && p.status === 'applied'
+              ? 'Applied by the manager, inside your guardrails'
+              : (STATUS_TEXT[p.status] ?? p.status)}
+            {p.outside && p.status !== 'applied'
+              ? ` (${p.outside})`
+              : ''}{' '}
+            · {ago(p.createdAt, now)}
+          </div>
+          {p.status === 'approved' && !p.txs?.params && isOwner && (
+            <ApplyButton p={p} orderHash={orderHash} />
+          )}
+          {p.status === 'pending' && p.needsApproval && isOwner && (
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <ApproveButton id={p.id} />
+              <span className="text-xs text-fg-3">
+                or ignore it: it expires{' '}
+                {now === null
+                  ? 'shortly'
+                  : `${Math.max(0, Math.ceil((p.createdAt + (mgr?.approvalSeconds ?? 180) * 1000 - now) / 60000))} min from now`}{' '}
+                and nothing changes.
+              </span>
+            </div>
+          )}
+          {p.blockedReason && (
+            <div className="mt-2 text-xs text-bad">
+              {p.blockedReason.replace(/^[a-z_]+: /, '')}
+            </div>
+          )}
+          {p.txs && (
+            <div className="mt-2 flex gap-4 text-xs">
+              {p.txs.ens && (
+                <a className="text-accent" href={tx(p.txs.ens)}>
+                  ENS record ↗
+                </a>
+              )}
+              {p.txs.params && (
+                <a className="text-accent" href={tx(p.txs.params)}>
+                  on-chain setting ↗
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </Bezel>
+    );
 }
 
 function humanReason(sigma: number, to: number, from: number) {

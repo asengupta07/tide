@@ -5,6 +5,12 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
 
 ## Sep 27, 2026
 
+**Dashboard polish**
+- "Get a suggestion" opens the manager's answer in a modal (Escape, backdrop or X closes it); the
+  suggestion history sits in a fixed-height scrolling list. Impact curve: legend below the chart, N-curve
+  drawn only inside the δ band, axes scaled to the band. Polls that fail keep the last snapshot. Mobile
+  WalletConnect wallets are offered only when `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` is set.
+
 **Trade from the dashboard, charts**
 - `TideTaker` contract: quote and fill a strategy from a wallet in one call (traits built on-chain, exact
   pull, refund on exact-out, slippage limit). Deployed `0xD02D…1c98`, test added (54 tests).
