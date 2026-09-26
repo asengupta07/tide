@@ -45,12 +45,14 @@ export function TradePanel({ strategy, totals, feeBps, onFilled, mode = "trade" 
 
   useEffect(() => {
     if (!quoteKey) return;
+    const quoteAmount = quoteKey.split(":").at(-2);
+    if (!quoteAmount) return;
     const controller = new AbortController();
     const t = setTimeout(async () => {
       setErr(null);
       setBusy("quote");
       try {
-        const r = await fetch(`/api/quote?strategy=${encodeURIComponent(strategy.name)}&amount=${wei.toString()}&exactIn=1&aToB=${aToB ? "1" : "0"}`, { signal: controller.signal });
+        const r = await fetch(`/api/quote?strategy=${encodeURIComponent(strategy.name)}&amount=${quoteAmount}&exactIn=1&aToB=${aToB ? "1" : "0"}`, { signal: controller.signal });
         const j = await r.json();
         if (!r.ok) throw new Error(j.error);
         setQuote({ out: BigInt(j.amountOut), key: quoteKey });
@@ -64,7 +66,9 @@ export function TradePanel({ strategy, totals, feeBps, onFilled, mode = "trade" 
       clearTimeout(t);
       controller.abort();
     };
-  }, [aToB, quoteKey, strategy.name, wei]);
+  // Keep this dependency tuple stable for React Fast Refresh. `quoteKey`
+  // already changes with the amount and direction.
+  }, [aToB, quoteKey, strategy.name]);
 
   // what a plain constant-product pool with the same inventory and fee would give
   const plain = (() => {
