@@ -30,8 +30,9 @@ async function main() {
   const agentLabel = process.env.ENS_AGENT_LABEL ?? "manager";
   const [tokenA, tokenB] = SEPOLIA_WETH.toLowerCase() < SEPOLIA_USDC.toLowerCase() ? [SEPOLIA_WETH, SEPOLIA_USDC] : [SEPOLIA_USDC, SEPOLIA_WETH];
 
-  for (const l of logs) {
-    const args = l.args as { label: string; tokenId: bigint };
+  for (const raw of logs) {
+    const l = raw as typeof raw & { args: { label: string; tokenId: bigint } };
+    const args = l.args;
     const label = args.label;
     if (label === agentLabel) continue;
     const name = `${label}.${PARENT}`;
