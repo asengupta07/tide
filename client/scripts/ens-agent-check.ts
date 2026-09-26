@@ -6,9 +6,9 @@
  *   - registry.setResolver on the strategy name reverts (the agent owns no roles there)
  *   pnpm tsx --env-file=../.env scripts/ens-agent-check.ts
  */
-import { encodeFunctionData, getAddress, type Address, type Hex } from "viem";
+import { type Address } from "viem";
 import { getEnsState } from "../src/lib/registry";
-import { publicClient, walletClient, dnsName, labelhash, readText, setTextCalldata, resolverAbi, userRegistryAbi } from "../src/lib/ens/client";
+import { publicClient, walletClient, dnsName, labelhash, readText, resolverAbi, userRegistryAbi } from "../src/lib/ens/client";
 
 let ens: { strategyName: string; strategyResolver: Address; userRegistry: Address };
 const pc = publicClient();
@@ -53,6 +53,5 @@ async function main() {
     pc.simulateContract({ address: ens.userRegistry, abi: userRegistryAbi, functionName: "setResolver", args: [labelhash(name.split(".")[0]), agent.account.address], account: agent.account }));
   await expectRevert("agent registry.unregister", () =>
     pc.simulateContract({ address: ens.userRegistry, abi: userRegistryAbi, functionName: "unregister", args: [labelhash(name.split(".")[0])], account: agent.account }));
-  void encodeFunctionData; void getAddress; void setTextCalldata;
 }
 main().then(() => process.exit(process.exitCode ?? 0)).catch((e) => { console.error(e); process.exit(1); });

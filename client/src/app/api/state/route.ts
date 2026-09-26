@@ -20,7 +20,13 @@ export async function GET(req: Request) {
       fills(pc, st.orderHash).catch(() => []),
     ]);
     // approvalUrl carries the OIDC state; only the owner may fetch it (signed, /api/agent/approval)
-    const proposals = s.proposals.map(({ approvalUrl: _u, authState: _a, ...p }) => ({ ...p, needsApproval: !!_u && p.status === "pending" }));
+    const proposals = s.proposals.map((proposal) => {
+      const publicProposal = { ...proposal };
+      const needsApproval = !!publicProposal.approvalUrl && publicProposal.status === "pending";
+      delete publicProposal.approvalUrl;
+      delete publicProposal.authState;
+      return { ...publicProposal, needsApproval };
+    });
     const payload = { ...s, proposals, block, fills: swaps, deployment: deployment(), agent: process.env.AGENT_ADDRESS, stale: false };
     cache.set(name, payload);
     return NextResponse.json(payload);

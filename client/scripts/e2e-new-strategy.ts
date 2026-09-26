@@ -10,7 +10,7 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import { packetToBytes } from "viem/ens";
 
-import { ADDR, erc20Abi, aquaAbi, tideParamsAbi, tideAppAbi, resolverAbi, ORDER_TUPLE } from "../src/lib/chain";
+import { ADDR, erc20Abi, aquaAbi, tideAppAbi, resolverAbi, ORDER_TUPLE } from "../src/lib/chain";
 import { readText, canSetText, normalizeKey } from "../src/lib/ens/client";
 import { GOVERNED_KEYS } from "../src/lib/ens/config";
 

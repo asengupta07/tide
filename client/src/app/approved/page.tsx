@@ -27,7 +27,7 @@ export default async function Approved({ searchParams }: { searchParams: Promise
             </div>
             {p.blockedReason && <div className="text-bad">{p.blockedReason}</div>}
             {p.status === "approved" && !p.txs?.params && (
-              <div className="text-fg-2">The records are written. This change is outside your guardrails{p.outside ? ` (${p.outside})` : ""}, so the manager cannot apply it: back on the strategy page, press "Apply on-chain" with your wallet.</div>
+              <div className="text-fg-2">The records are written. This change is outside your guardrails{p.outside ? ` (${p.outside})` : ""}, so the manager cannot apply it: back on the strategy page, press &quot;Apply on-chain&quot; with your wallet.</div>
             )}
             {p.txs && (
               <div className="pt-2 text-xs">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useAccount, useSignMessage, useWriteContract, usePublicClient } from "wagmi";
 import { type Hex } from "viem";
@@ -8,7 +8,7 @@ import { ADDR, tideParamsAbi } from "@/lib/chain";
 import { ownerMessage } from "@/lib/auth";
 import { ArrowUpRight, ArrowRight, ShieldCheck, Fingerprint, Sparkle, CaretDown, CircleNotch, Fire } from "@phosphor-icons/react";
 
-import { Nav, Bezel, Status, Pill } from "@/components/ui";
+import { Nav, Bezel, Status } from "@/components/ui";
 import { FrontierChart } from "@/components/FrontierChart";
 import { DitherField } from "@/components/shaders";
 
@@ -36,8 +36,9 @@ const fmt = (v: number, d = 2) => v.toLocaleString(undefined, { maximumFractionD
 const short = (h?: string) => (h ? `${h.slice(0, 6)}…${h.slice(-4)}` : "");
 const WETH = "0xfff9976782d46cc05630d1f6ebab18b2324d6b14";
 const tx = (h?: string) => `https://sepolia.etherscan.io/tx/${h}`;
-const ago = (t: number) => {
-  const m = Math.round((Date.now() - t) / 60000);
+const ago = (t: number, now: number | null) => {
+  if (now === null) return "just now";
+  const m = Math.round((now - t) / 60000);
   return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`;
 };
 const STATUS_TEXT: Record<string, string> = {
@@ -58,10 +59,10 @@ export default function Dashboard() {
   const [busy, setBusy] = useState(false);
   const [advanced, setAdvanced] = useState(false);
   const [mgr, setMgr] = useState<Mgr | null>(null);
-  const [sigmaTouched, setSigmaTouched] = useState(false);
+  const [now, setNow] = useState<number | null>(null);
   const sigmaTouchedRef = useRef(false); // the poll closes over the first render; a ref sees the click
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     const [r, m] = await Promise.all([
       fetch(`/api/state?strategy=${encodeURIComponent(name)}`, { cache: "no-store" }),
       fetch(`/api/agent/status`, { cache: "no-store" }).then((x) => x.json()).catch(() => null),
@@ -71,13 +72,16 @@ export default function Dashboard() {
       setMgr(m);
       if (!sigmaTouchedRef.current && m.sigma) setSigma(Math.round(m.sigma * 20) / 20);
     }
-  };
-  useEffect(() => {
-    refresh();
-    const t = setInterval(refresh, 8000);
-    return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setNow(Date.now());
   }, [name]);
+  useEffect(() => {
+    const first = window.setTimeout(() => void refresh(), 0);
+    const poll = window.setInterval(() => void refresh(), 8000);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(poll);
+    };
+  }, [refresh]);
 
   const { signMessageAsync } = useSignMessage();
   const [proposeErr, setProposeErr] = useState<string | null>(null);
@@ -108,14 +112,14 @@ export default function Dashboard() {
         ) : s.error ? (
           <div className="rounded-3xl border border-bad/30 p-6 text-bad">{s.error}</div>
         ) : (
-          <Body s={s} mgr={mgr} sigma={sigma} proposeErr={proposeErr} setSigma={(v) => { sigmaTouchedRef.current = true; setSigmaTouched(true); setSigma(v); }} propose={propose} busy={busy} isOwner={!!address && address.toLowerCase() === s.strategy.owner.toLowerCase()} justShipped={q.get("new") === "1"} advanced={advanced} setAdvanced={setAdvanced} />
+          <Body s={s} mgr={mgr} now={now} sigma={sigma} proposeErr={proposeErr} setSigma={(v) => { sigmaTouchedRef.current = true; setSigma(v); }} propose={propose} busy={busy} isOwner={!!address && address.toLowerCase() === s.strategy.owner.toLowerCase()} justShipped={q.get("new") === "1"} advanced={advanced} setAdvanced={setAdvanced} />
         )}
       </main>
     </>
   );
 }
 
-function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, advanced, setAdvanced, proposeErr }: { s: Snapshot; mgr: Mgr | null; sigma: number; proposeErr: string | null; setSigma: (n: number) => void; propose: () => void; busy: boolean; isOwner: boolean; justShipped: boolean; advanced: boolean; setAdvanced: (b: boolean) => void }) {
+function Body({ s, mgr, now, sigma, setSigma, propose, busy, isOwner, justShipped, advanced, setAdvanced, proposeErr }: { s: Snapshot; mgr: Mgr | null; now: number | null; sigma: number; proposeErr: string | null; setSigma: (n: number) => void; propose: () => void; busy: boolean; isOwner: boolean; justShipped: boolean; advanced: boolean; setAdvanced: (b: boolean) => void }) {
   const lambda = s.records.lambda / 100;
   const delta = s.records.delta / 100;
   const feeBps = s.onchain?.fee ?? s.records.fee ?? 30;
@@ -174,7 +178,7 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
           <Setting big={`${feeBps / 100}%`} title="fee on every trade" body={`Paid by the trader, kept in your inventory. It also backs the deep curve: the most that curve can improve a price, ${rebate / 100}% here, never exceeds the fee, so nobody can farm it.`} />
         </div>
         {!s.onchain && <div className="mt-3 text-xs text-warn">This strategy has no on-chain parameters on the current contracts; the values above are its ENS records only.</div>}
-        {syncing && s.onchain && <div className="mt-3 text-xs text-warn">The ENS records ({s.records.lambda / 100}% / {s.records.N}× / {s.records.delta / 100}%) and the on-chain values ({s.onchain.lambda / 100}% / {s.onchain.N}× / {s.onchain.delta / 100}%) differ. Trades use the on-chain values; an approved change is waiting for the owner's wallet.</div>}
+        {syncing && s.onchain && <div className="mt-3 text-xs text-warn">The ENS records ({s.records.lambda / 100}% / {s.records.N}× / {s.records.delta / 100}%) and the on-chain values ({s.onchain.lambda / 100}% / {s.onchain.N}× / {s.onchain.delta / 100}%) differ. Trades use the on-chain values; an approved change is waiting for the owner&apos;s wallet.</div>}
       </section>
 
       {/* Inventory this block */}
@@ -215,7 +219,7 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
                   <Fingerprint size={16} className="text-accent" /> Your World ID
                 </div>
                 {s.bound ? (
-                  <p className="relative z-10 mt-2 text-sm text-fg-2">Bound {ago(s.bound.boundAt)}. Every approval asks you to sign in again, fresh.</p>
+                  <p className="relative z-10 mt-2 text-sm text-fg-2">Bound {ago(s.bound.boundAt, now)}. Every approval asks you to sign in again, fresh.</p>
                 ) : isOwner ? (
                   <>
                     <p className="relative z-10 mt-2 text-sm text-fg-2">Bind once so the manager knows who is allowed to approve.</p>
@@ -227,7 +231,7 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
                 {mgr && (
                   <p className="relative z-10 mt-5 border-t border-white/[0.07] pt-4 text-xs leading-relaxed text-fg-2">
                     Autopilot: the manager checks the market every {mgr.tickMinutes} min
-                    {mgr.nextTick ? `, next in ${Math.max(0, Math.round((mgr.nextTick - Date.now()) / 60000))} min` : ""}. It acts when the suggested visibility moves by {mgr.minMoveBps / 100} points or more: on its own inside the guardrails, otherwise it asks you.
+                    {mgr.nextTick && now !== null ? `, next in ${Math.max(0, Math.round((mgr.nextTick - now) / 60000))} min` : ""}. It acts when the suggested visibility moves by {mgr.minMoveBps / 100} points or more: on its own inside the guardrails, otherwise it asks you.
                   </p>
                 )}
               </div>
@@ -284,6 +288,7 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
                   <span>{busy ? "Thinking…" : pending ? "Suggestion waiting" : "Get a suggestion"}</span>
                   <span className="ico"><ArrowUpRight size={13} /></span>
                 </button>
+                {proposeErr && <p className="mt-2 text-xs text-bad">{proposeErr}</p>}
               </div>
             </Bezel>
           </div>
@@ -310,12 +315,12 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
                       <Status s={p.status} />
                     </div>
                     <p className="mt-2 text-sm text-fg-2">{humanReason(p.sigma, p.to.lambda, p.from.lambda)}{p.to.delta !== p.from.delta && ` The deep-curve band moves to ${p.to.delta / 100}%: about three one-block price moves at this volatility, so a stale first trade gives nobody an edge, and no more than the fee can back.`}</p>
-                    <div className="mt-2 text-xs text-fg-3">{p.auto && p.status === "applied" ? "Applied by the manager, inside your guardrails" : STATUS_TEXT[p.status] ?? p.status}{p.outside && p.status !== "applied" ? ` (${p.outside})` : ""} · {ago(p.createdAt)}</div>
+                    <div className="mt-2 text-xs text-fg-3">{p.auto && p.status === "applied" ? "Applied by the manager, inside your guardrails" : STATUS_TEXT[p.status] ?? p.status}{p.outside && p.status !== "applied" ? ` (${p.outside})` : ""} · {ago(p.createdAt, now)}</div>
                     {p.status === "approved" && !p.txs?.params && isOwner && <ApplyButton p={p} orderHash={s.strategy.orderHash} />}
                     {p.status === "pending" && p.needsApproval && isOwner && (
                       <div className="mt-4 flex flex-wrap items-center gap-3">
                         <ApproveButton id={p.id} />
-                        <span className="text-xs text-fg-3">or ignore it: it expires {Math.max(0, Math.ceil((p.createdAt + (mgr?.approvalSeconds ?? 180) * 1000 - Date.now()) / 60000))} min from now and nothing changes.</span>
+                        <span className="text-xs text-fg-3">or ignore it: it expires {now === null ? "shortly" : `${Math.max(0, Math.ceil((p.createdAt + (mgr?.approvalSeconds ?? 180) * 1000 - now) / 60000))} min from now`} and nothing changes.</span>
                       </div>
                     )}
                     {p.blockedReason && <div className="mt-2 text-xs text-bad">{p.blockedReason.replace(/^[a-z_]+: /, "")}</div>}

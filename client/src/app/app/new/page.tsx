@@ -8,7 +8,7 @@
  *   4. ship           Aqua.ship(router, order, tokens, amounts); inventory stays in your wallet
  *   then optionally   enable the manager: one multicall granting setText on λ/N/δ, and bind World ID
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount, usePublicClient, useWriteContract, useSignMessage } from "wagmi";
 import { WalletButton } from "@/components/WalletButton";
@@ -43,28 +43,33 @@ export default function NewStrategy() {
   const [weth, setWeth] = useState("0.1");
   const [usdc, setUsdc] = useState("300");
   const [enableAgent, setEnableAgent] = useState(true);
-  const salt = useMemo(() => String(Date.now()), []);
 
   const [steps, setSteps] = useState<Record<string, { s: Step; tx?: string; err?: string }>>({});
-  const [strat, setStrat] = useState<{ name: string; orderHash: Hex; resolver: Address; label: string } | null>(null);
+  const [strat, setStrat] = useState<{ name: string; orderHash: Hex; resolver: Address; label: string; salt: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!label) return setAvail(null);
+    if (!label) return;
+    let cancelled = false;
     const t = setTimeout(async () => {
       const a = await fetch(`/api/strategy/available?label=${encodeURIComponent(label)}`).then((r) => r.json());
+      if (cancelled) return;
       if (!a.available && address) {
         // a name you registered earlier but never finished shipping: pick it up where you left off
         const mine = await fetch(`/api/strategy/${encodeURIComponent(label)}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+        if (cancelled) return;
         if (mine && mine.owner?.toLowerCase() === address.toLowerCase()) {
-          setStrat({ name: mine.name, orderHash: mine.orderHash, resolver: mine.resolver, label: mine.label });
+          setStrat({ name: mine.name, orderHash: mine.orderHash, resolver: mine.resolver, label: mine.label, salt: mine.salt });
           return setAvail({ available: false, reason: `${label}.${PARENT} is already yours; continue below to finish shipping it` });
         }
       }
       setAvail(a);
     }, 350);
-    return () => clearTimeout(t);
-  }, [label]);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [address, label]);
 
   const set = (k: string, v: { s: Step; tx?: string; err?: string }) => setSteps((p) => ({ ...p, [k]: v }));
   const run = async (k: string, fn: () => Promise<string | void>) => {
@@ -95,11 +100,12 @@ export default function NewStrategy() {
         await run("name", async () => {
           // the registrar pays for the name, so your wallet signs the request first
           const ts = Date.now();
+          const strategySalt = String(ts);
           const sig = await signMessageAsync({ message: ownerMessage(`name ${label} for ${address.toLowerCase()}`, ts) });
-          const r = await fetch("/api/strategy/create", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ label, owner: address, lambdaBps: lambda, n, deltaBps: delta, feeBps: fee, salt, ts, sig }) });
+          const r = await fetch("/api/strategy/create", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ label, owner: address, lambdaBps: lambda, n, deltaBps: delta, feeBps: fee, salt: strategySalt, ts, sig }) });
           const j = await r.json();
           if (!r.ok) throw new Error(j.error);
-          s = { name: j.name, orderHash: j.orderHash, resolver: j.resolver, label: j.label };
+          s = { name: j.name, orderHash: j.orderHash, resolver: j.resolver, label: j.label, salt: j.salt ?? strategySalt };
           setStrat(s);
           return j.txs?.register;
         });
@@ -132,7 +138,7 @@ export default function NewStrategy() {
         if (p.owner !== "0x0000000000000000000000000000000000000000") return;
         const [tokenA, tokenB] = tokensSorted();
         // through TideApp: it checks you are the maker, so nobody else can claim your order hash
-        return wait(await writeContractAsync({ address: ADDR.tideApp, abi: tideAppAbi, functionName: "init", args: [{ maker: address, tokenA, tokenB, salt: BigInt(salt) }, lambda, n, delta, fee, enableAgent ? ADDR.agent : "0x0000000000000000000000000000000000000000"] }));
+        return wait(await writeContractAsync({ address: ADDR.tideApp, abi: tideAppAbi, functionName: "init", args: [{ maker: address, tokenA, tokenB, salt: BigInt(s!.salt) }, lambda, n, delta, fee, enableAgent ? ADDR.agent : "0x0000000000000000000000000000000000000000"] }));
       });
 
       // 4. ship
@@ -140,7 +146,7 @@ export default function NewStrategy() {
         const [tokenA, tokenB] = tokensSorted();
         const [bal] = (await pc.readContract({ address: ADDR.aqua, abi: aquaAbi, functionName: "rawBalances", args: [address, ADDR.tideRouter, s!.orderHash, tokenA] })) as [bigint, number];
         if (bal > 0n) return;
-        const order = (await pc.readContract({ address: ADDR.tideApp, abi: tideAppAbi, functionName: "order", args: [{ maker: address, tokenA, tokenB, salt: BigInt(salt) }] })) as { maker: Address; traits: bigint; data: Hex };
+        const order = (await pc.readContract({ address: ADDR.tideApp, abi: tideAppAbi, functionName: "order", args: [{ maker: address, tokenA, tokenB, salt: BigInt(s!.salt) }] })) as { maker: Address; traits: bigint; data: Hex };
         const encoded = encodeAbiParameters(ORDER_TUPLE, [{ maker: order.maker, traits: order.traits, data: order.data }]);
         const amounts = tokenA === ADDR.weth ? [wethAmt, usdcAmt] : [usdcAmt, wethAmt];
         return wait(await writeContractAsync({ address: ADDR.aqua, abi: aquaAbi, functionName: "ship", args: [ADDR.tideRouter, encoded, [tokenA, tokenB], amounts] }));
@@ -185,7 +191,7 @@ export default function NewStrategy() {
             <div className="space-y-8 p-6 md:p-8">
               <Field label="Name" hint={avail ? (avail.available ? `${label}.${PARENT} is free` : avail.reason ?? "taken") : `becomes <label>.${PARENT}, owned by your wallet`} ok={avail?.available}>
                 <div className="flex items-center gap-2">
-                  <input value={label} onChange={(e) => setLabel(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} placeholder="eth-usdc-2" className="num w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-fg outline-none focus:border-accent" />
+                  <input value={label} onChange={(e) => { const next = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""); setLabel(next); setAvail(null); setStrat(null); }} placeholder="eth-usdc-2" className="num w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-fg outline-none focus:border-accent" />
                   <span className="num shrink-0 text-fg-3">.{PARENT}</span>
                 </div>
               </Field>

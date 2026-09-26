@@ -22,7 +22,6 @@ import { namehash } from "viem/ens";
 import {
   publicClient,
   walletClient,
-  dnsName,
   labelhash,
   readText,
   findResolver,

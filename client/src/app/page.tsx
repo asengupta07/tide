@@ -103,7 +103,7 @@ export default function Landing() {
           <div className="absolute inset-0 bg-[linear-gradient(180deg,var(--bg)_0%,rgba(11,15,20,0.55)_35%,rgba(11,15,20,0.55)_65%,var(--bg)_100%)]" />
           <div className="relative mx-auto max-w-7xl px-5 py-24 sm:px-7 md:py-32 lg:px-10 lg:py-36">
             <Reveal>
-              <h2 className="max-w-[22ch] text-3xl font-semibold tracking-tight md:text-5xl">The knobs are ENS records. The guardrails are the owner's.</h2>
+              <h2 className="max-w-[22ch] text-3xl font-semibold tracking-tight md:text-5xl">The knobs are ENS records. The guardrails are the owner&apos;s.</h2>
             </Reveal>
             <Reveal delay={0.1} className="mt-14">
               <Bezel>
