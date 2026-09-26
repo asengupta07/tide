@@ -9,7 +9,8 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
 - `/trade` is now a dedicated trader-facing entry page with a real live quote and route comparison.
   Execution lives at `/trade/market`, a compact terminal that keeps route liquidity, candles, price impact,
   recent fills, curve parameters, and the auto-routed order ticket visible together. Existing strategy links
-  preserve their target through the new terminal URL.
+  preserve their target through the new terminal URL. Dithered route waves, live water texture, execution
+  bounds, and a terminal-map treatment give the entry page a stronger visual hierarchy.
 
 **Dashboard polish**
 - "Get a suggestion" opens the manager's answer in a modal (Escape, backdrop or X closes it); the
