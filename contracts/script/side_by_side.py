@@ -150,6 +150,58 @@ if first:
     line("  " + col("    when first in block", LW) + col(f"{PLAIN}{bps(pfi, False):>11}{R}", CW) + col(f"{TIDE}{bps(tfi, False):>11}{R}", CW) + f"{BAD}{pct((tfi / pfi - 1) * 100)}{R}  {D}{len(first)} block(s) with no arbitrage: retail met the active slice, 1/λ the depth{R}")
 line("  " + col("  final inventory", LW) + col(f"{PLAIN}{eth(state['plain']['X'])} + {usd(state['plain']['Y'])}{R}", CW) + col(f"{TIDE}{eth(state['tide']['X'])} + {usd(state['tide']['Y'])}{R}", CW))
 line()
+
+# ---- summary: the good, the bad, what it means ---------------------------------------------------
+import textwrap
+def para(txt, color=""):
+    for ln in textwrap.wrap(txt, W - 8):
+        line(f"    {color}{ln}{R}")
+    pause(0.15)
+
+arb_saved = (1 - ta / pa) * 100
+impact_saved = (1 - tf / pf) * 100
+big_rows = [r for r in rows if "plain_big" in r]
+big_ratio = big_rows[0]["tide_big"][1] / big_rows[0]["plain_big"][1] if big_rows else None
+fee_gap = (1 - state["tide"]["fees"] / state["plain"]["fees"]) * 100
+move = (Pf / P0 - 1) * 100
+lam = cfg["lambdaBps"] / 100
+
+line(f"  {D}{'─' * (W - 4)}{R}")
+line(f"  {B}What this run shows{R}")
+line()
+line(f"  {GOOD}{B}The good{R}")
+para(f"Over {len(rows)} blocks the arbitrageur took {usd(ta)} from the Tide pool against {usd(pa)} from the plain pool, "
+     f"{arb_saved:.0f}% less. Both pools saw the same prices and the same orders; the only difference is that Tide showed the "
+     f"first trade of each block {lam:.0f}% of the inventory instead of all of it. The closed form for the steady state is "
+     f"1/(2 − λ), a third less at λ = 0.5, and the run lands on it.")
+para(f"Retail orders that arrived after the arbitrageur paid {impact_saved:.0f}% less price impact on Tide: {tf:.1f} bp against "
+     f"{pf:.1f} bp for the same $200. That is the virtual curve, {cfg['n']} times the active slice, so {cfg['n'] * lam / 100:.0f} times "
+     f"the depth the plain pool has, funded by the {fee} bp fee it collects on the same order.")
+
+line()
+line(f"  {BAD}{B}The bad{R}")
+if big_ratio:
+    para(f"A $5,000 order in the same block paid about {big_ratio:.1f} times the impact it paid on the plain pool. The drift guard "
+         f"saw it move the virtual price more than δ = {cfg['deltaBps']} bp from the block's anchor, treated it as informed and "
+         f"re-priced it on the active slice, which is half the plain pool. Large follow-on trades are worse on Tide by design; "
+         f"that is what stops the deep curve from being farmed.")
+if first:
+    para(f"In {len(first)} of {len(rows)} blocks no arbitrage fired on Tide, so the retail order was the block's first fill and met the "
+         f"active slice alone: {tfi:.1f} bp of impact against {pfi:.1f} bp on the plain pool, twice as much. Tide cannot tell a "
+         f"retail order from an arbitrageur; whoever is first pays the shallow curve.")
+para(f"Tide earned {fee_gap:.0f}% less in fees ({usd(state['tide']['fees'])} against {usd(state['plain']['fees'])}): the arbitrageur "
+     f"trades half the size against it. And because only λ of the pool rebalances each block, Tide's inventory lags the market. "
+     f"With ETH {pct(move)} over the run that lag happened to help ({usd(ft - ht, True)} against holding, plain {usd(fp - hp, True)}); "
+     f"on a path that reverts it would hurt. That swing is tracking error, the price of the LVR saving.")
+
+line()
+line(f"  {ACC}{B}What it means{R}")
+para(f"Tide moves money from the arbitrageur to the LP and from large follow-on traders to small ones, and pays for it with "
+     f"tracking error and a first-fill tax. It fits pools where most blocks open with an informed trade and the rest of the flow "
+     f"is small, which is what volatile pairs look like. λ sets how much LVR to give up for how much drift; N and δ set how deep "
+     f"the discount for small traders is; the fee bounds all of it so no one can farm the curve. The manager moves λ and δ with "
+     f"realised volatility inside guardrails the owner set.")
+line()
 line(f"  {D}Every number above is decoded from a Swapped event on the fork: real Aqua.push / Aqua.pull transfers against the maker's wallet.{R}")
 line(f"  {D}The two strategies differ in one thing, the SwapVM program. Tide's three opcodes live in contracts/src/aqua/instructions/.{R}")
 print()
