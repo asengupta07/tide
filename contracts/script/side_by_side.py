@@ -71,6 +71,7 @@ for r, (rd, P) in enumerate(zip(rounds, prices)):
         row[k + "_arb"] = 0
         row[k + "_had_arb"] = any(not (f["in"] == usdc and f["ain"] in (retailIn, bigIn)) for f in rd["fills"][k])
         for f in rd["fills"][k]:
+            mid = st["Y"] * 10**18 / st["X"]  # this pool's own price before the fill, USDC-6 per ETH
             val_in = f["ain"] if f["in"] == usdc else f["ain"] * P // 10**18
             val_out = f["aout"] if f["out"] == usdc else f["aout"] * P // 10**18
             if f["in"] == usdc: st["Y"] += f["ain"]; st["X"] -= f["aout"]
@@ -79,10 +80,10 @@ for r, (rd, P) in enumerate(zip(rounds, prices)):
             is_retail = f["in"] == usdc and f["ain"] == retailIn
             is_big = f["in"] == usdc and f["ain"] == bigIn
             if is_retail or is_big:
-                slip = (f["ain"] * 10**18 / f["aout"] / P - 1) * 1e4
+                # price impact against the pool's own mid, fee taken out: what the curve's depth costs the trader
+                impact = (f["ain"] * 10**18 / f["aout"] / mid - 1) * 1e4 - fee
                 tag = "retail" if is_retail else "big"
-                row[f"{k}_{tag}"] = (f["aout"], slip); st[tag].append(slip)
-                if is_retail and row[k + "_had_arb"]: st["retail_follow"].append(slip)
+                row[f"{k}_{tag}"] = (f["aout"], impact); st[tag].append(impact)
             else:
                 pnl = val_out - val_in
                 st["arb"] += pnl; row[k + "_arb"] += pnl
@@ -116,12 +117,14 @@ for i, row in enumerate(rows):
     line("  " + col(f"  arbitrage, running", LW) + col(f"{PLAIN}{usd(pc_):>11}  {D}{usd(row['plain_arb'], True)} this block{R}", CW) + col(f"{TIDE}{usd(tc_):>11}  {D}{usd(row['tide_arb'], True)} this block{R}", CW))
     line("  " + " " * LW + col(f"{PLAIN}{bar_p}{R}", CW) + col(f"{TIDE}{bar_t}{R}", CW) + f"{GOOD if saved > 0 else BAD}{pct(-saved)}{R} {D}taken from the LP so far{R}")
     (po, ps), (to, ts) = row["plain_retail"], row["tide_retail"]
-    better = (to / po - 1) * 1e4
-    note = f"{GOOD}{better:+.1f} bp{R} {D}for the trader{R}" if better > 0 else f"{BAD}{better:+.1f} bp{R} {D}no arbitrage this block on Tide, so the retail order was the first fill and met the active curve{R}" if not row["tide_had_arb"] else f"{BAD}{better:+.1f} bp{R} {D}for the trader{R}"
-    line("  " + col(f"  retail buys ${retailIn // 10**6:,}", LW) + col(f"{PLAIN}{eth(po):>15}  {bps(ps)}{R}", CW) + col(f"{TIDE}{eth(to):>15}  {bps(ts)}{R}", CW) + note)
+    better = ps - ts  # less impact on Tide = positive
+    if better > 0: note = f"{GOOD}{better:+.1f} bp{R} {D}less impact: the deep curve{R}"
+    elif not row["tide_had_arb"]: note = f"{BAD}{better:+.1f} bp{R} {D}no arbitrage this block on Tide, so retail was the first fill and met the active curve{R}"
+    else: note = f"{BAD}{better:+.1f} bp{R}"
+    line("  " + col(f"  retail buys ${retailIn // 10**6:,}", LW) + col(f"{PLAIN}{eth(po):>15}  {bps(ps, False)} impact{R}", CW) + col(f"{TIDE}{eth(to):>15}  {bps(ts, False)} impact{R}", CW) + note)
     if "plain_big" in row:
         (bpo, bs), (bto, bts) = row["plain_big"], row["tide_big"]
-        line("  " + col(f"  ${bigIn // 10**6:,} order", LW) + col(f"{PLAIN}{eth(bpo):>15}  {bps(bs)}{R}", CW) + col(f"{TIDE}{eth(bto):>15}  {bps(bts)}{R}", CW) + f"{D}informed-sized: the guard re-prices it on the active curve{R}")
+        line("  " + col(f"  ${bigIn // 10**6:,} order", LW) + col(f"{PLAIN}{eth(bpo):>15}  {bps(bs, False)} impact{R}", CW) + col(f"{TIDE}{eth(bto):>15}  {bps(bts, False)} impact{R}", CW) + f"{D}informed-sized: the guard re-prices it on the active curve, half the depth{R}")
     line(f"  {D}  block {row['block']} · {short(row['tx'])} · {row['nfills']} fills in one transaction · {row['gas']:,} gas{R}")
     line()
     pause(0.3)
@@ -133,12 +136,13 @@ line("  " + col("  arbitrage extracted", LW) + col(f"{PLAIN}{usd(pa):>11}{R}", C
 fp, hp = lp("plain"); ft, ht = lp("tide")
 line("  " + col("  LP value vs holding", LW) + col(f"{PLAIN}{usd(fp - hp, True):>11}{R}", CW) + col(f"{TIDE}{usd(ft - ht, True):>11}{R}", CW) + f"{D}at ${Pf/1e6:,.2f}, fees included; Tide lags the market by design, so this swings both ways{R}")
 line("  " + col("  fees earned", LW) + col(f"{PLAIN}{usd(state['plain']['fees']):>11}{R}", CW) + col(f"{TIDE}{usd(state['tide']['fees']):>11}{R}", CW))
-follow = [(r["tide_retail"][0] / r["plain_retail"][0] - 1) * 1e4 for r in rows if r["tide_had_arb"]]
-first = [(r["tide_retail"][0] / r["plain_retail"][0] - 1) * 1e4 for r in rows if not r["tide_had_arb"]]
-fa = statistics.mean(follow) if follow else 0.0
-line("  " + col("  retail, Tide vs plain", LW) + col(f"{GOOD}{fa:+.1f} bp{R} {D}for the trader{R}", CW) + col("", CW) + f"{D}{len(follow)} blocks where the arbitrageur went first: the deep curve{R}")
+follow = [r for r in rows if r["tide_had_arb"]]
+first = [r for r in rows if not r["tide_had_arb"]]
+pf = statistics.mean(r["plain_retail"][1] for r in follow); tf = statistics.mean(r["tide_retail"][1] for r in follow)
+line("  " + col("  retail price impact", LW) + col(f"{PLAIN}{bps(pf, False):>11}{R}", CW) + col(f"{TIDE}{bps(tf, False):>11}{R}", CW) + f"{GOOD}{B}{pct(-(1 - tf / pf) * 100)}{R}  {D}$200 orders as follow-on fills, {len(follow)} blocks; theory N·λ = {cfg['n'] * cfg['lambdaBps'] / 10000:.0f}× depth{R}")
 if first:
-    line("  " + col("", LW) + col(f"{BAD}{statistics.mean(first):+.1f} bp{R} {D}for the trader{R}", CW) + col("", CW) + f"{D}{len(first)} blocks with no arbitrage: retail was Tide's first fill, the active curve{R}")
+    pfi = statistics.mean(r["plain_retail"][1] for r in first); tfi = statistics.mean(r["tide_retail"][1] for r in first)
+    line("  " + col("    when first in block", LW) + col(f"{PLAIN}{bps(pfi, False):>11}{R}", CW) + col(f"{TIDE}{bps(tfi, False):>11}{R}", CW) + f"{BAD}{pct((tfi / pfi - 1) * 100)}{R}  {D}{len(first)} block(s) with no arbitrage: retail met the active slice, 1/λ the depth{R}")
 line("  " + col("  final inventory", LW) + col(f"{PLAIN}{eth(state['plain']['X'])} + {usd(state['plain']['Y'])}{R}", CW) + col(f"{TIDE}{eth(state['tide']['X'])} + {usd(state['tide']['Y'])}{R}", CW))
 line()
 line(f"  {D}Every number above is decoded from a Swapped event on the fork: real Aqua.push / Aqua.pull transfers against the maker's wallet.{R}")
