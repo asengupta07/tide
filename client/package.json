@@ -24,7 +24,7 @@
     "react-dom": "19.2.8",
     "recharts": "^3.10.1",
     "viem": "^2.56.9",
-    "wagmi": "^3.7.7",
+    "wagmi": "2.18.2",
     "zod": "^4.6.5"
   },
   "devDependencies": {
