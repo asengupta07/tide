@@ -1,17 +1,12 @@
 import { ArrowUpRight, Fingerprint, Key, TextAa, Prohibit } from "@phosphor-icons/react/dist/ssr";
 
 import { Nav, Reveal, Stat, Pill, Bezel } from "@/components/ui";
+import { ADDR } from "@/lib/chain";
 import { TideWater, GrainBand, DitherField } from "@/components/shaders";
 import { LiveSplit } from "@/components/LiveSplit";
 import { BlockAnimation } from "@/components/BlockAnimation";
 import { WealthChart } from "@/components/WealthChart";
 
-const ADDR = {
-  router: "0xfDD5a4E385cc5082d1be12F215fa696a3c4B0957",
-  params: "0x4608489C117E0719dD5cd88B58ED172A048344FF",
-  hook: "0xEcbF515eEd6006270210db1c9bfcA1dB3AD1AA88",
-  aqua: "0x1111113CCf1426A8E30e2bfF5E005d929bF6a90a",
-};
 const short = (h: string) => `${h.slice(0, 6)}…${h.slice(-4)}`;
 const scan = (a: string) => `https://sepolia.etherscan.io/address/${a}`;
 
@@ -144,9 +139,9 @@ export default function Landing() {
             <Bezel>
               <div className="grid-lines grid md:grid-cols-2">
                 {[
-                  ["TideRouter", "redeployed AquaSwapVMRouter with the three opcodes", ADDR.router],
-                  ["TideHook", "Uniswap v4 hook, same math", ADDR.hook],
-                  ["TideParams", "governed λ, N, δ; owner or manager only", ADDR.params],
+                  ["TideRouter", "redeployed AquaSwapVMRouter with the three opcodes", ADDR.tideRouter],
+                  ["TideHook", "Uniswap v4 hook, same math", ADDR.tideHook],
+                  ["TideParams", "governed λ, N, δ; owner or manager only", ADDR.tideParams],
                   ["Aqua registry", "official 1inch, inventory never leaves the wallet", ADDR.aqua],
                 ].map(([n, d, a]) => (
                   <a key={a} href={scan(a)} className="group flex items-center justify-between gap-6 p-6 transition-colors duration-300 hover:bg-white/[0.03] md:p-7">

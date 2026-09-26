@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { useAccount } from "wagmi";
-import { ArrowUpRight, ShieldCheck, Fingerprint, Sparkle, CaretDown } from "@phosphor-icons/react";
+import { useAccount, useSignMessage } from "wagmi";
+import { getAddress } from "viem";
+import { ArrowUpRight, ArrowRight, ShieldCheck, Fingerprint, Sparkle, CaretDown, CircleNotch } from "@phosphor-icons/react";
 
 import { Nav, Bezel, Status, Pill } from "@/components/ui";
 import { FrontierChart } from "@/components/FrontierChart";
@@ -112,6 +113,7 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
   const pending = s.proposals.find((p) => p.status === "pending");
   const fills = [...s.fills].reverse();
   const syncing = s.onchain && (s.onchain.lambda !== s.records.lambda || s.onchain.N !== s.records.N || s.onchain.delta !== s.records.delta);
+  const volatilityLabel = sigma <= 0.35 ? "Calm" : sigma <= 0.7 ? "Normal" : sigma <= 1 ? "Volatile" : "Wild";
 
   return (
     <>
@@ -182,26 +184,26 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
         {s.agentEnabled && (
           <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_1.3fr]">
             <Bezel small>
-              <div className="relative overflow-hidden rounded-[calc(1rem-0.25rem)] p-5">
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 opacity-30">
+              <div className="relative h-full overflow-hidden rounded-[calc(1rem-0.25rem)] p-5 pb-10">
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-50 opacity-45" aria-hidden="true">
                   <DitherField />
-                  <div className="absolute inset-0 bg-gradient-to-b from-panel via-panel/40 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-panel via-panel/30 to-transparent" />
                 </div>
-                <div className="relative flex items-center gap-2 text-sm font-medium">
+                <div className="relative z-10 flex items-center gap-2 text-sm font-medium">
                   <Fingerprint size={16} className="text-accent" /> Your World ID
                 </div>
                 {s.bound ? (
-                  <p className="mt-2 text-sm text-fg-2">Bound {ago(s.bound.boundAt)}. Every approval asks you to sign in again, fresh.</p>
+                  <p className="relative z-10 mt-2 text-sm text-fg-2">Bound {ago(s.bound.boundAt)}. Every approval asks you to sign in again, fresh.</p>
                 ) : isOwner ? (
                   <>
-                    <p className="mt-2 text-sm text-fg-2">Bind once so the manager knows who is allowed to approve.</p>
-                    <div className="mt-4"><Pill href={`/api/world/bind?owner=${s.strategy.owner}`} size="sm" external>Bind World ID</Pill></div>
+                    <p className="relative z-10 mt-2 text-sm text-fg-2">Bind once so the manager knows who is allowed to approve.</p>
+                    <div className="relative z-10 mt-4"><BindButton owner={s.strategy.owner} /></div>
                   </>
                 ) : (
-                  <p className="mt-2 text-sm text-fg-3">The owner has not bound a World ID yet.</p>
+                  <p className="relative z-10 mt-2 text-sm text-fg-3">The owner has not bound a World ID yet.</p>
                 )}
                 {mgr && (
-                  <p className="relative mt-5 text-xs text-fg-3">
+                  <p className="relative z-10 mt-5 border-t border-white/[0.07] pt-4 text-xs leading-relaxed text-fg-2">
                     Autopilot: the manager checks the market every {mgr.tickMinutes} min
                     {mgr.nextTick ? `, next in ${Math.max(0, Math.round((mgr.nextTick - Date.now()) / 60000))} min` : ""}. It only speaks up when the suggested visibility moves by {mgr.minMoveBps / 100} points or more.
                   </p>
@@ -209,18 +211,35 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
               </div>
             </Bezel>
             <Bezel small>
-              <div className="p-5">
+              <div className="flex h-full flex-col p-5">
                 <div className="text-sm font-medium">Ask for a suggestion</div>
                 <p className="mt-1 text-xs text-fg-3">
                   {mgr?.sigma
                     ? `ETH has moved about ${Math.round(mgr.sigma * 100)}% a year lately (hourly, last two weeks${mgr.ethPrice ? `, $${Math.round(mgr.ethPrice)}` : ""}). The frontier says ${mgr.lambdaStar !== null ? `${(mgr.lambdaStar ?? 0) / 100}%` : "…"} visibility for that. Slide to ask "what if".`
                     : "Tell the manager how volatile the market feels. It reads the frontier and proposes a new visibility level."}
                 </p>
-                <div className="mt-4 flex items-center gap-4">
-                  <input type="range" min={0.2} max={1.2} step={0.05} value={sigma} onChange={(e) => setSigma(Number(e.target.value))} className="w-full" />
-                  <span className="num w-24 shrink-0 text-right text-sm">{sigma <= 0.35 ? "calm" : sigma <= 0.7 ? "normal" : sigma <= 1 ? "volatile" : "wild"} · {Math.round(sigma * 100)}%</span>
+
+                <dl className="mt-5 grid grid-cols-2 border-y border-white/[0.07]">
+                  <div className="py-3 pr-4">
+                    <dt className="text-[11px] text-fg-3">Measured volatility</dt>
+                    <dd className="num mt-0.5 text-lg font-medium text-fg">{mgr?.sigma ? `${Math.round(mgr.sigma * 100)}%` : "—"}</dd>
+                  </div>
+                  <div className="border-l border-white/[0.07] py-3 pl-4">
+                    <dt className="text-[11px] text-fg-3">Frontier visibility</dt>
+                    <dd className="num mt-0.5 text-lg font-medium text-accent">{mgr?.lambdaStar !== null && mgr?.lambdaStar !== undefined ? `${mgr.lambdaStar / 100}%` : "—"}</dd>
+                  </div>
+                </dl>
+
+                <div className="mt-5">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <label htmlFor="volatility-scenario" className="text-xs font-medium text-fg-2">What-if volatility</label>
+                    <span className="whitespace-nowrap text-xs text-fg-3"><span className="num text-sm text-fg">{Math.round(sigma * 100)}%</span> · {volatilityLabel}</span>
+                  </div>
+                  <input id="volatility-scenario" type="range" min={0.2} max={1.2} step={0.05} value={sigma} onChange={(e) => setSigma(Number(e.target.value))} className="mt-2 w-full" />
+                  <div className="mt-1 flex justify-between text-[10px] text-fg-3"><span>Calm</span><span>Wild</span></div>
                 </div>
-                <button onClick={propose} disabled={busy || !!pending} className="pill pill-primary pill-sm mt-4 disabled:opacity-40">
+
+                <button onClick={propose} disabled={busy || !!pending} className="pill pill-primary pill-sm mt-5 self-start disabled:opacity-40">
                   <span>{busy ? "Thinking…" : pending ? "Suggestion waiting" : "Get a suggestion"}</span>
                   <span className="ico"><ArrowUpRight size={13} /></span>
                 </button>
@@ -346,6 +365,35 @@ function humanReason(sigma: number, to: number, from: number) {
   if (to < from) return `Markets look volatile (about ${v}% a year). Showing less inventory per block cuts what bots can take from you, at the cost of your token mix drifting a bit more.`;
   if (to > from) return `Markets look calm (about ${v}% a year). Bots take little at this volatility, so showing more inventory earns more fees than it loses.`;
   return `At about ${v}% volatility the current setting is already the best trade-off.`;
+}
+
+/** Sign a short message with the connected wallet, then start the World ID bind with that proof. */
+function BindButton({ owner }: { owner: string }) {
+  const { signMessageAsync } = useSignMessage();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const go = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const ts = Date.now();
+      const sig = await signMessageAsync({ message: `Tide: bind World ID to ${getAddress(owner)} at ${ts}` });
+      window.location.href = `/api/world/bind?owner=${owner}&ts=${ts}&sig=${sig}`;
+    } catch (e) {
+      setErr((e as Error).message.split("\n")[0]);
+      setBusy(false);
+    }
+  };
+  return (
+    <div>
+      <button onClick={go} disabled={busy} className="pill pill-primary pill-sm disabled:opacity-40">
+        <span>{busy ? "Sign in your wallet…" : "Bind World ID"}</span>
+        <span className="ico">{busy ? <CircleNotch size={13} className="animate-spin" /> : <ArrowRight size={13} />}</span>
+      </button>
+      <p className="mt-2 text-xs text-fg-3">Your wallet signs one message first, so only you can bind a World ID to this strategy.</p>
+      {err && <p className="mt-1 text-xs text-bad">{err}</p>}
+    </div>
+  );
 }
 
 function Setting({ big, title, body }: { big: string; title: string; body: string }) {

@@ -1,0 +1,43 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="aqua" x1="110" y1="100" x2="405" y2="410" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#55F2D6"/>
+      <stop offset=".45" stop-color="#28CDBF"/>
+      <stop offset="1" stop-color="#087C8C"/>
+    </linearGradient>
+    <linearGradient id="deep" x1="100" y1="360" x2="410" y2="190" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#063C52"/>
+      <stop offset=".5" stop-color="#0A8E98"/>
+      <stop offset="1" stop-color="#5AF5D6"/>
+    </linearGradient>
+    <pattern id="dots" width="9" height="9" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.25" fill="#041D29" fill-opacity=".42"/>
+      <circle cx="7" cy="6" r=".8" fill="#041D29" fill-opacity=".28"/>
+    </pattern>
+    <mask id="fadeDots">
+      <rect width="512" height="512" fill="white"/>
+      <radialGradient id="fade" cx="0" cy="0" r="1" gradientTransform="translate(285 220) rotate(125) scale(260)">
+        <stop offset=".25" stop-color="white"/>
+        <stop offset="1" stop-color="#777"/>
+      </radialGradient>
+    </mask>
+  </defs>
+
+  <!-- transparent background -->
+
+  <!-- upper curling wave -->
+  <path d="M94 295C76 196 125 91 229 56C313 28 402 65 442 137C453 157 457 176 455 191C426 157 388 137 346 139C277 141 231 181 190 229C159 265 130 288 94 295Z" fill="url(#deep)"/>
+  <path d="M94 295C76 196 125 91 229 56C313 28 402 65 442 137C453 157 457 176 455 191C426 157 388 137 346 139C277 141 231 181 190 229C159 265 130 288 94 295Z" fill="url(#dots)" opacity=".75"/>
+
+  <!-- main wave -->
+  <path d="M91 314C139 284 169 244 217 223C264 202 296 220 331 256C366 292 396 308 426 298C446 291 461 278 476 260C466 316 429 353 382 358C329 363 297 337 263 301C232 269 205 258 176 267C146 276 119 299 91 314Z" fill="url(#aqua)"/>
+  <path d="M91 314C139 284 169 244 217 223C264 202 296 220 331 256C366 292 396 308 426 298C446 291 461 278 476 260C466 316 429 353 382 358C329 363 297 337 263 301C232 269 205 258 176 267C146 276 119 299 91 314Z" fill="url(#dots)" opacity=".55"/>
+
+  <!-- lower wave -->
+  <path d="M96 331C140 310 176 311 213 332C249 353 277 389 321 405C363 421 406 414 438 389C408 444 348 475 278 467C192 457 124 409 96 331Z" fill="url(#deep)"/>
+  <path d="M96 331C140 310 176 311 213 332C249 353 277 389 321 405C363 421 406 414 438 389C408 444 348 475 278 467C192 457 124 409 96 331Z" fill="url(#dots)" opacity=".72"/>
+
+  <!-- orb -->
+  <circle cx="406" cy="218" r="34" fill="url(#aqua)"/>
+  <circle cx="406" cy="218" r="34" fill="url(#dots)" opacity=".65"/>
+</svg>

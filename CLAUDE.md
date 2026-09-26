@@ -4,7 +4,8 @@ Read `docs/tide-idea-brief.md` first (product, flow, user stories, acceptance cr
 [`MATHEMATICS_MODEL.md`](MATHEMATICS_MODEL.md) for the implemented formulas, block-by-block state
 transitions, worked examples, parameter trade-offs, and research-frontier assumptions. Use
 `docs/ethglobal-tokyo-2026-dossier.html` (Product A section) for architecture, build plan, sponsor
-requirements, and prior art.
+requirements, and prior art. `docs/DEPLOYMENT.md` is the redeploy / credentials / public-host guide and
+`CHANGELOG.md` the dated log: update both whenever the process or the deployment changes.
 
 ## What we are building
 
@@ -40,9 +41,10 @@ Sep 26 model review: the deep curve was drainable with a zero fee (sell on the a
 the N-curve inside δ, every block). Fixed by a flat fee on tokenIn stored in `TideParams` (read by both
 venues) and the invariant `(N − 1)·δ ≤ 2·fee` enforced at init/set/setFee; the manager now proposes δ
 too (three one-block moves, capped by the bound). Everything redeployed (new router, params, app, hook,
-strategy hash); `MATHEMATICS_MODEL.md` § 8 has the derivation and worked example. Open: World client
-credentials (`WORLD_CLIENT_ID/SECRET` in `.env`) for the live approve path, team/socials in README,
-video, public deployment of `client/` for the ENS live-demo link.
+strategy hash); `MATHEMATICS_MODEL.md` § 8 has the derivation and worked example. World client `Tide manager`
+registered via the World ID MCP (sandbox needs an HTTPS callback: `pnpm dev` (HTTPS by default), see README); live
+approve path proven (proposal 3509d7d32778, ENS + TideParams txs in README). Open: team/socials in README,
+video, public deployment of `client/` for the ENS live-demo link (new hostname = new World client + re-bind).
 
 ## Build order (from the dossier)
 

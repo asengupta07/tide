@@ -248,7 +248,7 @@ async function main() {
   } else console.log("✓ strategy records up to date");
 
   // agent name: ENSIP-26 records
-  const appUrl = process.env.PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = process.env.PUBLIC_APP_URL ?? "https://localhost:3000";
   const agentRecords: [string, string][] = [
     ["agent-context", `Tide manager agent. Proposes lambda/N/delta for ${STRATEGY_NAME} from the activeness frontier; writes only after a fresh World ID authentication by the owner. Scoped EAC role: setText(lambda|N|delta) on the strategy resolver.`],
     ["agent-endpoint[web]", `${appUrl}/agent`],

@@ -11,9 +11,12 @@ action: it changes how much of the owner's inventory the AMM exposes each block.
 
 ## Flow (client/src/lib/world.ts, client/src/lib/agent.ts)
 
-1. **Bind** (`GET /api/world/bind`): the owner signs in once through the OIDC authorization-code flow
-   (PKCE, `scope=openid`). The backend validates the ID token and stores `(iss, sub)`; `sub` is pairwise
-   so it identifies the owner to this app only.
+1. **Bind** (`GET /api/world/bind?owner&ts&sig`): the owner's wallet first signs
+   `Tide: bind World ID to <owner> at <ts>` (EIP-191, ten-minute window); the backend verifies the
+   signature against `owner` before starting the OIDC authorization-code flow (PKCE, `scope=openid`),
+   otherwise anyone could bind their World ID to someone else's strategy. On callback it stores
+   `(iss, sub)` for that wallet; `sub` is pairwise so it identifies the owner to this app only. Any
+   number of owners bind this way; the client credentials belong to the app, not to a person.
 2. **Request** (`POST /api/agent/propose`): the agent reads the activeness frontier and creates a
    proposal. The backend starts a step-up request with `prompt=login` and `max_age=0` and hands the
    owner the authorization URL.
@@ -29,14 +32,42 @@ action: it changes how much of the owner's inventory the AMM exposes each block.
 
 ## Environment
 
-Official dev environment `https://sandbox.auth.world.org`. Discovery document read at runtime; the
-client was registered in the portal with redirect `http://localhost:3000/api/world/callback`.
+Official dev environment `https://sandbox.auth.world.org`. Discovery document read at runtime. The
+client `Tide manager` was registered through the World ID MCP (`request_oidc_client_registration`, approved
+by the owner in the portal) with redirect `https://localhost:3000/api/world/callback`,
+`client_secret_post`. Sandbox applies the production callback policy, HTTPS only, and the registration
+tool answers a plain `invalid_request` for an `http://localhost` callback, so local dev runs
+`next dev --experimental-https`. Only local/test/staging environments accept HTTP loopback callbacks; the
+getting-started guide says so, the error does not. The redirect hostname is the immutable pairwise
+sector, so a public deployment on another hostname is a second client and a re-bind of the owner.
 
 ## Time to first success
 
 - Discovery, PKCE, token exchange and JWKS validation: about 1 hour with `jose`, no SDK needed.
 - Denied-path harness: 30 minutes.
-- (to be completed after the live run) first successful step-up end to end: __
+- First successful step-up end to end (Sep 26): proposal `3509d7d32778` on `eth-usdc.tide.eth`, λ 5000 → 3300,
+  δ 20 → 15 bps at a what-if σ = 80%. Authorization with `prompt=login&max_age=0`, code exchanged with
+  `client_secret_post`, ID token validated, pairwise `sub` matched the bound owner, then ENS `setText`
+  `0xfec2442d4827b8edfb40e7008ef295b466aadfee3f039252b4d077eec4bffdcb` and `TideParams.set`
+  `0xe032df2b19b204d411dd50724f5a9bd5af20fd8d47a6d1df27e1070be03069a5`. Records and chain agree.
+  From "client registered" to "first write" about 25 minutes, most of it the HTTPS callback detour below.
+
+## Live run notes
+
+- Client registration through the World ID MCP worked on the first HTTPS attempt: the agent stages the
+  request, the human approves it in the portal, the public client config comes back through
+  `get_portal_credential_request`. Secrets are shown once in the human's browser only.
+- The owner missed copying the first secret. Secrets overlap, so a second one was staged with
+  `request_oidc_client_secret_creation`, saved, and a revocation of the first staged for portal approval.
+  Nothing had to be re-registered.
+- `next dev --experimental-https` tries `mkcert -install`, which needs the machine password, and silently
+  falls back to HTTP when it fails. Generating the certificate without `-install` and passing
+  `--experimental-https-key/-cert` gives a working HTTPS callback; installing the CA later makes the
+  browser stop warning.
+- The bind step completed without a prompt because the owner already had a sandbox browser session from
+  the portal sign-in. The step-up did not: `prompt=login&max_age=0` produced a new authentication event
+  (the sandbox shows "Approved, finishing sign-in") and a fresh `auth_time`, which is what the backend
+  checks. Session reuse for bind, fresh proof for the write: the intended split.
 
 ## Friction
 

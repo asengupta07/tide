@@ -3,12 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 3000 --experimental-https --experimental-https-key ./certificates/localhost-key.pem --experimental-https-cert ./certificates/localhost.pem",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "ens:setup": "tsx --env-file=../.env scripts/ens-setup.ts",
-    "agent": "tsx --env-file=../.env scripts/agent.ts"
+    "agent": "tsx --env-file=../.env scripts/agent.ts",
+    "sync:contracts": "tsx --env-file=../.env scripts/sync-contracts.ts",
+    "dev:http": "next dev --port 3000"
   },
   "dependencies": {
     "@paper-design/shaders-react": "^0.0.81",

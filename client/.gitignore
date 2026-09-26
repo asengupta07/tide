@@ -43,3 +43,6 @@ next-env.d.ts
 # runtime state (proposals, agent log, ens state)
 data/
 !data/.gitkeep
+
+# next dev --experimental-https
+certificates/
