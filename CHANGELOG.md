@@ -5,6 +5,11 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
 
 ## Sep 27, 2026
 
+**Vercel-ready**
+- `client/vercel.json`: cron hits `GET /api/agent/tick` every 15 min (Bearer `CRON_SECRET`), API functions get
+  60 s. The tick route accepts that alongside the operator header; `instrumentation.ts` skips the in-process
+  scheduler when `VERCEL` is set. Deploy steps in `docs/DEPLOYMENT.md` § 6.
+
 **Example strategies and templates**
 - `pnpm seed:examples` (`client/scripts/seed-examples.ts`): from the owner wallet, creates and funds three preset
   strategies on Sepolia, brings existing ones to their preset (`set`, `setFee`, `setBounds`, ENS records) and
