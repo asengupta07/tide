@@ -1,4 +1,4 @@
-#set document(title: "Tide: a partially active market maker with a fee-bounded virtual curve", author: "Tide contributors")
+#set document(title: "Tide: a partially active market maker with a fee-bounded virtual curve", author: "Team Tide")
 #set page(paper: "a4", margin: (x: 2.3cm, y: 2.1cm), numbering: "1", footer: context [
   #set text(size: 8.5pt, fill: luma(110))
   #h(1fr) #counter(page).display() #h(1fr)
@@ -16,7 +16,7 @@
   #v(4pt)
   #text(size: 12.5pt)[A partially active market maker with a fee-bounded virtual curve]
   #v(8pt)
-  #text(size: 9.5pt, fill: luma(90))[Tide contributors · Version 0.2 · September 26, 2026 · #link("https://github.com/asengupta07/tide")[github.com/asengupta07/tide]]
+  #text(size: 9.5pt, fill: luma(90))[Team Tide · Version 0.2 · September 26, 2026 · #link("https://github.com/asengupta07/tide")[github.com/asengupta07/tide]]
 ]
 
 #v(10pt)

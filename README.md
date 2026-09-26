@@ -128,7 +128,7 @@ Dashboard (`client/`) doubles as the digital-asset dashboard; the manager agent 
 
 ## Team
 
-_(name · GitHub · X handles: fill in)_
+Team Tide. Arnab Sengupta ([@asengupta07](https://github.com/asengupta07)). _(add teammates: name · GitHub · X)_
 
 ## Layout
 
