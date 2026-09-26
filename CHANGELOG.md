@@ -20,6 +20,8 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
   candle and direction into compact count markers instead of overlapping one label per transaction.
 - Rewrote the trading experience in plain language: percentages replace basis points, route and
   price-impact labels explain what traders actually get, and the demo-size shortcut is gone.
+- Tightened the Tide advantage into a compact, scannable callout with one output figure and clear
+  eligibility details instead of the awkward split headline.
 
 **Dashboard polish**
 - "Get a suggestion" opens the manager's answer in a modal (Escape, backdrop or X closes it); the

@@ -202,16 +202,31 @@ export function TradePanel({ strategy, totals, feeBps, lambdaBps, N, deltaBps, o
       </div>
 
       {followOn && (
-        <div className={`${compact ? "mt-2 py-2.5" : "mt-3 py-3"} rounded-xl bg-accent/[0.08] px-4 text-accent`} role="status">
-          <div className="flex items-center justify-between gap-4">
-            <span className="flex items-center gap-2 text-xs font-medium"><TrendUp size={15} aria-hidden="true" />Lower-slippage window</span>
-            <strong className="num text-sm">up to {formatPercent(followOn.outputBps)} more</strong>
+        <div className={`${compact ? "mt-2" : "mt-3"} rounded-xl border border-accent/15 bg-accent/[0.055] px-3.5 py-3`} role="status">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
+              <TrendUp size={14} aria-hidden="true" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-xs font-medium text-fg">Tide advantage</div>
+                  <div className="mt-0.5 text-[10px] text-fg-3">Available after another trade</div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <strong className="num block whitespace-nowrap text-sm font-medium text-accent">+{formatPercent(followOn.outputBps)}</strong>
+                  <span className="block text-[9px] text-fg-3">more output</span>
+                </div>
+              </div>
+              <p className="mt-2 border-t border-accent/10 pt-2 text-[10px] leading-relaxed text-fg-2">
+                {followOn.eligible ? (
+                  <>This order qualifies if another trade lands earlier in the block. Estimated price impact: <span className="font-medium text-fg">{followOn.impactMultiple.toFixed(2)}× lower</span>.</>
+                ) : (
+                  <>Available for orders up to <span className="num text-fg">{formatLaneAmount(followOn.maxGrossIn, sellEth)} {sellEth ? "WETH" : "USDC"}</span> after another trade lands in the block. Estimated price impact: <span className="font-medium text-fg">{followOn.impactMultiple.toFixed(2)}× lower</span>.</>
+                )}
+              </p>
+            </div>
           </div>
-          <p className="mt-1.5 text-[10px] leading-relaxed text-fg-2">
-            {followOn.eligible
-              ? `If another trade lands first in this block, this order can have about ${followOn.impactMultiple.toFixed(2)}× less price impact.`
-              : `After the first trade in a block, orders up to ${formatLaneAmount(followOn.maxGrossIn, sellEth)} ${sellEth ? "WETH" : "USDC"} can have about ${followOn.impactMultiple.toFixed(2)}× less price impact.`}
-          </p>
         </div>
       )}
 
