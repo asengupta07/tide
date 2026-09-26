@@ -66,16 +66,21 @@ state = {k: {"X": X0, "Y": Y0, "arb": 0, "fees": 0, "retail": [], "retail_follow
 rows = []
 for r, (rd, P) in enumerate(zip(rounds, prices)):
     row = {"P": P, "tx": rd["tx"], "block": rd["block"], "gas": rd["gas"], "nfills": sum(len(v) for v in rd["fills"].values())}
+    lam = int(cfg["lambdaBps"])
     for k in ("plain", "tide"):
         st = state[k]
         row[k + "_arb"] = 0
         row[k + "_had_arb"] = any(not (f["in"] == usdc and f["ain"] in (retailIn, bigIn)) for f in rd["fills"][k])
+        # Tide quotes the block against its active slice: lambda of the totals at the first fill, then moved by
+        # each fill's net input and output (ActiveSplit bookkeeping). Plain quotes the whole pool.
+        xa, ya = (st["X"] * lam // 10_000, st["Y"] * lam // 10_000) if k == "tide" else (st["X"], st["Y"])
         for f in rd["fills"][k]:
-            mid = st["Y"] * 10**18 / st["X"]  # this pool's own price before the fill, USDC-6 per ETH
+            mid = ya * 10**18 / xa  # the curve's own price before the fill, USDC-6 per ETH
             val_in = f["ain"] if f["in"] == usdc else f["ain"] * P // 10**18
             val_out = f["aout"] if f["out"] == usdc else f["aout"] * P // 10**18
-            if f["in"] == usdc: st["Y"] += f["ain"]; st["X"] -= f["aout"]
-            else: st["X"] += f["ain"]; st["Y"] -= f["aout"]
+            net = f["ain"] - (f["ain"] * fee + 9999) // 10_000
+            if f["in"] == usdc: st["Y"] += f["ain"]; st["X"] -= f["aout"]; ya += net if k == "tide" else f["ain"]; xa -= f["aout"]
+            else: st["X"] += f["ain"]; st["Y"] -= f["aout"]; xa += net if k == "tide" else f["ain"]; ya -= f["aout"]
             st["fees"] += val_in * fee // 10_000
             is_retail = f["in"] == usdc and f["ain"] == retailIn
             is_big = f["in"] == usdc and f["ain"] == bigIn
