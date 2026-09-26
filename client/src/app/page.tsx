@@ -29,7 +29,7 @@ export default function Landing() {
           <div className="relative mx-auto grid min-h-[100dvh] max-w-7xl items-center gap-14 px-6 pb-20 pt-32 md:grid-cols-12 md:pt-24">
             <div className="md:col-span-7">
               <h1 className="rise max-w-[17ch] text-[2.75rem] font-semibold leading-[1.02] tracking-[-0.03em] md:text-6xl lg:text-7xl">
-                Liquidity the bots can only half see.
+                Never show the whole vault.
               </h1>
               <p className="rise rise-1 mt-7 max-w-[40ch] text-lg leading-relaxed text-fg-2">
                 An AMM that exposes a fraction of its inventory per block. Less lost to arbitrage, deeper prices for everyone else.
