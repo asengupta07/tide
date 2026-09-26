@@ -14,12 +14,16 @@ import { ArrowRight, ArrowsLeftRight, CircleNotch, TrendUp } from "@phosphor-ico
 import { ADDR, erc20Abi, tideTakerAbi } from "@/lib/chain";
 
 type StrategyConfig = { label?: string; name: string; owner: string; tokenA: string; tokenB: string; salt: string };
-type RouteSource = { strategy: StrategyConfig; totals: { weth: number; usdc: number }; feeBps: number };
+type CurveParams = { lambdaBps: number; N: number; deltaBps: number };
+type RouteSource = { strategy: StrategyConfig; totals: { weth: number; usdc: number }; feeBps: number; params: CurveParams };
 
 type Props = {
   strategy: StrategyConfig;
   totals: { weth: number; usdc: number }; // live inventory, for the plain-pool comparison
   feeBps: number;
+  lambdaBps?: number;
+  N?: number;
+  deltaBps?: number;
   onFilled?: () => void;
   onRoute?: (strategyName: string) => void;
   sources?: RouteSource[];
@@ -27,7 +31,7 @@ type Props = {
   compact?: boolean;
 };
 
-export function TradePanel({ strategy, totals, feeBps, onFilled, onRoute, sources, mode = "trade", compact = false }: Props) {
+export function TradePanel({ strategy, totals, feeBps, lambdaBps, N, deltaBps, onFilled, onRoute, sources, mode = "trade", compact = false }: Props) {
   const { address, isConnected } = useAccount();
   const pc = usePublicClient();
   const { writeContractAsync } = useWriteContract();
@@ -54,6 +58,7 @@ export function TradePanel({ strategy, totals, feeBps, onFilled, onRoute, source
   const currentSource = sources?.find((source) => source.strategy.name === currentStrategy.name);
   const currentTotals = currentSource?.totals ?? totals;
   const currentFeeBps = currentSource?.feeBps ?? feeBps;
+  const currentParams = currentSource?.params ?? (lambdaBps !== undefined && N !== undefined && deltaBps !== undefined ? { lambdaBps, N, deltaBps } : null);
   const aToB = currentQuote?.aToB ?? singleAToB;
   const isOwner = !!address && address.toLowerCase() === currentStrategy.owner.toLowerCase();
 
@@ -97,6 +102,48 @@ export function TradePanel({ strategy, totals, feeBps, onFilled, onRoute, source
   const outNum = currentQuote ? Number(formatUnits(currentQuote.out, decOut)) : null;
   const price = outNum && okAmount ? (sellEth ? outNum / Number(amount) : Number(amount) / outNum) : null;
   const vsPlain = outNum && plain ? (outNum / plain - 1) * 1e4 : null;
+  const laneLimit = (routeTotals: { weth: number; usdc: number }, routeFeeBps: number, params: CurveParams) => {
+    const totalIn = sellEth ? routeTotals.weth : routeTotals.usdc;
+    const activeIn = totalIn * params.lambdaBps / 1e4;
+    const drift = params.deltaBps / 1e4;
+    if (!(activeIn > 0 && params.N > 1 && drift > 0 && drift < 1)) return 0;
+    const maxNetIn = params.N * activeIn * (1 / Math.sqrt(1 - drift) - 1);
+    return maxNetIn / (1 - routeFeeBps / 1e4);
+  };
+  const demoAmount = (() => {
+    const limits = sources?.map((source) => laneLimit(source.totals, source.feeBps, source.params)).filter((value) => value > 0) ?? [];
+    const safe = limits.length ? Math.min(...limits) * 0.5 : currentParams ? laneLimit(currentTotals, currentFeeBps, currentParams) * 0.5 : 0;
+    return safe > 0 ? safe : null;
+  })();
+  const followOn = (() => {
+    if (!okAmount || !currentParams || !(currentTotals.weth > 0 && currentTotals.usdc > 0) || currentParams.N <= 1) return null;
+    const [totalIn, totalOut] = sellEth ? [currentTotals.weth, currentTotals.usdc] : [currentTotals.usdc, currentTotals.weth];
+    const lambda = currentParams.lambdaBps / 1e4;
+    const activeIn = totalIn * lambda;
+    const activeOut = totalOut * lambda;
+    const drift = currentParams.deltaBps / 1e4;
+    if (!(activeIn > 0 && activeOut > 0 && drift > 0 && drift < 1)) return null;
+    const maxGrossIn = laneLimit(currentTotals, currentFeeBps, currentParams);
+    const maxNetIn = maxGrossIn * (1 - currentFeeBps / 1e4);
+    const enteredNetIn = Number(amount) * (1 - currentFeeBps / 1e4);
+    const eligible = enteredNetIn <= maxNetIn;
+    const modeledNetIn = eligible ? enteredNetIn : maxNetIn * 0.95;
+    const xyc = (n: number) => (modeledNetIn * n * activeOut) / (n * activeIn + modeledNetIn);
+    const plainActive = xyc(1);
+    const deep = xyc(currentParams.N);
+    const outputBps = (deep / plainActive - 1) * 1e4;
+    const mid = activeOut / activeIn;
+    const plainImpact = 1 - plainActive / modeledNetIn / mid;
+    const deepImpact = 1 - deep / modeledNetIn / mid;
+    return {
+      eligible,
+      outputBps,
+      impactMultiple: deepImpact > 0 ? plainImpact / deepImpact : currentParams.N,
+      maxGrossIn,
+      N: currentParams.N,
+      deltaBps: currentParams.deltaBps,
+    };
+  })();
 
   const go = async () => {
     if (!address || !pc || !currentQuote || isOwner) return;
@@ -153,20 +200,29 @@ export function TradePanel({ strategy, totals, feeBps, onFilled, onRoute, source
         </div>
         <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-fg-3">
           <dt>price</dt><dd className="num text-right text-fg-2">{price ? `$${price.toLocaleString(undefined, { maximumFractionDigits: 2 })} / ETH` : "-"}</dd>
-          <dt>vs a plain pool of the same size</dt><dd className={`num text-right ${vsPlain === null ? "text-fg-2" : vsPlain >= 0 ? "text-accent" : "text-warn"}`}>{vsPlain === null ? "-" : `${vsPlain >= 0 ? "+" : ""}${vsPlain.toFixed(1)} bp`}</dd>
+          <dt>executable vs full-inventory pool</dt><dd className={`num text-right ${vsPlain === null ? "text-fg-2" : vsPlain >= 0 ? "text-accent" : "text-fg-2"}`}>{vsPlain === null ? "-" : `${vsPlain >= 0 ? "+" : ""}${vsPlain.toFixed(1)} bp`}</dd>
           <dt>fee, kept by the maker</dt><dd className="num text-right text-fg-2">{currentFeeBps / 100}%</dd>
           {autoRoute && <><dt>best route</dt><dd className="num truncate text-right text-fg-2">{currentQuote ? currentStrategy.name : "-"}</dd></>}
           {autoRoute && <><dt>LP quotes compared</dt><dd className="num text-right text-fg-2">{currentQuote?.checked ?? "-"}</dd></>}
         </dl>
       </div>
 
-      {vsPlain !== null && (
-        <div className={`${compact ? "mt-2 py-2.5" : "mt-3 py-3"} flex items-center justify-between gap-4 rounded-xl px-4 ${vsPlain > 0 ? "bg-accent/[0.08] text-accent" : "bg-warn/[0.08] text-warn"}`} role="status">
-          <span className="flex items-center gap-2 text-xs font-medium">
-            <TrendUp size={15} aria-hidden="true" />
-            {vsPlain > 0 ? "Live Tide advantage" : "No Tide advantage right now"}
-          </span>
-          <strong className="num text-sm">{vsPlain > 0 ? `+${vsPlain.toFixed(1)} bp output` : `${vsPlain.toFixed(1)} bp output`}</strong>
+      {followOn && (
+        <div className={`${compact ? "mt-2 py-2.5" : "mt-3 py-3"} rounded-xl bg-accent/[0.08] px-4 text-accent`} role="status">
+          <div className="flex items-center justify-between gap-4">
+            <span className="flex items-center gap-2 text-xs font-medium"><TrendUp size={15} aria-hidden="true" />Tide follow-on lane</span>
+            <strong className="num text-sm">+{followOn.outputBps.toFixed(1)} bp output</strong>
+          </div>
+          <p className="mt-1.5 text-[10px] leading-relaxed text-fg-2">
+            {followOn.eligible
+              ? `This order fits the ${followOn.deltaBps} bp guard after the block's first fill: ${followOn.impactMultiple.toFixed(2)}× less price impact on the ${followOn.N}× curve.`
+              : `This order is above the ${followOn.deltaBps} bp guard. Follow-on fills up to ${formatLaneAmount(followOn.maxGrossIn, sellEth)} ${sellEth ? "WETH" : "USDC"} model ${followOn.impactMultiple.toFixed(2)}× less price impact on the ${followOn.N}× curve.`}
+          </p>
+          {!followOn.eligible && demoAmount && (
+            <button type="button" onClick={() => setAmount(inputAmount(demoAmount, sellEth))} className="touch-exempt mt-2 rounded-full border border-accent/25 px-2.5 py-1 text-[10px] font-medium text-accent transition-colors hover:border-accent/50 hover:bg-accent/[0.06]">
+              Use a live demo size · {formatLaneAmount(demoAmount, sellEth)} {sellEth ? "WETH" : "USDC"}
+            </button>
+          )}
         </div>
       )}
 
@@ -192,4 +248,15 @@ export function TradePanel({ strategy, totals, feeBps, onFilled, onRoute, source
       {err && <p className="mt-2 text-xs text-bad">{err}</p>}
     </div>
   );
+}
+
+function formatLaneAmount(value: number, weth: boolean) {
+  return value.toLocaleString(undefined, {
+    maximumFractionDigits: weth ? 6 : 3,
+    minimumFractionDigits: value > 0 && value < (weth ? 0.000001 : 0.001) ? (weth ? 8 : 4) : 0,
+  });
+}
+
+function inputAmount(value: number, weth: boolean) {
+  return value.toFixed(weth ? 8 : 4).replace(/0+$/, "").replace(/\.$/, "");
 }

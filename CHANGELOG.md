@@ -11,6 +11,9 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
   recent fills, curve parameters, and the auto-routed order ticket visible together. Existing strategy links
   preserve their target through the new terminal URL. Dithered route waves, live water texture, execution
   bounds, and a terminal-map treatment give the entry page a stronger visual hierarchy.
+- The order ticket now separates the executable full-inventory comparison from Tide's follow-on lane. It
+  derives the live maximum size inside each strategy's delta guard, shows the modeled output and impact
+  advantage, and offers a one-click demo size that remains eligible as the best route changes.
 
 **Dashboard polish**
 - "Get a suggestion" opens the manager's answer in a modal (Escape, backdrop or X closes it); the

@@ -495,6 +495,9 @@ function Body({
               strategy={s.strategy}
               totals={{ weth: w.t, usdc: u.t }}
               feeBps={feeBps}
+              lambdaBps={s.onchain?.lambda ?? s.records.lambda}
+              N={s.onchain?.N ?? s.records.N}
+              deltaBps={s.onchain?.delta ?? s.records.delta}
               onFilled={refresh}
               mode={isOwner ? 'preview' : 'trade'}
             />

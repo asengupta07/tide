@@ -145,6 +145,11 @@ function TradeMarket() {
     strategy: source,
     totals: { weth: units(source.market?.total.weth, 18), usdc: units(source.market?.total.usdc, 6) },
     feeBps: source.market?.fee ?? source.records?.fee ?? 30,
+    params: {
+      lambdaBps: source.market?.lambda ?? source.records?.lambda ?? 0,
+      N: source.market?.N ?? source.records?.N ?? 1,
+      deltaBps: source.market?.delta ?? source.records?.delta ?? 0,
+    },
   }));
 
   return (
@@ -220,7 +225,7 @@ function TradeMarket() {
             <div className="order-1 min-w-0 space-y-3 xl:order-3 xl:sticky xl:top-24">
               <Bezel small>
                 <div className="border-b border-line px-4 py-3">
-                  <div className="flex items-center justify-between gap-3"><div><div className="text-xs font-medium">Order ticket</div><div className="num mt-0.5 max-w-[16rem] truncate text-[10px] text-fg-3">Inspecting {activeSnapshot.strategy.name}</div></div><ChartLineUp size={16} className="text-accent" /></div>
+                  <div className="flex items-center justify-between gap-3"><div><div className="text-xs font-medium">Auto-routed order</div><div className="mt-0.5 text-[10px] text-fg-3">Best executable quote across {rows?.length ?? 0} funded LPs</div></div><ChartLineUp size={16} className="text-accent" /></div>
                 </div>
                 <TradePanel strategy={activeSnapshot.strategy} totals={totals} feeBps={feeBps} mode="trade" compact sources={sources} onRoute={markRoute} onFilled={() => setRefreshToken((value) => value + 1)} />
               </Bezel>
