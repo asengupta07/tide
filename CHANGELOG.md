@@ -17,6 +17,9 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
   `client/vercel.json` gives API functions 60 s. Deploy steps in `docs/DEPLOYMENT.md` § 6.
 
 **Example strategies and templates**
+- The new-strategy wizard takes any pair in `SUPPORTED_MARKETS` (pair picker, symbol-labelled inventory,
+  wrap / mint / must-hold per token, template pair auto-selected), so LINK/USDC templates open instead of
+  "token pair not supported".
 - `pnpm seed:examples` (`client/scripts/seed-examples.ts`): from the owner wallet, creates and funds three preset
   strategies on Sepolia, brings existing ones to their preset (`set`, `setFee`, `setBounds`, ENS records) and
   publishes every owner strategy on Explore as a live listing and a template whose copy is generated from its

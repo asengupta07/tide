@@ -21,7 +21,7 @@ import { WalletButton } from "@/components/WalletButton";
 import {
   encodeAbiParameters,
   encodeFunctionData,
-  parseEther,
+  formatUnits,
   parseUnits,
   toHex,
   type Address,
@@ -44,6 +44,7 @@ import {
 import { ownerMessage } from "@/lib/auth";
 import { TemplateConfig, type Publication } from "@/lib/sharing";
 import { maxDeltaBps } from "@/lib/bounds";
+import { SUPPORTED_MARKETS, marketForTokens, sortedTokens, type MarketPair, type TokenMeta } from "@/lib/tokens";
 
 type Step = "idle" | "running" | "done" | "error";
 const PARENT = "tide.eth";
@@ -90,8 +91,9 @@ function StrategyWizard() {
   const [n, setN] = useState(4);
   const [delta, setDelta] = useState(20);
   const [fee, setFee] = useState(30);
-  const [weth, setWeth] = useState("0.1");
-  const [usdc, setUsdc] = useState("300");
+  const [market, setMarket] = useState<MarketPair>(SUPPORTED_MARKETS[0]);
+  const [baseAmt, setBaseAmt] = useState("0.1");
+  const [quoteAmt, setQuoteAmt] = useState("300");
   const [enableAgent, setEnableAgent] = useState(false);
   const saltRef = useRef<string | null>(null);
 
@@ -122,18 +124,16 @@ function StrategyWizard() {
       .then((p) => {
         if (p.kind !== "template")
           throw new Error("This link is not a template.");
-        const pair = [p.tokenA.toLowerCase(), p.tokenB.toLowerCase()]
-          .sort()
-          .join(":");
-        if (
-          pair !==
-          [ADDR.weth.toLowerCase(), ADDR.usdc.toLowerCase()].sort().join(":")
-        )
+        const m = marketForTokens(p.tokenA, p.tokenB);
+        if (!m)
           throw new Error(
-            "This template uses a token pair not supported by this wizard.",
+            "This template uses a token pair this app does not support yet.",
           );
         const config = TemplateConfig.parse(p.config);
         setTemplate(p);
+        setMarket(m);
+        setBaseAmt(m.base.symbol === "WETH" ? "0.1" : "5");
+        setQuoteAmt(m.base.symbol === "WETH" ? "300" : "90");
         setLambda(config.lambda);
         setN(config.N);
         setDelta(config.delta);
@@ -228,10 +228,21 @@ function StrategyWizard() {
     return hash;
   };
 
-  const tokensSorted = (): [Address, Address] =>
-    ADDR.weth.toLowerCase() < ADDR.usdc.toLowerCase()
-      ? [ADDR.weth, ADDR.usdc]
-      : [ADDR.usdc, ADDR.weth];
+  const tokensSorted = (): [Address, Address] => sortedTokens(market);
+
+  /** Top a token up to `need`: WETH wraps ETH, the test USDC mints, anything else must already be in the wallet. */
+  const topUp = async (t: TokenMeta, have: bigint, need: bigint) => {
+    if (have >= need) return;
+    if (t.symbol === "WETH")
+      return wait(
+        await writeContractAsync({ address: t.address, abi: erc20Abi, functionName: "deposit", value: need - have }),
+      );
+    if (t.symbol === "USDC")
+      return wait(
+        await writeContractAsync({ address: t.address, abi: erc20Abi, functionName: "mint", args: [address!, need - have] }),
+      );
+    throw new Error(`not enough ${t.symbol} in the wallet: have ${formatUnits(have, t.decimals)}, need ${formatUnits(need, t.decimals)}`);
+  };
 
   const ship = async () => {
     if (!address || !pc || !canShip) return;
@@ -256,6 +267,8 @@ function StrategyWizard() {
             body: JSON.stringify({
               label,
               owner: address,
+              tokenA: market.base.address,
+              tokenB: market.quote.address,
               lambdaBps: lambda,
               n,
               deltaBps: delta,
@@ -278,77 +291,34 @@ function StrategyWizard() {
           return j.txs?.register;
         });
       }
-      const wethAmt = parseEther(weth);
-      const usdcAmt = parseUnits(usdc, 6);
+      const baseWei = parseUnits(baseAmt, market.base.decimals);
+      const quoteWei = parseUnits(quoteAmt, market.quote.decimals);
+      const amountOf = (t: Address) => (t.toLowerCase() === market.base.address.toLowerCase() ? baseWei : quoteWei);
 
       // 2. balances + approvals
       await run("approve", async () => {
-        const [bw, bu] = await Promise.all([
+        const read = (t: TokenMeta, fn: "balanceOf" | "allowance") =>
           pc.readContract({
-            address: ADDR.weth,
+            address: t.address,
             abi: erc20Abi,
-            functionName: "balanceOf",
-            args: [address],
-          }),
-          pc.readContract({
-            address: ADDR.usdc,
-            abi: erc20Abi,
-            functionName: "balanceOf",
-            args: [address],
-          }),
-        ]);
-        if (bw < wethAmt)
-          await wait(
-            await writeContractAsync({
-              address: ADDR.weth,
-              abi: erc20Abi,
-              functionName: "deposit",
-              value: wethAmt - bw,
-            }),
-          );
-        if (bu < usdcAmt)
-          await wait(
-            await writeContractAsync({
-              address: ADDR.usdc,
-              abi: erc20Abi,
-              functionName: "mint",
-              args: [address, usdcAmt - bu],
-            }),
-          );
-        const [aw, au] = await Promise.all([
-          pc.readContract({
-            address: ADDR.weth,
-            abi: erc20Abi,
-            functionName: "allowance",
-            args: [address, ADDR.aqua],
-          }),
-          pc.readContract({
-            address: ADDR.usdc,
-            abi: erc20Abi,
-            functionName: "allowance",
-            args: [address, ADDR.aqua],
-          }),
-        ]);
+            functionName: fn,
+            args: fn === "balanceOf" ? [address] : [address, ADDR.aqua],
+          }) as Promise<bigint>;
+        const [bb, bq] = await Promise.all([read(market.base, "balanceOf"), read(market.quote, "balanceOf")]);
+        await topUp(market.base, bb, baseWei);
+        await topUp(market.quote, bq, quoteWei);
+        const [ab, aq] = await Promise.all([read(market.base, "allowance"), read(market.quote, "allowance")]);
         let last: Hex | undefined;
         // exact allowances: Aqua may pull at most what you ship
-        if (aw < wethAmt)
-          last = await wait(
-            await writeContractAsync({
-              address: ADDR.weth,
-              abi: erc20Abi,
-              functionName: "approve",
-              args: [ADDR.aqua, wethAmt],
-            }),
-          );
-        if (au < usdcAmt)
-          last = await wait(
-            await writeContractAsync({
-              address: ADDR.usdc,
-              abi: erc20Abi,
-              functionName: "approve",
-              args: [ADDR.aqua, usdcAmt],
-            }),
-          );
+        for (const [t, have, need] of [
+          [market.base, ab, baseWei],
+          [market.quote, aq, quoteWei],
+        ] as const) {
+          if (have < need)
+            last = await wait(
+              await writeContractAsync({ address: t.address, abi: erc20Abi, functionName: "approve", args: [ADDR.aqua, need] }),
+            );
+        }
         return last;
       });
 
@@ -414,8 +384,7 @@ function StrategyWizard() {
         const encoded = encodeAbiParameters(ORDER_TUPLE, [
           { maker: order.maker, traits: order.traits, data: order.data },
         ]);
-        const amounts =
-          tokenA === ADDR.weth ? [wethAmt, usdcAmt] : [usdcAmt, wethAmt];
+        const amounts = [amountOf(tokenA), amountOf(tokenB)];
         return wait(
           await writeContractAsync({
             address: ADDR.aqua,
@@ -469,8 +438,8 @@ function StrategyWizard() {
   const canShip =
     isConnected &&
     (avail?.available || !!strat) &&
-    amountOk(weth, 18) &&
-    amountOk(usdc, 6) &&
+    amountOk(baseAmt, market.base.decimals) &&
+    amountOk(quoteAmt, market.quote.decimals) &&
     !busy &&
     (!templateId ||
       (template?.id === templateId && templateReviewed && !templateError)) &&
@@ -513,7 +482,7 @@ function StrategyWizard() {
                     {template.title}
                   </h2>
                   <p className="mt-2 text-xs text-fg-3">
-                    By {short(template.owner)} · WETH / USDC · Saved{" "}
+                    By {short(template.owner)} · {market.base.symbol} / {market.quote.symbol} · Saved{" "}
                     {new Date(template.updatedAt).toLocaleDateString()}
                   </p>
                   <p className="mt-4 whitespace-pre-wrap break-words text-sm text-fg-2">
@@ -678,25 +647,51 @@ function StrategyWizard() {
                 </Field>
               </div>
 
+              <Field
+                label="Pair"
+                hint={templateId ? "set by the template" : "the two tokens this strategy quotes"}
+              >
+                <div className="flex flex-wrap gap-2">
+                  {SUPPORTED_MARKETS.map((m) => (
+                    <button
+                      key={m.key}
+                      type="button"
+                      disabled={!!templateId || busy || !!strat}
+                      aria-pressed={m.key === market.key}
+                      onClick={() => {
+                        setMarket(m);
+                        setBaseAmt(m.base.symbol === "WETH" ? "0.1" : "5");
+                        setQuoteAmt(m.base.symbol === "WETH" ? "300" : "90");
+                      }}
+                      className={`h-9 rounded-full border px-4 text-sm transition-colors disabled:opacity-60 ${m.key === market.key ? "border-accent/60 bg-accent/10 text-fg" : "border-white/10 text-fg-3 hover:text-fg-2"}`}
+                    >
+                      {m.base.symbol} / {m.quote.symbol}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+
               <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="WETH inventory" hint="wrapped from ETH if short">
-                  <input
-                    aria-label="WETH inventory"
-                    inputMode="decimal"
-                    value={weth}
-                    onChange={(e) => setWeth(e.target.value.trim())}
-                    className={`num w-full rounded-xl border bg-white/[0.03] px-4 py-3 outline-none focus:border-accent ${weth && !amountOk(weth, 18) ? "border-bad/50" : "border-white/10"}`}
-                  />
-                </Field>
-                <Field label="USDC inventory" hint="minted if short">
-                  <input
-                    aria-label="USDC inventory"
-                    inputMode="decimal"
-                    value={usdc}
-                    onChange={(e) => setUsdc(e.target.value.trim())}
-                    className={`num w-full rounded-xl border bg-white/[0.03] px-4 py-3 outline-none focus:border-accent ${usdc && !amountOk(usdc, 6) ? "border-bad/50" : "border-white/10"}`}
-                  />
-                </Field>
+                {(
+                  [
+                    [market.base, baseAmt, setBaseAmt],
+                    [market.quote, quoteAmt, setQuoteAmt],
+                  ] as const
+                ).map(([t, v, set]) => (
+                  <Field
+                    key={t.symbol}
+                    label={`${t.symbol} inventory`}
+                    hint={t.symbol === "WETH" ? "wrapped from ETH if short" : t.symbol === "USDC" ? "minted if short" : "must be in your wallet"}
+                  >
+                    <input
+                      aria-label={`${t.symbol} inventory`}
+                      inputMode="decimal"
+                      value={v}
+                      onChange={(e) => set(e.target.value.trim())}
+                      className={`num w-full rounded-xl border bg-white/[0.03] px-4 py-3 outline-none focus:border-accent ${v && !amountOk(v, t.decimals) ? "border-bad/50" : "border-white/10"}`}
+                    />
+                  </Field>
+                ))}
               </div>
 
               <label className="flex items-start gap-3 text-sm">
