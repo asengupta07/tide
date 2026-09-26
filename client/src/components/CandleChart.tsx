@@ -12,7 +12,7 @@ type Candle = { time: number; open: number; high: number; low: number; close: nu
 
 const GRAN: Record<string, string> = { "15m": "900", "1h": "3600", "6h": "21600", "1d": "86400" };
 
-export function CandleChart({ fills, weth }: { fills: Fill[]; weth: string }) {
+export function CandleChart({ fills, weth, compact = false }: { fills: Fill[]; weth: string; compact?: boolean }) {
   const box = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const [tf, setTf] = useState<keyof typeof GRAN>("1h");
@@ -85,8 +85,8 @@ export function CandleChart({ fills, weth }: { fills: Fill[]; weth: string }) {
           ))}
         </div>
       </div>
-      <div ref={box} className="h-[320px] w-full min-w-0 overflow-hidden" />
-      {!candles && !err && <div className="absolute inset-x-0 top-10 h-[320px] animate-pulse rounded-2xl bg-white/[0.03]" />}
+      <div ref={box} className={`${compact ? "h-[250px]" : "h-[320px]"} w-full min-w-0 overflow-hidden`} />
+      {!candles && !err && <div className={`absolute inset-x-0 top-10 ${compact ? "h-[250px]" : "h-[320px]"} animate-pulse rounded-2xl bg-white/[0.03]`} />}
       {candles?.length === 0 && <p className="mt-2 text-xs text-fg-3">No candles available for this timeframe.</p>}
       {err && <div className="mt-2 text-xs text-bad">Price feed unavailable: {err}</div>}
     </div>

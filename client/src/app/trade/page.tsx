@@ -1,320 +1,98 @@
-"use client";
-
-import { Suspense, useCallback, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CheckCircle, Waves } from "@phosphor-icons/react";
+import { redirect } from "next/navigation";
+import { ArrowRight, ChartLineUp, CirclesFour, Path, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 
-import { TradePanel } from "@/components/TradePanel";
-import { CandleChart } from "@/components/CandleChart";
-import { ImpactCurve } from "@/components/ImpactCurve";
-import { Bezel, Nav } from "@/components/ui";
-import { isTradeReady } from "@/lib/trade-readiness";
-import { ADDR, short } from "@/lib/chain";
+import { TradeHeroLive } from "@/components/TradeHeroLive";
+import { Nav, Reveal } from "@/components/ui";
 
-type StrategyRow = {
-  label: string;
-  name: string;
-  owner: string;
-  tokenA: string;
-  tokenB: string;
-  salt: string;
-  records: { lambda: number; N: number; delta: number; fee?: number } | null;
-  market?: {
-    lambda: number;
-    N: number;
-    delta: number;
-    fee: number;
-    total: { weth: string; usdc: string };
-  } | null;
+export const metadata: Metadata = {
+  title: "Trade on Tide",
+  description: "Compare every funded Tide LP and route each swap to the strongest live execution.",
 };
 
-type TradeSnapshot = {
-  strategy: {
-    label: string;
-    name: string;
-    owner: string;
-    tokenA: string;
-    tokenB: string;
-    salt: string;
-  };
-  records: { lambda: number; N: number; delta: number; fee?: number };
-  onchain: { fee: number; owner: string; N: number; lambda: number } | null;
-  block: {
-    total: { weth: string; usdc: string };
-  } | null;
-  fills: {
-    block: number;
-    at: number | null;
-    tokenIn: string;
-    amountIn: string;
-    amountOut: string;
-    tx: string;
-  }[];
-  stale?: boolean;
-  error?: string;
-};
-
-const units = (value: string | undefined, decimals: number) =>
-  value ? Number(BigInt(value)) / 10 ** decimals : 0;
-
-export default function TradePage() {
-  return (
-    <Suspense fallback={<TradeShell />}>
-      <TradeMarket />
-    </Suspense>
-  );
-}
-
-function TradeMarket() {
-  const router = useRouter();
-  const query = useSearchParams();
-  const requested = query.get("strategy")?.trim() || null;
-  const [rows, setRows] = useState<StrategyRow[] | null>(null);
-  const [selected, setSelected] = useState("");
-  const [routed, setRouted] = useState("");
-  const [snapshot, setSnapshot] = useState<TradeSnapshot | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshToken, setRefreshToken] = useState(0);
-
-  useEffect(() => {
-    let alive = true;
-    fetch("/api/strategies?scope=markets&tradable=1", { cache: "no-store" })
-      .then(async (response) => {
-        const body = await response.json();
-        if (!response.ok) throw new Error(body.error || "Could not load Tide markets");
-        return body as StrategyRow[];
-      })
-      .then((markets) => {
-        if (!alive) return;
-        setRows(markets);
-        // Every initialized, funded strategy is a market. Publishing controls
-        // Explore metadata, not access to public on-chain liquidity.
-        const initial = requested
-          ?? markets[0]?.name
-          ?? "";
-        setSelected(initial);
-      })
-      .catch((cause) => alive && setError((cause as Error).message));
-    return () => { alive = false; };
-  }, [requested]);
-
-  useEffect(() => {
-    if (!selected) return;
-    let alive = true;
-    fetch(`/api/state?strategy=${encodeURIComponent(selected)}`, { cache: "no-store" })
-      .then(async (response) => {
-        const body = await response.json();
-        if (!response.ok || body.error) throw new Error(body.error || "Could not load this strategy");
-        if (alive) setError(null);
-        return body as TradeSnapshot;
-      })
-      .then((state) => {
-        if (!alive) return;
-        if (!isTradeReady(state.strategy.owner, state.onchain, state.block)) {
-          setSnapshot(null);
-          const fallback = rows?.find(m => m.name !== selected && m.label !== selected);
-          if (fallback) {
-            setSelected(fallback.name);
-            router.replace(`/trade?strategy=${encodeURIComponent(fallback.name)}`, { scroll: false });
-          } else {
-            setError("This strategy is not currently tradable. Its liquidity may be empty or its deployment may be incomplete.");
-          }
-          return;
-        }
-        setSnapshot(state);
-      })
-      .catch((cause) => alive && setError((cause as Error).message));
-    return () => { alive = false; };
-  }, [selected, refreshToken, rows, router]);
-
-  const choose = useCallback((name: string) => {
-    setSelected(name);
-    router.replace(`/trade?strategy=${encodeURIComponent(name)}`, { scroll: false });
-  }, [router]);
-  const markRoute = useCallback((name: string) => setRouted(name), []);
-
-  const activeSnapshot = snapshot && (snapshot.strategy.name === selected || snapshot.strategy.label === selected) ? snapshot : null;
-  const totals = {
-    weth: units(activeSnapshot?.block?.total.weth, 18),
-    usdc: units(activeSnapshot?.block?.total.usdc, 6),
-  };
-  const feeBps = activeSnapshot?.onchain?.fee ?? activeSnapshot?.records.fee ?? 30;
+export default async function TradeLanding({ searchParams }: { searchParams: Promise<{ strategy?: string }> }) {
+  const { strategy } = await searchParams;
+  if (strategy) redirect(`/trade/market?strategy=${encodeURIComponent(strategy)}`);
 
   return (
     <>
       <Nav current="trade" />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-5 pb-20 pt-28 sm:px-7 sm:pt-32 lg:px-10">
-        <header className="flex flex-col gap-6 border-b border-line pb-9 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-accent/25 bg-accent/[0.06] px-3 py-1 text-xs text-accent">
-              <Waves size={14} aria-hidden="true" /> Tide strategies only
+      <main className="overflow-hidden">
+        <section className="relative mx-auto grid min-h-[100dvh] w-full max-w-7xl items-center gap-14 px-5 pb-20 pt-24 sm:px-7 lg:grid-cols-[0.92fr_1.08fr] lg:px-10">
+          <div className="pointer-events-none absolute left-[42%] top-[18%] h-72 w-72 rounded-full bg-accent/[0.055] blur-[100px]" aria-hidden="true" />
+          <Reveal className="relative z-[1] max-w-[39rem]">
+            <div className="mb-5 inline-flex items-center rounded-full bg-white/[0.045] px-3 py-1.5 text-xs text-fg-2 ring-1 ring-white/[0.09]">Tide-only execution</div>
+            <h1 className="text-[clamp(2.8rem,6vw,5.4rem)] font-semibold leading-[0.96] tracking-[-0.04em]">Trade against deeper liquidity.</h1>
+            <p className="mt-6 max-w-[34rem] text-base leading-relaxed text-fg-2 sm:text-lg">One order. Every funded Tide LP compared live. The strongest executable quote wins.</p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Link href="/trade/market" className="pill pill-primary group">
+                <span>Open terminal</span>
+                <span className="ico transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-x-0.5"><ArrowRight size={15} /></span>
+              </Link>
+              <Link href="/#mechanism" className="pill pill-ghost">How Tide prices</Link>
             </div>
-            <h1 className="max-w-[17ch] text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">Built for lower slippage. Verified live.</h1>
-            <p className="mt-4 max-w-[62ch] text-sm leading-relaxed text-fg-2 sm:text-base">Enter an order and Tide compares every funded strategy for the pair, then routes you to the LP offering the most output. Tide only calls it an advantage when the live quote proves it.</p>
-          </div>
-          <Link href="/app" className="inline-flex items-center gap-2 text-sm text-fg-2 transition-colors hover:text-fg">
-            Provide liquidity <ArrowRight size={14} />
-          </Link>
-        </header>
+          </Reveal>
+          <div className="relative z-[1] pb-8 lg:translate-y-5"><TradeHeroLive /></div>
+        </section>
 
-        <div className="mt-8 grid items-start gap-5 lg:grid-cols-[minmax(15rem,0.72fr)_minmax(0,1.28fr)]">
-          <Bezel small>
-            <aside aria-label="Tide markets">
-              <div className="flex items-center justify-between border-b border-line px-5 py-4">
-                <h2 className="text-sm font-medium">WETH / USDC</h2>
-                <span className="num text-xs text-fg-3">{rows ? `${rows.length} ${rows.length === 1 ? "LP" : "LPs"}` : "– LPs"}</span>
+        <section className="mx-auto w-full max-w-7xl px-5 py-24 sm:px-7 lg:px-10">
+          <Reveal className="max-w-[42rem]">
+            <h2 className="text-3xl font-semibold tracking-[-0.03em] sm:text-5xl">A terminal built around execution, not noise.</h2>
+            <p className="mt-5 max-w-[60ch] text-base leading-relaxed text-fg-2">Inspect liquidity, compare routes, watch live prices, and execute from one compact market view.</p>
+          </Reveal>
+          <div className="mt-14 grid gap-5 md:grid-cols-12">
+            <Reveal className="md:col-span-7">
+              <div className="h-full rounded-[1.25rem] bg-white/[0.04] p-1.5 ring-1 ring-white/[0.09]">
+                <div className="flex h-full min-h-72 flex-col justify-between rounded-[0.95rem] bg-panel p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                  <Path size={28} className="text-accent" weight="light" />
+                  <div>
+                    <h3 className="text-2xl font-medium">Best route, automatically</h3>
+                    <p className="mt-3 max-w-[52ch] text-sm leading-relaxed text-fg-2">Tide quotes every eligible LP in one call, excludes your own liquidity, and executes the strongest single route.</p>
+                  </div>
+                </div>
               </div>
-              {rows === null && !error && (
-                <div className="space-y-2 p-3" aria-label="Loading markets">
-                  {[0, 1, 2].map((item) => <div key={item} className="h-16 animate-pulse rounded-lg bg-white/[0.035]" />)}
-                </div>
-              )}
-              {rows?.length === 0 && <p className="p-5 text-sm text-fg-3">No funded Tide LP is currently ready to quote this pair.</p>}
-              {rows && rows.length > 0 && (
-                <div className="max-h-[30rem] overflow-y-auto p-2 [scrollbar-width:thin]">
-                  {rows.map((market) => {
-                    const viewing = market.name === selected;
-                    const best = market.name === routed;
-                    const params = market.market ?? market.records;
-                    const weth = units(market.market?.total.weth, 18);
-                    const usdc = units(market.market?.total.usdc, 6);
-                    const status = best && viewing ? "best route · viewing" : best ? "best route" : viewing ? "viewing" : "available";
-                    return (
-                      <button
-                        key={market.name}
-                        type="button"
-                        onClick={() => choose(market.name)}
-                        aria-pressed={viewing}
-                        aria-label={`Inspect ${market.name}${best ? ", current best route" : ""}`}
-                        className={`touch-exempt w-full rounded-lg px-3 py-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent ${best ? "bg-accent/[0.1]" : viewing ? "bg-white/[0.055]" : "bg-white/[0.015] hover:bg-white/[0.04]"}`}
-                      >
-                        <span className="flex items-start justify-between gap-4">
-                          <span>
-                            <span className="block text-sm font-medium">Tide LP</span>
-                            <span className="num mt-0.5 block text-[11px] text-fg-3">{market.name}</span>
-                          </span>
-                          <span className="text-right">
-                            <span className={`num block text-sm ${best ? "text-accent" : "text-fg-2"}`}>{params ? `${params.N}×` : "–"}</span>
-                            <span className="block text-[10px] text-fg-3">{status}</span>
-                          </span>
-                        </span>
-                        <span className="mt-3 flex items-end justify-between gap-3 border-t border-white/[0.06] pt-2 text-[10px] text-fg-3">
-                          <span>
-                            <span className="num block text-fg-2">{weth.toFixed(3)} WETH · {usdc.toLocaleString(undefined, { maximumFractionDigits: 0 })} USDC</span>
-                            <span className="num mt-0.5 block">maker {short(market.owner)}</span>
-                          </span>
-                          <span className="num text-right">λ {params ? `${params.lambda / 100}%` : "–"}<br />δ {params ? `${params.delta / 100}%` : "–"}</span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </aside>
-          </Bezel>
-
-          <div className="min-w-0">
-            {error && (
-              <div className="rounded-xl border border-bad/30 bg-bad/[0.06] p-5 text-sm text-bad" role="alert">{error}</div>
-            )}
-            {!error && selected && activeSnapshot === null && <div className="h-[30rem] animate-pulse rounded-xl bg-white/[0.035]" aria-label="Loading quote" />}
-            {activeSnapshot && (
-              <Bezel>
-                <div className="border-b border-line px-5 py-4 sm:px-6">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2 text-lg font-medium">WETH / USDC <CheckCircle size={16} className="text-accent" weight="fill" aria-label="Live strategy" /></div>
-                      <div className="num mt-1 text-xs text-fg-3">{activeSnapshot.strategy.name} · maker {short(activeSnapshot.strategy.owner)}</div>
-                    </div>
-                    <span className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-fg-3">Sepolia</span>
+            </Reveal>
+            <Reveal delay={0.08} className="md:col-span-5">
+              <div className="h-full rounded-[1.25rem] bg-white/[0.04] p-1.5 ring-1 ring-white/[0.09]">
+                <div className="flex h-full min-h-72 flex-col justify-between rounded-[0.95rem] bg-panel-2 p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                  <ChartLineUp size={28} className="text-accent" weight="light" />
+                  <div>
+                    <h3 className="text-2xl font-medium">Prove the price live</h3>
+                    <p className="mt-3 text-sm leading-relaxed text-fg-2">Every quote is compared with a constant-product pool holding the same inventory.</p>
                   </div>
                 </div>
-                <TradePanel
-                  strategy={activeSnapshot.strategy}
-                  totals={totals}
-                  feeBps={feeBps}
-                  mode="trade"
-                  sources={rows?.map((source) => ({
-                    strategy: source,
-                    totals: {
-                      weth: units(source.market?.total.weth, 18),
-                      usdc: units(source.market?.total.usdc, 6),
-                    },
-                    feeBps: source.market?.fee ?? source.records?.fee ?? 30,
-                  }))}
-                  onRoute={markRoute}
-                  onFilled={() => setRefreshToken((value) => value + 1)}
-                />
-                <div className="grid border-t border-line sm:grid-cols-3 sm:divide-x sm:divide-line">
-                  <MarketFact value={`${activeSnapshot.records.N}×`} label="virtual depth for follow-on flow" />
-                  <MarketFact value={`${activeSnapshot.records.delta / 100}%`} label="deep-price guard band" />
-                  <MarketFact value={`${activeSnapshot.records.lambda / 100}%`} label="inventory visible on the first fill" />
-                </div>
-              </Bezel>
-            )}
-
-            <div className="mt-5 px-1 text-xs leading-relaxed text-fg-3">
-              <strong className="font-medium text-fg-2">Why the quote can be better:</strong> after a block&apos;s first fill, trades inside the guard band are priced against a curve that is {activeSnapshot ? `${activeSnapshot.records.N}×` : "N×"} deeper. The first fill uses the visible λ slice instead, so always judge the live comparison—not a promised rate.
-            </div>
-          </div>
-        </div>
-
-        {activeSnapshot && (
-          <section className="mt-10">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-medium">Market context</h2>
-                <p className="mt-1 text-sm text-fg-3">Price history, this strategy&apos;s fills, and the execution curve behind the live quote.</p>
               </div>
-              <span className="text-xs text-fg-3">Live reserves · fee excluded from impact curves</span>
-            </div>
-            <div className="mt-5 grid gap-5 xl:grid-cols-[1.45fr_1fr] [&>*]:min-w-0">
-              <Bezel small>
-                <div className="min-w-0 overflow-hidden p-5">
-                  <CandleChart fills={activeSnapshot.fills} weth={ADDR.weth} />
+            </Reveal>
+            <Reveal className="md:col-span-5">
+              <div className="h-full rounded-[1.25rem] bg-white/[0.04] p-1.5 ring-1 ring-white/[0.09]">
+                <div className="flex h-full min-h-64 flex-col justify-between rounded-[0.95rem] bg-[#10201f] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                  <ShieldCheck size={28} className="text-accent" weight="light" />
+                  <div><h3 className="text-2xl font-medium">Bounded execution</h3><p className="mt-3 text-sm leading-relaxed text-fg-2">Exact allowances and a visible slippage limit keep the transaction legible before signing.</p></div>
                 </div>
-              </Bezel>
-              <Bezel small>
-                <div className="p-5">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <div className="text-sm font-medium">WETH → USDC price impact</div>
-                    <span className="text-xs text-fg-3">by order size</span>
-                  </div>
-                  <div className="mt-4">
-                    <ImpactCurve
-                      totalIn={totals.weth}
-                      totalOut={totals.usdc}
-                      lambda={activeSnapshot.records.lambda / 10_000}
-                      N={activeSnapshot.records.N}
-                      deltaBps={activeSnapshot.records.delta}
-                    />
-                  </div>
+              </div>
+            </Reveal>
+            <Reveal delay={0.08} className="md:col-span-7">
+              <div className="h-full rounded-[1.25rem] bg-white/[0.04] p-1.5 ring-1 ring-white/[0.09]">
+                <div className="flex h-full min-h-64 flex-col justify-between rounded-[0.95rem] bg-panel p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                  <CirclesFour size={28} className="text-accent" weight="light" />
+                  <div><h3 className="text-2xl font-medium">All market context, one screen</h3><p className="mt-3 max-w-[52ch] text-sm leading-relaxed text-fg-2">Candles, recent fills, route liquidity, curve parameters, and the order ticket stay visible together.</p></div>
                 </div>
-              </Bezel>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
+        <section className="mx-auto w-full max-w-7xl px-5 pb-28 pt-12 sm:px-7 lg:px-10">
+          <Reveal>
+            <div className="rounded-[1.35rem] bg-white/[0.04] p-1.5 ring-1 ring-white/[0.1]">
+              <div className="flex flex-col items-start justify-between gap-8 rounded-[1rem] bg-panel px-7 py-10 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] sm:px-10 md:flex-row md:items-center">
+                <div><h2 className="text-3xl font-semibold tracking-[-0.03em]">See the route before you sign.</h2><p className="mt-3 text-sm text-fg-2">Live on Sepolia with every funded Tide strategy.</p></div>
+                <Link href="/trade/market" className="pill pill-primary group shrink-0"><span>Open terminal</span><span className="ico transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-x-0.5"><ArrowRight size={15} /></span></Link>
+              </div>
             </div>
-          </section>
-        )}
-      </main>
-    </>
-  );
-}
-
-function MarketFact({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="px-5 py-4">
-      <div className="num text-lg font-medium text-fg">{value}</div>
-      <div className="mt-1 text-[11px] leading-snug text-fg-3">{label}</div>
-    </div>
-  );
-}
-
-function TradeShell() {
-  return (
-    <>
-      <Nav current="trade" />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-5 pb-20 pt-32 sm:px-7 lg:px-10">
-        <div className="h-[38rem] animate-pulse rounded-xl bg-white/[0.035]" />
+          </Reveal>
+        </section>
       </main>
     </>
   );

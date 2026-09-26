@@ -5,6 +5,12 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
 
 ## Sep 27, 2026
 
+**Trader entry and terminal**
+- `/trade` is now a dedicated trader-facing entry page with a real live quote and route comparison.
+  Execution lives at `/trade/market`, a compact terminal that keeps route liquidity, candles, price impact,
+  recent fills, curve parameters, and the auto-routed order ticket visible together. Existing strategy links
+  preserve their target through the new terminal URL.
+
 **Dashboard polish**
 - "Get a suggestion" opens the manager's answer in a modal (Escape, backdrop or X closes it); the
   suggestion history sits in a fixed-height scrolling list. Impact curve: legend below the chart, N-curve

@@ -24,9 +24,10 @@ type Props = {
   onRoute?: (strategyName: string) => void;
   sources?: RouteSource[];
   mode?: "trade" | "preview";
+  compact?: boolean;
 };
 
-export function TradePanel({ strategy, totals, feeBps, onFilled, onRoute, sources, mode = "trade" }: Props) {
+export function TradePanel({ strategy, totals, feeBps, onFilled, onRoute, sources, mode = "trade", compact = false }: Props) {
   const { address, isConnected } = useAccount();
   const pc = usePublicClient();
   const { writeContractAsync } = useWriteContract();
@@ -126,7 +127,7 @@ export function TradePanel({ strategy, totals, feeBps, onFilled, onRoute, source
 
   const outLabel = sellEth ? "USDC" : "WETH";
   return (
-    <div className="flex h-full flex-col p-5">
+    <div className={`flex h-full flex-col ${compact ? "p-4" : "p-5"}`}>
       <div className="flex items-center justify-between">
         <div>
           <div className="text-sm font-medium">{mode === "preview" ? "Preview execution" : autoRoute ? "Auto-routed swap" : "Swap on Tide"}</div>
@@ -136,31 +137,31 @@ export function TradePanel({ strategy, totals, feeBps, onFilled, onRoute, source
           <ArrowsLeftRight size={12} /> {sellEth ? "WETH → USDC" : "USDC → WETH"}
         </button>
       </div>
-      <p className="mt-2 text-xs leading-relaxed text-fg-3">{autoRoute ? "Every available Tide LP is quoted live; the route with the most output wins." : "Quoted live by the router. Follow-on flow gets the deeper virtual curve while the live quote accounts for your actual place in the block."}</p>
+      <p className={`${compact ? "mt-1.5 text-[11px]" : "mt-2 text-xs"} leading-relaxed text-fg-3`}>{autoRoute ? "Every available Tide LP is quoted live; the route with the most output wins." : "Quoted live by the router. Follow-on flow gets the deeper virtual curve while the live quote accounts for your actual place in the block."}</p>
 
-      <label className="mt-5 block text-xs text-fg-3">
+      <label className={`${compact ? "mt-3" : "mt-5"} block text-xs text-fg-3`}>
         You pay
-        <div className={`mt-1 flex items-center gap-2 rounded-xl border bg-white/[0.03] px-4 py-3 ${amount && !okAmount ? "border-bad/50" : "border-white/10"}`}>
+        <div className={`mt-1 flex items-center gap-2 rounded-xl border bg-white/[0.03] px-4 ${compact ? "py-2.5" : "py-3"} ${amount && !okAmount ? "border-bad/50" : "border-white/10"}`}>
           <input aria-label={`amount of ${sellEth ? "WETH" : "USDC"} to sell`} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value.trim())} className="num w-full bg-transparent text-lg text-fg outline-none" />
           <span className="num shrink-0 text-sm text-fg-3">{sellEth ? "WETH" : "USDC"}</span>
         </div>
       </label>
-      <div className="mt-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+      <div className={`${compact ? "mt-2 py-2.5" : "mt-3 py-3"} rounded-xl border border-white/[0.06] bg-white/[0.02] px-4`}>
         <div className="flex items-baseline justify-between">
           <span className="text-xs text-fg-3">You get</span>
-          <span className="num text-lg text-fg">{busy === "quote" ? "…" : outNum !== null ? `${outNum.toLocaleString(undefined, { maximumFractionDigits: sellEth ? 2 : 6 })} ${outLabel}` : "–"}</span>
+          <span className="num text-lg text-fg">{busy === "quote" ? "…" : outNum !== null ? `${outNum.toLocaleString(undefined, { maximumFractionDigits: sellEth ? 2 : 6 })} ${outLabel}` : "-"}</span>
         </div>
         <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-fg-3">
-          <dt>price</dt><dd className="num text-right text-fg-2">{price ? `$${price.toLocaleString(undefined, { maximumFractionDigits: 2 })} / ETH` : "–"}</dd>
-          <dt>vs a plain pool of the same size</dt><dd className={`num text-right ${vsPlain === null ? "text-fg-2" : vsPlain >= 0 ? "text-accent" : "text-warn"}`}>{vsPlain === null ? "–" : `${vsPlain >= 0 ? "+" : ""}${vsPlain.toFixed(1)} bp`}</dd>
+          <dt>price</dt><dd className="num text-right text-fg-2">{price ? `$${price.toLocaleString(undefined, { maximumFractionDigits: 2 })} / ETH` : "-"}</dd>
+          <dt>vs a plain pool of the same size</dt><dd className={`num text-right ${vsPlain === null ? "text-fg-2" : vsPlain >= 0 ? "text-accent" : "text-warn"}`}>{vsPlain === null ? "-" : `${vsPlain >= 0 ? "+" : ""}${vsPlain.toFixed(1)} bp`}</dd>
           <dt>fee, kept by the maker</dt><dd className="num text-right text-fg-2">{currentFeeBps / 100}%</dd>
-          {autoRoute && <><dt>best route</dt><dd className="num truncate text-right text-fg-2">{currentQuote ? currentStrategy.name : "–"}</dd></>}
-          {autoRoute && <><dt>LP quotes compared</dt><dd className="num text-right text-fg-2">{currentQuote?.checked ?? "–"}</dd></>}
+          {autoRoute && <><dt>best route</dt><dd className="num truncate text-right text-fg-2">{currentQuote ? currentStrategy.name : "-"}</dd></>}
+          {autoRoute && <><dt>LP quotes compared</dt><dd className="num text-right text-fg-2">{currentQuote?.checked ?? "-"}</dd></>}
         </dl>
       </div>
 
       {vsPlain !== null && (
-        <div className={`mt-3 flex items-center justify-between gap-4 rounded-xl px-4 py-3 ${vsPlain > 0 ? "bg-accent/[0.08] text-accent" : "bg-warn/[0.08] text-warn"}`} role="status">
+        <div className={`${compact ? "mt-2 py-2.5" : "mt-3 py-3"} flex items-center justify-between gap-4 rounded-xl px-4 ${vsPlain > 0 ? "bg-accent/[0.08] text-accent" : "bg-warn/[0.08] text-warn"}`} role="status">
           <span className="flex items-center gap-2 text-xs font-medium">
             <TrendUp size={15} aria-hidden="true" />
             {vsPlain > 0 ? "Live Tide advantage" : "No Tide advantage right now"}
@@ -169,12 +170,12 @@ export function TradePanel({ strategy, totals, feeBps, onFilled, onRoute, source
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
+      <div className={`${compact ? "mt-3" : "mt-4"} flex flex-wrap items-center gap-3`}>
         {mode === "preview" ? (
           isOwner ? (
             <span className="rounded-md border border-white/10 px-3 py-2 text-xs text-fg-2">Owner preview · swaps disabled</span>
           ) : (
-            <Link href={`/trade?strategy=${encodeURIComponent(strategy.name)}`} className="pill pill-primary pill-sm">
+            <Link href={`/trade/market?strategy=${encodeURIComponent(strategy.name)}`} className="pill pill-primary pill-sm">
               <span>Trade this strategy</span><span className="ico"><ArrowRight size={13} /></span>
             </Link>
           )

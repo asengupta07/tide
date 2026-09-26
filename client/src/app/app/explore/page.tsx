@@ -185,7 +185,7 @@ function Explore() {
                     href={
                       p.kind === "template"
                         ? `/app/new?template=${encodeURIComponent(p.id)}`
-                        : `/trade?strategy=${encodeURIComponent(p.name)}`
+                        : `/trade/market?strategy=${encodeURIComponent(p.name)}`
                     }
                   >
                     <span>
