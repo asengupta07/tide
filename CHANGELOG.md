@@ -5,6 +5,13 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
 
 ## Sep 27, 2026
 
+**Example strategies and templates**
+- `pnpm seed:examples` (`client/scripts/seed-examples.ts`): from the owner wallet, creates and funds three preset
+  strategies on Sepolia and publishes every owner strategy on Explore as a live listing and a reusable template.
+  Idempotent. Now live: `calm-eth-usdc` (λ 75%, N 2, δ 30 bp, guardrails 50 to 90%), `storm-eth-usdc`
+  (λ 25%, N 8, δ 8 bp, guardrails 10 to 50%), `retail-link-usdc` (reference settings on LINK/USDC), plus
+  listings for `eth-usdc` and `link-usdc-tide`. Each holds 0.1 WETH + 300 USDC or 5 LINK + 90 USDC.
+
 **Trader entry and terminal**
 - `/trade` is now a dedicated trader-facing entry page with a real live quote and route comparison.
   Execution lives at `/trade/market`, a compact terminal that keeps route liquidity, candles, price impact,

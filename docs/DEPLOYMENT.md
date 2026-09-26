@@ -115,6 +115,21 @@ per block (`Bench.round`). `SideBySide.s.sol` writes `deployments/sidebyside.jso
 and renders. Re-running reuses the anvil already on :8545 and redeploys fresh. Kill anvil with
 `pkill anvil` to start from a clean fork.
 
+### 3.4 Example strategies and templates
+
+Explore (`/app/explore`) reads the `publications` collection, so a fresh database shows nothing. With the dev
+server up and the owner key in `.env`:
+
+```bash
+cd client && pnpm seed:examples
+```
+
+Creates `calm-eth-usdc`, `storm-eth-usdc` and `retail-link-usdc` from the owner wallet if they do not exist
+(name, `TideApp.init` with the manager, `setBounds`, `Aqua.ship`, resolver grants), then publishes those and
+`eth-usdc` / `link-usdc-tide` as live listings and templates. Re-running only refreshes the listings. Presets
+and copy live at the top of `client/scripts/seed-examples.ts`; every preset satisfies `(N - 1) * delta <= 2 * fee`.
+LINK is not mintable: the owner wallet needs LINK from the Chainlink faucet before the LINK preset can ship.
+
 ## 4. ENS (Sepolia, ENSv2 beta)
 
 `pnpm ens:setup` is idempotent: registry under `tide.eth`, `eth-usdc.tide.eth` and `manager.tide.eth`
