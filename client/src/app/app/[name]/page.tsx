@@ -166,21 +166,26 @@ export default function Dashboard() {
   const { signMessageAsync } = useSignMessage();
 
   const refresh = useCallback(async () => {
-    const [r, m] = await Promise.all([
-      fetch(`/api/state?strategy=${encodeURIComponent(name)}`, {
-        cache: 'no-store',
-      }),
-      fetch(`/api/agent/status`, { cache: 'no-store' })
-        .then((x) => x.json())
-        .catch(() => null),
-    ]);
-    setS(await r.json());
-    if (m) {
-      setMgr(m);
-      if (!sigmaTouchedRef.current && m.sigma)
-        setSigma(Math.round(m.sigma * 20) / 20);
+    // a failed poll (server restarting, offline) keeps the last snapshot on screen
+    try {
+      const [r, m] = await Promise.all([
+        fetch(`/api/state?strategy=${encodeURIComponent(name)}`, {
+          cache: 'no-store',
+        }),
+        fetch(`/api/agent/status`, { cache: 'no-store' })
+          .then((x) => x.json())
+          .catch(() => null),
+      ]);
+      if (r.ok) setS(await r.json());
+      if (m) {
+        setMgr(m);
+        if (!sigmaTouchedRef.current && m.sigma)
+          setSigma(Math.round(m.sigma * 20) / 20);
+      }
+      setNow(Date.now());
+    } catch {
+      // next tick retries
     }
-    setNow(Date.now());
   }, [name]);
 
   useEffect(() => {
