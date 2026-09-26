@@ -6,9 +6,11 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
 ## Sep 27, 2026
 
 **Vercel-ready**
-- `client/vercel.json`: cron hits `GET /api/agent/tick` every 15 min (Bearer `CRON_SECRET`), API functions get
-  60 s. The tick route accepts that alongside the operator header; `instrumentation.ts` skips the in-process
-  scheduler when `VERCEL` is set. Deploy steps in `docs/DEPLOYMENT.md` § 6.
+- No long-lived process on Vercel and no 15-minute cron on Hobby, so the manager's clock is now traffic plus an
+  external clock: `/api/agent/status` and `/api/strategies` run a check in the background when the last one
+  (read from the log) is stale; `.github/workflows/manager-tick.yml` posts to `/api/agent/tick` every 15 min
+  once `TIDE_TICK_ENABLED` is set. `instrumentation.ts` skips the in-process scheduler when `VERCEL` is set;
+  `client/vercel.json` gives API functions 60 s. Deploy steps in `docs/DEPLOYMENT.md` § 6.
 
 **Example strategies and templates**
 - `pnpm seed:examples` (`client/scripts/seed-examples.ts`): from the owner wallet, creates and funds three preset

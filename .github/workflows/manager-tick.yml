@@ -1,0 +1,19 @@
+# External clock for the manager on hosts without a long-lived process (Vercel Hobby has no 15-minute cron).
+# Secrets: TIDE_APP_URL (https://<host>) and AGENT_TICK_SECRET (same value as on the host).
+name: manager tick
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+jobs:
+  tick:
+    if: ${{ vars.TIDE_TICK_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: ask the manager to check the market
+        run: |
+          curl --fail --silent --show-error --max-time 60 -X POST "$TIDE_APP_URL/api/agent/tick" \
+            -H "x-tide-secret: $AGENT_TICK_SECRET"
+        env:
+          TIDE_APP_URL: ${{ secrets.TIDE_APP_URL }}
+          AGENT_TICK_SECRET: ${{ secrets.AGENT_TICK_SECRET }}

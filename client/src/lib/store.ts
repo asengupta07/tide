@@ -97,6 +97,12 @@ export async function listLog(strategy?: string, limit = 300): Promise<LogEntry[
   return (await logs()).find(q, { projection: { _id: 0 } }).sort({ at: -1 }).limit(limit).toArray();
 }
 
+/** When the manager last ran its check, from the log, so a fresh process knows without keeping state. */
+export async function lastCheckAt(): Promise<number | null> {
+  const row = await (await logs()).findOne({ msg: { $regex: "^manager check" } }, { projection: { at: 1 }, sort: { at: -1 } });
+  return row?.at ?? null;
+}
+
 // ---- housekeeping -----------------------------------------------------------------------------------
 export const approvalTimeoutMs = () => Number(process.env.WORLD_APPROVAL_TIMEOUT_SECONDS ?? "180") * 1000;
 

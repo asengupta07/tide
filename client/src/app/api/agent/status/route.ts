@@ -1,16 +1,17 @@
-import { NextResponse } from "next/server";
-import { tickInfo, tickMinutes, minMoveBps } from "@/lib/scheduler";
+import { NextResponse, after } from "next/server";
+import { tickStatus, tickIfStale, tickMinutes, minMoveBps } from "@/lib/scheduler";
 import { realisedVolatility } from "@/lib/volatility";
 import { lambdaStar } from "@/lib/agent";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const vol = await realisedVolatility().catch(() => null);
+  const [vol, info] = await Promise.all([realisedVolatility().catch(() => null), tickStatus()]);
+  after(() => tickIfStale().catch(() => null)); // the manager's clock on hosts without a long-lived process
   return NextResponse.json({
-    ...tickInfo(),
-    sigma: vol?.sigma ?? tickInfo().sigma ?? null,
-    measuredAt: vol?.measuredAt ?? tickInfo().measuredAt ?? null,
+    ...info,
+    sigma: vol?.sigma ?? info.sigma ?? null,
+    measuredAt: vol?.measuredAt ?? info.measuredAt ?? null,
     ethPrice: vol?.last ?? null,
     lambdaStar: vol ? lambdaStar(vol.sigma) : null,
     tickMinutes: tickMinutes(),

@@ -6,7 +6,7 @@
  * the owner's fresh World ID approval and wallet.
  */
 import { listStrategies } from "./registry";
-import { getBound, hasPending, appendLog } from "./store";
+import { getBound, hasPending, appendLog, lastCheckAt } from "./store";
 import { agentEnabled, currentRecords, deltaStar, lambdaStar, propose, strategyFee } from "./agent";
 import { realisedVolatility } from "./volatility";
 import { withinBounds } from "./tide";
@@ -22,6 +22,32 @@ export const minMoveBps = () => Number(process.env.AGENT_MIN_MOVE_BPS ?? "500");
 
 export function tickInfo(): TickInfo {
   return g.__tideTick!;
+}
+
+/** tickInfo with lastTick/nextTick filled from the log when this process has not ticked yet. */
+export async function tickStatus(): Promise<TickInfo> {
+  const info = g.__tideTick!;
+  if (info.lastTick === undefined) {
+    const at = await lastCheckAt().catch(() => null);
+    if (at) {
+      info.lastTick = at;
+      info.nextTick = at + tickMinutes() * 60_000;
+    }
+  }
+  return info;
+}
+
+/**
+ * Run a check if the last one is older than the tick interval. Serverless hosts have no long-lived process,
+ * so routes that traffic hits anyway (dashboard status, market list) call this in the background and the
+ * manager keeps its schedule as long as anyone is looking. Idempotent: the check itself skips strategies with
+ * a pending proposal, respects the on-chain cooldown and the minimum move.
+ */
+export async function tickIfStale(): Promise<string | null> {
+  const info = await tickStatus();
+  if (info.running) return null;
+  if (info.lastTick && Date.now() - info.lastTick < tickMinutes() * 60_000) return null;
+  return tick("on demand");
 }
 
 export async function tick(reason = "schedule"): Promise<string> {

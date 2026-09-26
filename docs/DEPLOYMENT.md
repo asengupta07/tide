@@ -204,10 +204,17 @@ Current sandbox client: `Tide manager`, id `1f15d369-99c8-475a-94f8-c387dcb075aa
 ## 6. Public deployment (Vercel)
 
 The app is `client/` (Next 16, Node runtime). MongoDB Atlas is already remote, so the only host-specific
-parts are the manager's clock and the World client. `client/vercel.json` carries a cron that calls
-`GET /api/agent/tick` every 15 minutes (Vercel sends `Authorization: Bearer $CRON_SECRET`) and raises the
-function limit to 60 s, because `/api/state` scans fill logs. `instrumentation.ts` skips the in-process
-scheduler when `VERCEL` is set, so the cron is the only clock there.
+parts are the manager's clock and the World client.
+
+**The clock without a long-lived process.** Vercel functions end with the request and Hobby crons run once a
+day, so `instrumentation.ts` skips the in-process scheduler when `VERCEL` is set and two things replace it:
+- *On demand:* `/api/agent/status` (polled by every open dashboard) and `/api/strategies` (the trade page) run a
+  check in the background after responding when the last one, read from the log, is older than
+  `AGENT_TICK_MINUTES`. While anyone is looking, the manager keeps its schedule.
+- *External clock:* `.github/workflows/manager-tick.yml` posts to `/api/agent/tick` every 15 minutes. Enable it
+  with the repository variable `TIDE_TICK_ENABLED=true` and the secrets `TIDE_APP_URL`, `AGENT_TICK_SECRET`.
+  GitHub may delay scheduled runs by a few minutes; that is fine here.
+`client/vercel.json` only raises the function limit to 60 s, because `/api/state` scans fill logs.
 
 1. **Import the repo** at vercel.com/new. Root directory `client`, framework Next.js, install command
    `pnpm install` (the lockfile is committed; Vercel reads `packageManager`). Leave build as `next build`.
@@ -226,12 +233,14 @@ scheduler when `VERCEL` is set, so the cron is the only clock there.
    so `agent-endpoint*` on `manager.tide.eth` point at the public host.
 6. **Atlas network access**: allow `0.0.0.0/0` (Vercel egress IPs are not fixed) or use a Vercel-Atlas
    integration. The `test:test` user is hackathon-only.
-7. **Check**: `https://<host>/app/explore` lists the seeded strategies, `/api/agent/status` returns JSON,
-   Vercel → Project → Cron Jobs shows the tick and its last run, a trade quote loads on `/trade`.
-8. Put the URL in README (ENS live-demo link) and in the World redirect list.
+7. **GitHub clock**: repository Settings → Secrets and variables → Actions: secrets `TIDE_APP_URL`,
+   `AGENT_TICK_SECRET`; variable `TIDE_TICK_ENABLED=true`. Run the workflow once by hand to confirm.
+8. **Check**: `https://<host>/app/explore` lists the seeded strategies, `/api/agent/status` shows `lastTick`
+   moving, a trade quote loads on `/trade`.
+9. Put the URL in README (ENS live-demo link) and in the World redirect list.
 
 Any other Node host (Railway, Fly, a VPS) works too: run `pnpm build && pnpm start`, keep `VERCEL` unset so
-the in-process scheduler runs, skip the cron.
+the in-process scheduler runs, skip the GitHub clock.
 
 ## 7. Traps, in one place
 

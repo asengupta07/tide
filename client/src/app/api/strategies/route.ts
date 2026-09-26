@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
+import { tickIfStale } from "@/lib/scheduler";
 import { col } from "@/lib/db";
 import type { Strategy } from "@/lib/registry";
 import type { Publication } from "@/lib/sharing";
@@ -15,6 +16,7 @@ export async function GET(req: Request) {
   const publicMarkets = query.get("scope") === "public";
   const marketScope = query.get("scope") === "markets";
   if (!owner && !publicMarkets && !marketScope) return NextResponse.json([]);
+  after(() => tickIfStale().catch(() => null));
   if (owner && !/^0x[0-9a-fA-F]{40}$/.test(owner))
     return NextResponse.json(
       { error: "Invalid wallet address" },

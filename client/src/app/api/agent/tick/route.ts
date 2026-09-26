@@ -6,8 +6,10 @@ export const dynamic = "force-dynamic";
 /**
  * Run the manager's market check now. Operator-only. Two callers:
  *   - an operator: POST with `x-tide-secret: $AGENT_TICK_SECRET`
- *   - Vercel Cron (vercel.json, every 15 min): GET with `Authorization: Bearer $CRON_SECRET`
- * On a long-lived host the in-process scheduler (instrumentation.ts) does the same job and the cron is unused.
+ *   - an external clock (the GitHub Actions workflow, or any cron service): GET with
+ *     `Authorization: Bearer $CRON_SECRET`
+ * Traffic also keeps the clock: /api/agent/status and /api/strategies run a check when the last one is stale.
+ * On a long-lived host the in-process scheduler (instrumentation.ts) does the same job.
  */
 function authorised(req: Request) {
   const op = process.env.AGENT_TICK_SECRET;
