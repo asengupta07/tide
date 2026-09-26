@@ -7,6 +7,7 @@ import { ArrowRight, CheckCircle, Waves } from "@phosphor-icons/react";
 
 import { TradePanel } from "@/components/TradePanel";
 import { Bezel, Nav } from "@/components/ui";
+import { isTradeReady } from "@/lib/trade-readiness";
 import { short } from "@/lib/chain";
 
 type StrategyRow = {
@@ -26,7 +27,7 @@ type TradeSnapshot = {
     salt: string;
   };
   records: { lambda: number; N: number; delta: number; fee?: number };
-  onchain: { fee: number } | null;
+  onchain: { fee: number; owner: string; N: number; lambda: number } | null;
   block: {
     total: { weth: string; usdc: string };
   } | null;
@@ -57,7 +58,7 @@ function TradeMarket() {
 
   useEffect(() => {
     let alive = true;
-    fetch("/api/strategies?scope=public", { cache: "no-store" })
+    fetch("/api/strategies?scope=public&tradable=1", { cache: "no-store" })
       .then(async (response) => {
         const body = await response.json();
         if (!response.ok) throw new Error(body.error || "Could not load Tide markets");
@@ -87,10 +88,24 @@ function TradeMarket() {
         if (alive) setError(null);
         return body as TradeSnapshot;
       })
-      .then((state) => alive && setSnapshot(state))
+      .then((state) => {
+        if (!alive) return;
+        if (!isTradeReady(state.strategy.owner, state.onchain, state.block)) {
+          setSnapshot(null);
+          const fallback = rows?.find(m => m.name !== selected && m.label !== selected);
+          if (fallback) {
+            setSelected(fallback.name);
+            router.replace(`/trade?strategy=${encodeURIComponent(fallback.name)}`, { scroll: false });
+          } else {
+            setError("This strategy is not currently tradable. Its liquidity may be empty or its deployment may be incomplete.");
+          }
+          return;
+        }
+        setSnapshot(state);
+      })
       .catch((cause) => alive && setError((cause as Error).message));
     return () => { alive = false; };
-  }, [selected, refreshToken]);
+  }, [selected, refreshToken, rows, router]);
 
   const choose = (name: string) => {
     setSelected(name);
@@ -133,7 +148,7 @@ function TradeMarket() {
                   {[0, 1, 2].map((item) => <div key={item} className="h-16 animate-pulse rounded-lg bg-white/[0.035]" />)}
                 </div>
               )}
-              {rows?.length === 0 && <p className="p-5 text-sm text-fg-3">No strategies have been shared publicly yet.</p>}
+              {rows?.length === 0 && <p className="p-5 text-sm text-fg-3">No published strategies are currently ready to trade.</p>}
               {rows && rows.length > 0 && (
                 <div className="max-h-[30rem] overflow-y-auto p-2 [scrollbar-width:thin]">
                   {rows.map((market) => {
