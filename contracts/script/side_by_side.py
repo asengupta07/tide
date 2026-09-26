@@ -133,11 +133,12 @@ line("  " + col("  arbitrage extracted", LW) + col(f"{PLAIN}{usd(pa):>11}{R}", C
 fp, hp = lp("plain"); ft, ht = lp("tide")
 line("  " + col("  LP value vs holding", LW) + col(f"{PLAIN}{usd(fp - hp, True):>11}{R}", CW) + col(f"{TIDE}{usd(ft - ht, True):>11}{R}", CW) + f"{D}at ${Pf/1e6:,.2f}, fees included; Tide lags the market by design, so this swings both ways{R}")
 line("  " + col("  fees earned", LW) + col(f"{PLAIN}{usd(state['plain']['fees']):>11}{R}", CW) + col(f"{TIDE}{usd(state['tide']['fees']):>11}{R}", CW))
-rp = statistics.mean(state["plain"]["retail"]); rt = statistics.mean(state["tide"]["retail"])
-fp_ = statistics.mean(state["plain"]["retail_follow"]) if state["plain"]["retail_follow"] else rp
-ft_ = statistics.mean(state["tide"]["retail_follow"]) if state["tide"]["retail_follow"] else rt
-line("  " + col("  retail slippage, avg", LW) + col(f"{PLAIN}{bps(rp, False):>11}{R}", CW) + col(f"{TIDE}{bps(rt, False):>11}{R}", CW) + f"{D}${retailIn // 10**6:,} orders, fee included, all blocks{R}")
-line("  " + col("    as a follow-on fill", LW) + col(f"{PLAIN}{bps(fp_, False):>11}{R}", CW) + col(f"{TIDE}{bps(ft_, False):>11}{R}", CW) + f"{GOOD}{ft_ - fp_:+.1f} bp{R} {D}blocks where the arbitrageur went first: the deep curve{R}")
+follow = [(r["tide_retail"][0] / r["plain_retail"][0] - 1) * 1e4 for r in rows if r["tide_had_arb"]]
+first = [(r["tide_retail"][0] / r["plain_retail"][0] - 1) * 1e4 for r in rows if not r["tide_had_arb"]]
+fa = statistics.mean(follow) if follow else 0.0
+line("  " + col("  retail, Tide vs plain", LW) + col(f"{GOOD}{fa:+.1f} bp{R} {D}for the trader{R}", CW) + col("", CW) + f"{D}{len(follow)} blocks where the arbitrageur went first: the deep curve{R}")
+if first:
+    line("  " + col("", LW) + col(f"{BAD}{statistics.mean(first):+.1f} bp{R} {D}for the trader{R}", CW) + col("", CW) + f"{D}{len(first)} blocks with no arbitrage: retail was Tide's first fill, the active curve{R}")
 line("  " + col("  final inventory", LW) + col(f"{PLAIN}{eth(state['plain']['X'])} + {usd(state['plain']['Y'])}{R}", CW) + col(f"{TIDE}{eth(state['tide']['X'])} + {usd(state['tide']['Y'])}{R}", CW))
 line()
 line(f"  {D}Every number above is decoded from a Swapped event on the fork: real Aqua.push / Aqua.pull transfers against the maker's wallet.{R}")
