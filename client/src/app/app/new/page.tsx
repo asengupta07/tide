@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount, usePublicClient, useWriteContract } from "wagmi";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { WalletButton } from "@/components/WalletButton";
 import { encodeAbiParameters, encodeFunctionData, parseEther, parseUnits, toHex, type Address, type Hex } from "viem";
 import { packetToBytes } from "viem/ens";
 import { Check, CircleNotch, ArrowRight } from "@phosphor-icons/react";
@@ -151,7 +151,7 @@ export default function NewStrategy() {
 
         {!isConnected && (
           <div className="mt-10 flex items-center gap-4 rounded-3xl border border-dashed border-white/10 p-6 text-sm text-fg-2">
-            Connect a Sepolia wallet to begin. <ConnectButton chainStatus="none" showBalance={false} />
+            Connect a Sepolia wallet to begin. <WalletButton size="md" />
           </div>
         )}
 

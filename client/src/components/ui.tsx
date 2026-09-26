@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { motion, useReducedMotion, AnimatePresence } from "motion/react";
 import { ArrowUpRight, ArrowRight } from "@phosphor-icons/react";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { WalletButton } from "./WalletButton";
 
 /** Enter-on-scroll reveal: content appears in reading order as the page unfolds. */
 export function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
@@ -70,7 +70,7 @@ export function Nav({ current }: { current?: "landing" | "app" }) {
           </nav>
           <div className="flex items-center gap-2">
             {current === "app" ? (
-              <ConnectButton chainStatus="none" showBalance={false} accountStatus={{ smallScreen: "avatar", largeScreen: "address" }} />
+              <WalletButton />
             ) : (
               <Pill href="/app" size="sm">Open app</Pill>
             )}
