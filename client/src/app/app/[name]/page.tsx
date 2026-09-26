@@ -148,9 +148,11 @@ export default function Dashboard() {
   const { name } = useParams<{ name: string }>();
   const q = useSearchParams();
   const { address } = useAccount();
+  const { signMessageAsync } = useSignMessage();
   const [s, setS] = useState<Snapshot | null>(null);
   const [sigma, setSigma] = useState(0.8);
   const [busy, setBusy] = useState(false);
+  const [proposeErr, setProposeErr] = useState<string | null>(null);
   const [advanced, setAdvanced] = useState(false);
   const [mgr, setMgr] = useState<Mgr | null>(null);
   const [sigmaTouched, setSigmaTouched] = useState(false);
@@ -168,7 +170,7 @@ export default function Dashboard() {
     setS(await r.json());
     if (m) {
       setMgr(m);
-      if (!sigmaTouchedRef.current && m.sigma)
+      if (!sigmaTouched && m.sigma)
         setSigma(Math.round(m.sigma * 20) / 20);
     }
     setNow(Date.now());
@@ -230,6 +232,7 @@ export default function Dashboard() {
             mgr={mgr}
             now={now}
             sigma={sigma}
+            proposeErr={proposeErr}
             setSigma={(v) => {
               setSigmaTouched(true);
               setSigma(v);
@@ -255,6 +258,7 @@ function Body({
   mgr,
   now,
   sigma,
+  proposeErr,
   setSigma,
   propose,
   busy,
@@ -267,6 +271,7 @@ function Body({
   mgr: Mgr | null;
   now: number | null;
   sigma: number;
+  proposeErr: string | null;
   setSigma: (n: number) => void;
   propose: () => void;
   busy: boolean;
@@ -859,44 +864,6 @@ function GuardrailNumberInput({
     </label>
   );
 }
-/** The owner's guardrails for the manager: what it may change on its own. Owner edits them with the wallet. */
-/** Number field for the guardrails editor. Declared at module level so React keeps the input mounted while typing. */
-function Num({
-  label,
-  value,
-  onChange,
-  step = 1,
-  min,
-  max,
-  unit,
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  step?: number;
-  min?: number;
-  max?: number;
-  unit: string;
-}) {
-  return (
-    <label className="block text-xs text-fg-3">
-      {label}
-      <span className="mt-1 flex items-center gap-2">
-        <input
-          type="number"
-          step={step}
-          min={min}
-          max={max}
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="num w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-fg outline-none focus:border-accent"
-        />
-        <span className="shrink-0 text-fg-3">{unit}</span>
-      </span>
-    </label>
-  );
-}
-
 /** The owner's guardrails for the manager: what it may change on its own. Edited in percent and minutes, stored in bps and seconds. */
 function Guardrails({
   b,
@@ -917,17 +884,21 @@ function Guardrails({
     maxStepBps: b.maxStepBps,
     cooldown: b.cooldown,
   });
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<'wallet' | 'mining' | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [tx, setTx] = useState<string | null>(null);
-  const problem = !(v.min > 0 && v.min <= v.max && v.max <= 100)
-    ? 'visibility range must sit between 0 and 100 %, low before high'
-    : !(v.step > 0 && v.step <= 100)
-      ? 'the largest move must be between 0 and 100 points'
+  const problem = !(
+    v.lambdaMin > 0 &&
+    v.lambdaMin <= v.lambdaMax &&
+    v.lambdaMax <= 10_000
+  )
+    ? 'visibility range must sit between 1 and 10,000 bps, low before high'
+    : !(v.maxStepBps > 0 && v.maxStepBps <= 10_000)
+      ? 'the largest move must be between 1 and 10,000 bps'
       : !(Number.isInteger(v.nMax) && v.nMax >= 1 && v.nMax <= 64)
         ? 'deepest curve must be a whole number from 1 to 64'
-        : !(v.minutes >= 1)
-          ? 'at least one minute between changes'
+        : !(v.cooldown >= 60)
+          ? 'at least 60 seconds between changes'
           : null;
   const save = async () => {
     if (problem || !pc) return;
@@ -941,11 +912,11 @@ function Guardrails({
         args: [
           orderHash as Hex,
           {
-            lambdaMin: Math.round(v.min * 100),
-            lambdaMax: Math.round(v.max * 100),
+            lambdaMin: Math.round(v.lambdaMin),
+            lambdaMax: Math.round(v.lambdaMax),
             nMax: v.nMax,
-            maxStepBps: Math.round(v.step * 100),
-            cooldown: Math.round(v.minutes * 60),
+            maxStepBps: Math.round(v.maxStepBps),
+            cooldown: Math.round(v.cooldown),
           },
         ],
       });
@@ -1044,11 +1015,15 @@ function Guardrails({
             <div className="flex items-end gap-2 sm:col-span-5">
               <button
                 onClick={save}
-                disabled={busy}
+                disabled={!!busy || !!problem}
                 className="pill pill-primary pill-sm disabled:opacity-40"
               >
                 <span>
-                  {busy ? 'Confirm in your wallet…' : 'Save guardrails'}
+                  {busy === 'wallet'
+                    ? 'Confirm in your wallet…'
+                    : busy === 'mining'
+                      ? 'Waiting for the block…'
+                      : 'Save guardrails'}
                 </span>
                 <span className="ico">
                   {busy ? (
@@ -1201,7 +1176,7 @@ function BindButton({ owner }: { owner: string }) {
     try {
       const ts = Date.now();
       const sig = await signMessageAsync({
-        message: `Tide: bind World ID to ${getAddress(owner)} at ${ts}`,
+        message: ownerMessage(`bind World ID to ${owner.toLowerCase()}`, ts),
       });
       const url = new URL('/api/world/bind', window.location.origin);
       url.search = new URLSearchParams({
