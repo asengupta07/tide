@@ -22,6 +22,10 @@ export async function GET(req: Request) {
     const [amountIn, amountOut] = (await publicClient().readContract({ address: dep.tideTaker, abi: tideTakerAbi, functionName: "quote", args: [cfg, BigInt(q.amount), q.exactIn === "1", q.aToB === "1"] })) as [bigint, bigint];
     return NextResponse.json({ amountIn: amountIn.toString(), amountOut: amountOut.toString() });
   } catch (e) {
-    return NextResponse.json({ error: safeError(e) }, { status: 400 });
+    const error = safeError(e);
+    const message = error.includes("function \"quote\" reverted") || error.includes("contract function")
+      ? "This strategy is not currently tradable. Its liquidity may be empty or its deployment may be incomplete."
+      : error;
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }

@@ -57,7 +57,7 @@ function TradeMarket() {
 
   useEffect(() => {
     let alive = true;
-    fetch("/api/strategies", { cache: "no-store" })
+    fetch("/api/strategies?tradable=1", { cache: "no-store" })
       .then(async (response) => {
         const body = await response.json();
         if (!response.ok) throw new Error(body.error || "Could not load Tide markets");
@@ -71,10 +71,13 @@ function TradeMarket() {
           ?? markets[0]?.name
           ?? "";
         setSelected(initial);
+        if (requested && initial && requested !== initial) {
+          router.replace(`/trade?strategy=${encodeURIComponent(initial)}`, { scroll: false });
+        }
       })
       .catch((cause) => alive && setError((cause as Error).message));
     return () => { alive = false; };
-  }, [requested]);
+  }, [requested, router]);
 
   useEffect(() => {
     if (!selected) return;
