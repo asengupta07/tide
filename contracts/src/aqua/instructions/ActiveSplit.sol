@@ -22,6 +22,12 @@ import { TideProgram } from "./TideProgram.sol";
 ///   SwapVM has no block hook, so the re-split is lazy: it happens inside the first `quote()`/`swap()`
 ///   of a block. A quote in a fresh block is priced as the block's first fill.
 ///
+///   Fee: a flat fee on tokenIn, read from `TideParams` together with lambda/N/delta, is taken here
+///   (FeeFlatIn semantics: the curve sees the net input, the taker pays gross, the maker's Aqua balance
+///   receives the fee). Reading it from the same record the venue was parameterised with makes the
+///   fee-rebate bound `(N - 1) * delta <= 2 * fee` hold by construction. The fee sits in the passive
+///   buffer until the next re-split.
+///
 /// @dev Encoding: [address params]
 library ActiveSplit {
     using InstructionArgs for bytes;
@@ -53,7 +59,7 @@ library ActiveSplit {
     function exec(Context memory ctx, bytes calldata args) internal {
         TideProgram.check(ctx);
         TideParams params = TideParams(parse(args));
-        (uint32 lambdaBps,,) = params.get(ctx.query.orderHash);
+        (uint32 lambdaBps,,, uint32 feeBps) = params.get(ctx.query.orderHash);
 
         TideStorage.BlockState storage state = TideStorage.store().state[ctx.query.orderHash];
         bool first = state.blockNumber != block.number;
@@ -73,17 +79,28 @@ library ActiveSplit {
         ctx.swap.balanceIn = activeIn;
         ctx.swap.balanceOut = activeOut;
 
-        (uint256 amountIn, uint256 amountOut) = ctx.runLoop();
+        // Fee on tokenIn: the curve (and the drift guard) sees the net amount.
+        uint256 fee;
+        if (ctx.query.isExactIn) {
+            fee = TideMath.feeOnInput(ctx.swap.amountIn, feeBps);
+            ctx.swap.amountIn -= fee;
+        }
+
+        (uint256 netIn, uint256 amountOut) = ctx.runLoop();
+
+        if (!ctx.query.isExactIn) fee = TideMath.feeOnNet(netIn, feeBps);
+        uint256 grossIn = netIn + fee;
+        ctx.swap.amountIn = grossIn; // the taker pays gross; Aqua credits it all to the maker
 
         // Post-fill bookkeeping. If the fill dipped into the passive buffer, the buffer tops the active
         // side up by re-splitting from the new totals at the new marginal price (no arbitrage is created:
-        // it is a transfer between the two parts at the same price).
+        // it is a transfer between the two parts at the same price). Otherwise the fee stays passive.
         bool topUp = amountOut > activeOut;
         if (topUp) {
-            activeIn = TideMath.activeReserve(totalIn + amountIn, lambdaBps);
+            activeIn = TideMath.activeReserve(totalIn + grossIn, lambdaBps);
             activeOut = TideMath.activeReserve(totalOut - amountOut, lambdaBps);
         } else {
-            activeIn += amountIn;
+            activeIn += netIn;
             activeOut -= amountOut;
         }
 

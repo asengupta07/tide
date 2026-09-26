@@ -45,7 +45,8 @@ contract TideHookTest is Test {
     uint256 internal constant BAL_1 = 300_000e18;
     uint32 internal constant LAMBDA = 5000;
     uint32 internal constant N = 4;
-    uint32 internal constant DELTA = 50;
+    uint32 internal constant DELTA = 20;
+    uint32 internal constant FEE = 30;
 
     TideHook internal hook;
     TideParams internal params;
@@ -87,7 +88,7 @@ contract TideHookTest is Test {
         MockERC20(Currency.unwrap(currency0)).approve(address(hook), type(uint256).max);
         MockERC20(Currency.unwrap(currency1)).approve(address(hook), type(uint256).max);
 
-        params.init(PoolId.unwrap(poolId), LAMBDA, N, DELTA, manager_);
+        params.init(PoolId.unwrap(poolId), LAMBDA, N, DELTA, FEE, manager_);
 
         vm.roll(1000);
         _add(BAL_0, BAL_1);
@@ -156,9 +157,13 @@ contract TideHookTest is Test {
         assertGt(hook.balanceOf(address(this)), 0, "LP shares minted");
     }
 
+    function _net(uint256 amountIn) internal pure returns (uint256) {
+        return amountIn - TideMath.feeOnInput(amountIn, FEE);
+    }
+
     function test_FirstSwap_QuotesAgainstActiveSliceOnly() public {
         uint256 amountIn = 1e18;
-        uint256 expected = _xyc(amountIn, BAL_0 * LAMBDA / BPS, BAL_1 * LAMBDA / BPS);
+        uint256 expected = _xyc(_net(amountIn), BAL_0 * LAMBDA / BPS, BAL_1 * LAMBDA / BPS);
         assertEq(hook.quote(true, true, amountIn), expected, "view quote");
         uint256 out = _swapExactIn(true, amountIn);
         assertEq(out, expected, "swap == quote");
@@ -168,9 +173,9 @@ contract TideHookTest is Test {
     function test_SecondSwapInBlock_QuotesOnVirtualCurve() public {
         _swapExactIn(true, 0.1e18);
         TideHook.BlockState memory s = hook.state();
-        uint256 q = s.active0 / 400;
+        uint256 q = s.active0 / 4000;
         uint256 out = hook.quote(true, true, q);
-        assertEq(out, TideMath.quoteExactIn(q, s.active0, s.active1, N));
+        assertEq(out, TideMath.quoteExactIn(_net(q), s.active0, s.active1, N));
         assertEq(_swapExactIn(true, q), out, "swap == quote");
     }
 
@@ -179,23 +184,22 @@ contract TideHookTest is Test {
         TideHook.BlockState memory s = hook.state();
         uint256 q = s.active0 / 20;
         uint256 out = hook.quote(true, true, q);
-        assertEq(out, TideMath.quoteExactIn(q, s.active0, s.active1, 1), "re-priced on active curve");
+        assertEq(out, TideMath.quoteExactIn(_net(q), s.active0, s.active1, 1), "re-priced on active curve");
     }
 
     function test_Guard_ExactOut_BeyondTotalReverts() public {
-        vm.prank(manager_);
-        params.set(PoolId.unwrap(poolId), 5000, 64, 4000);
         _swapExactIn(true, 0.1e18);
         vm.expectRevert();
         hook.quote(true, false, BAL_1 + 1);
     }
 
     function test_Guard_TopUp_ResplitsFromPassiveBuffer() public {
+        params.setFee(PoolId.unwrap(poolId), 6750); // owner = this test
         vm.prank(manager_);
-        params.set(PoolId.unwrap(poolId), 2000, 64, 4500);
+        params.set(PoolId.unwrap(poolId), 2000, 4, 4500);
         _swapExactIn(true, 0.01e18);
         TideHook.BlockState memory s = hook.state();
-        uint256 q = 25e18;
+        uint256 q = 84e18;
         uint256 out = hook.quote(true, true, q);
         assertGt(out, s.active1, "dips into passive buffer");
         vm.expectEmit(true, false, false, false, address(hook));
@@ -212,20 +216,21 @@ contract TideHookTest is Test {
         uint256 out1 = _swapExactIn(true, in1);
         TideHook.BlockState memory s = hook.state();
         assertEq(s.blockNumber, block.number);
-        assertEq(s.active0, BAL_0 * LAMBDA / BPS + in1);
+        assertEq(s.active0, BAL_0 * LAMBDA / BPS + _net(in1), "net input enters the active slice");
         assertEq(s.active1, BAL_1 * LAMBDA / BPS - out1);
         assertEq(s.anchor0, s.active0);
 
         uint256 in2 = 0.05e18;
         uint256 out2 = _swapExactIn(true, in2);
         s = hook.state();
-        assertEq(s.active0, BAL_0 * LAMBDA / BPS + in1 + in2);
+        assertEq(s.active0, BAL_0 * LAMBDA / BPS + _net(in1) + _net(in2));
         assertEq(s.active1, BAL_1 * LAMBDA / BPS - out1 - out2);
-        assertEq(s.anchor0, BAL_0 * LAMBDA / BPS + in1, "anchor unchanged");
+        assertEq(s.anchor0, BAL_0 * LAMBDA / BPS + _net(in1), "anchor unchanged");
 
         vm.roll(block.number + 1);
         (uint256 t0, uint256 t1) = hook.reserves();
-        assertEq(hook.quote(true, true, 1e18), _xyc(1e18, t0 * LAMBDA / BPS, t1 * LAMBDA / BPS), "fresh split");
+        assertEq(t0, BAL_0 + in1 + in2, "fees stay in the reserves");
+        assertEq(hook.quote(true, true, 1e18), _xyc(_net(1e18), t0 * LAMBDA / BPS, t1 * LAMBDA / BPS), "fresh split");
     }
 
     function test_QuoteEqualsSwap_BothDirections_BothModes() public {
@@ -246,7 +251,7 @@ contract TideHookTest is Test {
         params.set(PoolId.unwrap(poolId), 2500, N, DELTA);
         vm.roll(block.number + 1);
         (uint256 t0, uint256 t1) = hook.reserves();
-        assertEq(hook.quote(true, true, 1e18), _xyc(1e18, t0 * 2500 / BPS, t1 * 2500 / BPS));
+        assertEq(hook.quote(true, true, 1e18), _xyc(_net(1e18), t0 * 2500 / BPS, t1 * 2500 / BPS));
     }
 
     // Story 11: liquidity goes through the hook, JIT is rejected

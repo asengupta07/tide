@@ -97,9 +97,26 @@ library TideMath {
     }
 
     /// @notice Validate governance parameters. lambda in (0, 1e4], n in [1, 64], delta in [0, 5e3).
-    function checkParams(uint256 lambdaBps, uint256 n, uint256 deltaBps) internal pure {
+    /// @notice Flat fee taken from a gross input: ceil(amountIn * fee / BPS). The curve sees the remainder.
+    function feeOnInput(uint256 amountIn, uint256 feeBps) internal pure returns (uint256) {
+        return (amountIn * feeBps).ceilDiv(BPS);
+    }
+
+    /// @notice Fee to add on top of a net input so the taker pays gross: ceil(net * fee / (BPS - fee)).
+    function feeOnNet(uint256 netIn, uint256 feeBps) internal pure returns (uint256) {
+        return (netIn * feeBps).ceilDiv(BPS - feeBps);
+    }
+
+    /// @notice Parameter box. Besides the ranges, the fee-rebate bound `(N - 1) * delta <= 2 * fee`: the
+    ///         N-curve improves execution over the active curve by at most (N - 1) * delta / 2 per unit
+    ///         within the drift band, and that rebate must never exceed the fee the fill pays for it.
+    ///         Without it a taker sells on the active curve, buys back on the N-curve inside `delta` and
+    ///         takes (N - 1) * N * delta^2 / 4 of the active reserves every block, price gap or not.
+    function checkParams(uint256 lambdaBps, uint256 n, uint256 deltaBps, uint256 feeBps) internal pure {
         require(lambdaBps > 0 && lambdaBps <= BPS, TideInvalidParameter("lambda", lambdaBps));
         require(n >= 1 && n <= 64, TideInvalidParameter("n", n));
         require(deltaBps < BPS / 2, TideInvalidParameter("delta", deltaBps));
+        require(feeBps < BPS, TideInvalidParameter("fee", feeBps));
+        require((n - 1) * deltaBps <= 2 * feeBps, TideInvalidParameter("delta", deltaBps));
     }
 }

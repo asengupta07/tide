@@ -14,6 +14,7 @@ import { MockTaker } from "@1inch/swap-vm-test/solidity/mocks/MockTaker.sol";
 import { TideRouter } from "../../src/aqua/TideRouter.sol";
 import { TideApp } from "../../src/aqua/TideApp.sol";
 import { TideParams } from "../../src/TideParams.sol";
+import { TideMath } from "../../src/lib/TideMath.sol";
 
 /// @dev Shared fixture: official Aqua registry, the redeployed TideRouter, TideParams, TideApp, two mock
 ///      tokens, a maker with inventory in their wallet, and a MockTaker that pushes tokenIn via Aqua.
@@ -37,7 +38,8 @@ abstract contract TideAquaBase is Test {
 
     uint32 internal constant LAMBDA = 5000;
     uint32 internal constant N = 4;
-    uint32 internal constant DELTA = 50;
+    uint32 internal constant DELTA = 20;
+    uint32 internal constant FEE = 30; // (N - 1) * DELTA = 60 <= 2 * FEE
 
     function setUp() public virtual {
         makerKey = 0x1234;
@@ -73,11 +75,11 @@ abstract contract TideAquaBase is Test {
     }
 
     function _config(uint64 salt) internal view returns (TideApp.Config memory) {
-        return TideApp.Config({ maker: maker, tokenA: address(tokenA), tokenB: address(tokenB), feeBps: 0, salt: salt });
+        return TideApp.Config({ maker: maker, tokenA: address(tokenA), tokenB: address(tokenB), salt: salt });
     }
 
     /// @dev init params + ship. Returns the order and its hash (== Aqua strategy hash).
-    function _ship(uint32 lambdaBps, uint32 n, uint32 deltaBps)
+    function _ship(uint32 lambdaBps, uint32 n, uint32 deltaBps, uint32 feeBps)
         internal
         returns (ISwapVM.Order memory order, bytes32 orderHash)
     {
@@ -94,14 +96,14 @@ abstract contract TideAquaBase is Test {
         amounts[1] = BAL_B;
 
         vm.startPrank(maker);
-        params.init(orderHash, lambdaBps, n, deltaBps, manager);
+        params.init(orderHash, lambdaBps, n, deltaBps, feeBps, manager);
         bytes32 strategyHash = aqua.ship(address(router), abi.encode(order), tokens, amounts);
         vm.stopPrank();
         assertEq(strategyHash, orderHash, "strategy hash == order hash");
     }
 
     function _ship() internal returns (ISwapVM.Order memory order, bytes32 orderHash) {
-        return _ship(LAMBDA, N, DELTA);
+        return _ship(LAMBDA, N, DELTA, FEE);
     }
 
     function _takerData(bool isExactIn, bool isAToB) internal view returns (bytes memory) {
@@ -183,6 +185,11 @@ abstract contract TideAquaBase is Test {
                 program: program
             })
         );
+    }
+
+    /// @dev Input net of the strategy's flat fee, what the curve sees.
+    function _net(uint256 amountIn) internal pure returns (uint256) {
+        return amountIn - TideMath.feeOnInput(amountIn, FEE);
     }
 
     function _xyc(uint256 amountIn, uint256 balIn, uint256 balOut) internal pure returns (uint256) {

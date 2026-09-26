@@ -47,7 +47,7 @@ library VirtualXYCSwap {
 
     function exec(Context memory ctx, bytes calldata args) internal view {
         TideProgram.check(ctx);
-        (, uint32 n,) = TideParams(parse(args)).get(ctx.query.orderHash);
+        (, uint32 n,,) = TideParams(parse(args)).get(ctx.query.orderHash);
         if (TideStorage.isFirstOfBlock(ctx.query.orderHash)) n = 1;
 
         if (ctx.query.isExactIn) {

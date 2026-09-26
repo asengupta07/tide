@@ -56,7 +56,7 @@ contract CrossVenueTest is TideAquaBase {
             IHooks(hook)
         );
         poolManager.initialize(key, 79_228_162_514_264_337_593_543_950_336);
-        params.init(PoolId.unwrap(key.toId()), LAMBDA, N, DELTA, manager);
+        params.init(PoolId.unwrap(key.toId()), LAMBDA, N, DELTA, FEE, manager);
 
         tokenA.mint(address(this), 1e30);
         tokenB.mint(address(this), 1e30);

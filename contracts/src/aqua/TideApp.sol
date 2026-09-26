@@ -4,7 +4,6 @@ pragma solidity 0.8.30;
 import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
 import { MakerTraitsLib } from "@1inch/swap-vm/libs/MakerTraits.sol";
 import { Salt } from "@1inch/swap-vm/instructions/Controls.sol";
-import { FeeFlatIn } from "@1inch/swap-vm/instructions/FeeFlat.sol";
 import { IAqua } from "@1inch/aqua/src/interfaces/IAqua.sol";
 
 import { ActiveSplit } from "./instructions/ActiveSplit.sol";
@@ -13,8 +12,10 @@ import { BufferGuard } from "./instructions/BufferGuard.sol";
 import { TideParams } from "../TideParams.sol";
 
 /// @title TideApp
-/// @notice Builds Tide SwapVM programs and orders, and initialises the governed parameters, so a maker can
-///         ship a strategy in two calls: `TideApp.prepare(...)` then `Aqua.ship(router, abi.encode(order), ...)`.
+/// @notice Builds Tide SwapVM programs and orders, so a maker ships a strategy in two calls:
+///         `TideParams.init(orderHash, ...)` then `Aqua.ship(router, abi.encode(order), ...)`. The flat fee
+///         is not an instruction argument: `ACTIVE_SPLIT` reads it from `TideParams`, so the fee a fill pays
+///         is the one the parameter box was checked against.
 ///
 ///         Aqua records `msg.sender` as the maker, so `ship()` itself must be sent from the maker's wallet;
 ///         inventory never leaves that wallet. This contract holds no funds and no state.
@@ -23,7 +24,6 @@ contract TideApp {
         address maker;
         address tokenA; // lower address
         address tokenB; // higher address
-        uint24 feeBps; // optional flat fee on tokenIn, 0 for none
         uint64 salt;
     }
 
@@ -39,16 +39,10 @@ contract TideApp {
         PARAMS = params;
     }
 
-    /// @notice Canonical Tide program: [FeeFlatIn?] ACTIVE_SPLIT VIRTUAL_XYC BUFFER_GUARD Salt.
-    function program(uint24 feeBps, uint64 salt) public view returns (bytes memory) {
+    /// @notice Canonical Tide program: ACTIVE_SPLIT VIRTUAL_XYC BUFFER_GUARD Salt.
+    function program(uint64 salt) public view returns (bytes memory) {
         address p = address(PARAMS);
-        return bytes.concat(
-            feeBps > 0 ? FeeFlatIn.build(feeBps) : bytes(""),
-            ActiveSplit.build(p),
-            VirtualXYCSwap.build(p),
-            BufferGuard.build(p),
-            Salt.build(salt)
-        );
+        return bytes.concat(ActiveSplit.build(p), VirtualXYCSwap.build(p), BufferGuard.build(p), Salt.build(salt));
     }
 
     /// @notice The Aqua-mode order for a config. Its hash is the strategy hash Aqua uses.
@@ -75,7 +69,7 @@ contract TideApp {
                 preTransferOutData: "",
                 postTransferOutTarget: address(0),
                 postTransferOutData: "",
-                program: program(cfg.feeBps, cfg.salt)
+                program: program(cfg.salt)
             })
         );
     }

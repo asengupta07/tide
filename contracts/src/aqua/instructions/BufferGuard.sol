@@ -54,7 +54,7 @@ library BufferGuard {
     function exec(Context memory ctx, bytes calldata args) internal view {
         TideProgram.check(ctx);
         TideParams params = TideParams(parse(args));
-        (, uint32 n, uint32 deltaBps) = params.get(ctx.query.orderHash);
+        (, uint32 n, uint32 deltaBps,) = params.get(ctx.query.orderHash);
 
         TideStorage.BlockState storage state = TideStorage.store().state[ctx.query.orderHash];
         bool first = state.blockNumber != block.number;

@@ -78,6 +78,31 @@ def drift_exceeds_ref(
     return num < den * (BPS - delta_bps) or num > den * (BPS + delta_bps)
 
 
+def fee_on_input(amount_in: int, fee_bps: int) -> int:
+    """Flat fee taken from a gross input: ceil(amount_in * fee / BPS). The curve sees the rest."""
+    return ceil_div(amount_in * fee_bps, BPS)
+
+
+def fee_on_net(net_in: int, fee_bps: int) -> int:
+    """Fee added on top of a net input so the taker pays gross: ceil(net * fee / (BPS - fee))."""
+    return ceil_div(net_in * fee_bps, BPS - fee_bps)
+
+
+def check_params(lambda_bps: int, n: int, delta_bps: int, fee_bps: int) -> None:
+    """Parameter box, mirrors TideMath.checkParams.
+
+    The fee-rebate bound (N - 1) * delta <= 2 * fee: inside the drift band the N-curve improves execution
+    over the active curve by at most (N - 1) * delta / 2 per unit, and that rebate must never exceed the
+    fee the fill pays for it. Without it, sell on the active curve then buy back on the N-curve inside
+    delta extracts (N - 1) * N * delta^2 / 4 of the active reserves per block with no price gap at all.
+    """
+    assert 0 < lambda_bps <= BPS, "lambda"
+    assert 1 <= n <= 64, "n"
+    assert delta_bps < BPS // 2, "delta"
+    assert fee_bps < BPS, "fee"
+    assert (n - 1) * delta_bps <= 2 * fee_bps, "delta exceeds what the fee backs"
+
+
 def max_out_within_drift(bal_out: int, n: int, delta_bps: int) -> int:
     """Largest exact-in output that keeps the virtual price within delta of the start.
 

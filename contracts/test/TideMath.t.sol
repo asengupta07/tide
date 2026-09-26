@@ -160,17 +160,42 @@ contract TideMathTest is Test {
 
     function test_CheckParams_RejectsOutOfRange() public {
         vm.expectRevert(abi.encodeWithSelector(TideMath.TideInvalidParameter.selector, "lambda", 0));
-        this.checkParams(0, 4, 50);
+        this.checkParams(0, 4, 20, 30);
         vm.expectRevert(abi.encodeWithSelector(TideMath.TideInvalidParameter.selector, "lambda", 10_001));
-        this.checkParams(10_001, 4, 50);
+        this.checkParams(10_001, 4, 20, 30);
         vm.expectRevert(abi.encodeWithSelector(TideMath.TideInvalidParameter.selector, "n", 0));
-        this.checkParams(5000, 0, 50);
+        this.checkParams(5000, 0, 20, 30);
         vm.expectRevert(abi.encodeWithSelector(TideMath.TideInvalidParameter.selector, "delta", 5000));
-        this.checkParams(5000, 4, 5000);
-        this.checkParams(5000, 4, 50);
+        this.checkParams(5000, 4, 5000, 9999);
+        vm.expectRevert(abi.encodeWithSelector(TideMath.TideInvalidParameter.selector, "fee", 10_000));
+        this.checkParams(5000, 4, 0, 10_000);
+        // fee-rebate bound: (N - 1) * delta <= 2 * fee
+        vm.expectRevert(abi.encodeWithSelector(TideMath.TideInvalidParameter.selector, "delta", 50));
+        this.checkParams(5000, 4, 50, 30);
+        vm.expectRevert(abi.encodeWithSelector(TideMath.TideInvalidParameter.selector, "delta", 1));
+        this.checkParams(5000, 2, 1, 0);
+        this.checkParams(5000, 4, 20, 30);
+        this.checkParams(5000, 2, 60, 30);
+        this.checkParams(5000, 1, 4999, 0);
+        this.checkParams(5000, 64, 0, 0);
     }
 
-    function checkParams(uint256 l, uint256 n, uint256 d) external pure {
-        TideMath.checkParams(l, n, d);
+    function test_FeeHelpers_GrossNetRoundTrip() public pure {
+        uint256 fee = 30;
+        for (uint256 g = 1; g < 5000; g += 7) {
+            uint256 gross = g * 1e15 + g;
+            uint256 net = gross - TideMath.feeOnInput(gross, fee);
+            // grossing the net back up reproduces the gross input to within 1 wei either way
+            uint256 regross = net + TideMath.feeOnNet(net, fee);
+            assertLe(regross > gross ? regross - gross : gross - regross, 1);
+        }
+        assertEq(TideMath.feeOnInput(1e18, 30), 3e15);
+        assertEq(TideMath.feeOnNet(997e15, 30), 3e15);
+        assertEq(TideMath.feeOnInput(1e18, 0), 0);
+        assertEq(TideMath.feeOnNet(1e18, 0), 0);
+    }
+
+    function checkParams(uint256 l, uint256 n, uint256 d, uint256 f) external pure {
+        TideMath.checkParams(l, n, d, f);
     }
 }

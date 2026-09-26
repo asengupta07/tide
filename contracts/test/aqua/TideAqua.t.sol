@@ -69,7 +69,7 @@ contract TideAquaTest is TideAquaBase {
         (, uint256 out) = _quote(order, amountIn, true, true);
         uint256 activeA = BAL_A * LAMBDA / BPS;
         uint256 activeB = BAL_B * LAMBDA / BPS;
-        assertEq(out, _xyc(amountIn, activeA, activeB), "N=1 over active reserves");
+        assertEq(out, _xyc(_net(amountIn), activeA, activeB), "N=1 over active reserves, net of fee");
         assertLt(out, _xyc(amountIn, BAL_A, BAL_B), "worse than full-pool XYC for the arb");
     }
 
@@ -86,7 +86,7 @@ contract TideAquaTest is TideAquaBase {
     ///      the stale price, so the arb sells B for A until the pool's marginal price matches, then values
     ///      the A at the true price. Optimal constant-product input: y*(sqrt(1.02) - 1).
     function _arbProfit(uint32 lambdaBps) internal returns (uint256 profitInB) {
-        (ISwapVM.Order memory order,) = _ship(lambdaBps, 1, DELTA);
+        (ISwapVM.Order memory order,) = _ship(lambdaBps, 1, DELTA, FEE);
         uint256 activeB = BAL_B * lambdaBps / BPS;
         uint256 sqrtRatio = 1_009_950_493; // sqrt(1.02) * 1e9
         uint256 amountInB = activeB * (sqrtRatio - 1e9) / 1e9;
@@ -108,14 +108,14 @@ contract TideAquaTest is TideAquaBase {
         uint256 activeA = router.tideActive(orderHash, address(tokenA));
         uint256 activeB = router.tideActive(orderHash, address(tokenB));
 
-        uint256 q = activeA / 400; // 0.25% of active: well inside delta on the N=4 curve
+        uint256 q = activeA / 4000; // 0.025% of active: well inside delta = 20 bps on the N=4 curve
         (, uint256 out) = _quote(order, q, true, true);
-        assertEq(out, TideMath.quoteExactIn(q, activeA, activeB, N), "N-scaled quote");
+        assertEq(out, TideMath.quoteExactIn(_net(q), activeA, activeB, N), "N-scaled quote");
 
-        // Slippage within 5% of q/(N x)
-        uint256 spot = q * activeB / activeA;
+        // Slippage (net of fee) within 5% of q/(N x)
+        uint256 spot = _net(q) * activeB / activeA;
         uint256 slipVirtual = spot - out;
-        uint256 slipPlain = spot - _xyc(q, activeA, activeB);
+        uint256 slipPlain = spot - _xyc(_net(q), activeA, activeB);
         assertApproxEqRel(slipPlain * 1e18 / slipVirtual, uint256(N) * 1e18, 0.05e18, "slippage / N");
     }
 
@@ -129,19 +129,19 @@ contract TideAquaTest is TideAquaBase {
         uint256 activeA = router.tideActive(orderHash, address(tokenA));
         uint256 activeB = router.tideActive(orderHash, address(tokenB));
 
-        uint256 q = activeA / 20; // 5% of active moves the N=4 virtual price ~1.2% > delta 0.5%
+        uint256 q = activeA / 20; // 5% of active moves the N=4 virtual price ~2.4% > delta 0.2%
         (, uint256 out) = _quote(order, q, true, true);
-        assertEq(out, TideMath.quoteExactIn(q, activeA, activeB, 1), "re-priced on active curve");
+        assertEq(out, TideMath.quoteExactIn(_net(q), activeA, activeB, 1), "re-priced on active curve");
         assertLt(out, TideMath.quoteExactIn(q, activeA, activeB, N), "cheaper than the virtual quote");
     }
 
     function test_Guard_ExactOut_BeyondVirtualReserveReverts() public {
-        (ISwapVM.Order memory order, bytes32 orderHash) = _ship(5000, 64, 4000);
+        (ISwapVM.Order memory order, bytes32 orderHash) = _ship();
         _swap(order, 0.1e18, true, true);
         uint256 activeB = router.tideActive(orderHash, address(tokenB));
         // Ask for more B than the maker holds in total: virtual curve would promise it, guard refuses.
         uint256 askOut = BAL_B + 1;
-        assertLt(askOut, 64 * activeB, "virtual reserve would allow it");
+        assertLt(askOut, N * activeB, "virtual reserve would allow it");
         ISwapVM view_ = router.asView();
         bytes memory td = _takerData(false, true);
         vm.expectRevert();
@@ -149,11 +149,12 @@ contract TideAquaTest is TideAquaBase {
     }
 
     function test_Guard_TopUp_ResplitsFromPassiveBuffer() public {
-        // Wide delta and deep virtual curve so a within-delta trade exceeds the active slice.
-        (ISwapVM.Order memory order, bytes32 orderHash) = _ship(2000, 64, 4500);
+        // Extreme settings: delta = 45% needs a 67.5% fee under the rebate bound, and only then can a
+        // within-delta trade on the N = 4 curve exceed the active slice (N (1 - sqrt(1 - delta)) > 1).
+        (ISwapVM.Order memory order, bytes32 orderHash) = _ship(2000, 4, 4500, 6750);
         _swap(order, 0.01e18, true, true);
         uint256 activeB = router.tideActive(orderHash, address(tokenB));
-        uint256 q = 25e18; // on the N=64 curve this delivers more than the active slice, within delta
+        uint256 q = 84e18; // net 27.3 A on the N=4 curve delivers ~1.02x the active B, within delta
         (, uint256 out) = _quote(order, q, true, true);
         assertGt(out, activeB, "fill dips into the passive buffer");
         assertLe(out, BAL_B, "but never beyond total inventory");
@@ -179,19 +180,24 @@ contract TideAquaTest is TideAquaBase {
 
         (uint256 in1, uint256 out1) = _swap(order, 1e18, true, true);
         assertEq(router.tideBlockNumber(orderHash), block.number);
-        assertEq(router.tideActive(orderHash, address(tokenA)), BAL_A * LAMBDA / BPS + in1);
+        assertEq(
+            router.tideActive(orderHash, address(tokenA)), BAL_A * LAMBDA / BPS + _net(in1), "net in enters active"
+        );
         assertEq(router.tideActive(orderHash, address(tokenB)), BAL_B * LAMBDA / BPS - out1);
-        assertEq(router.tideAnchor(orderHash, address(tokenA)), BAL_A * LAMBDA / BPS + in1, "anchor = post first fill");
+        assertEq(
+            router.tideAnchor(orderHash, address(tokenA)), BAL_A * LAMBDA / BPS + _net(in1), "anchor = post first fill"
+        );
 
         (uint256 in2, uint256 out2) = _swap(order, 0.05e18, true, true);
-        assertEq(router.tideActive(orderHash, address(tokenA)), BAL_A * LAMBDA / BPS + in1 + in2);
+        assertEq(router.tideActive(orderHash, address(tokenA)), BAL_A * LAMBDA / BPS + _net(in1) + _net(in2));
         assertEq(router.tideActive(orderHash, address(tokenB)), BAL_B * LAMBDA / BPS - out1 - out2);
-        assertEq(router.tideAnchor(orderHash, address(tokenA)), BAL_A * LAMBDA / BPS + in1, "anchor unchanged");
+        assertEq(router.tideAnchor(orderHash, address(tokenA)), BAL_A * LAMBDA / BPS + _net(in1), "anchor unchanged");
 
         vm.roll(block.number + 1);
         (uint256 a, uint256 b) = _aquaBalances(orderHash);
+        assertEq(a, BAL_A + in1 + in2, "the maker's Aqua balance holds the gross input, fee included");
         (, uint256 out3) = _quote(order, 1e18, true, true);
-        assertEq(out3, _xyc(1e18, a * LAMBDA / BPS, b * LAMBDA / BPS), "fresh split from Aqua balances");
+        assertEq(out3, _xyc(_net(1e18), a * LAMBDA / BPS, b * LAMBDA / BPS), "fresh split from Aqua balances");
         _swap(order, 1e18, true, true);
         assertEq(router.tideBlockNumber(orderHash), block.number);
     }
@@ -253,7 +259,7 @@ contract TideAquaTest is TideAquaBase {
         amounts[0] = BAL_A;
         amounts[1] = BAL_B;
         vm.startPrank(maker);
-        params.init(orderHash, LAMBDA, N, DELTA, manager);
+        params.init(orderHash, LAMBDA, N, DELTA, FEE, manager);
         aqua.ship(address(router), abi.encode(order), tokens, amounts);
         vm.stopPrank();
         ISwapVM view_ = router.asView();
@@ -273,13 +279,93 @@ contract TideAquaTest is TideAquaBase {
     function test_Params_ManagerCanSet_StrangerCannot() public {
         (, bytes32 orderHash) = _ship();
         vm.prank(manager);
-        params.set(orderHash, 3500, 4, 50);
-        (uint32 l,,) = params.get(orderHash);
+        params.set(orderHash, 3500, 4, 20);
+        (uint32 l,,,) = params.get(orderHash);
         assertEq(l, 3500);
 
         vm.prank(vm.addr(0x9999));
         vm.expectRevert(abi.encodeWithSelector(TideParams.NotAuthorized.selector, orderHash, vm.addr(0x9999)));
-        params.set(orderHash, 1000, 4, 50);
+        params.set(orderHash, 1000, 4, 20);
+    }
+
+    function test_Params_FeeBound_RejectsDeltaTheFeeCannotBack() public {
+        (, bytes32 orderHash) = _ship();
+        // (N - 1) * delta = 3 * 21 = 63 > 2 * 30
+        vm.prank(manager);
+        vm.expectRevert(abi.encodeWithSelector(TideMath.TideInvalidParameter.selector, "delta", 21));
+        params.set(orderHash, LAMBDA, 4, 21);
+        // a shallower curve makes room: (2 - 1) * 60 = 60 <= 60
+        vm.prank(manager);
+        params.set(orderHash, LAMBDA, 2, 60);
+        // only the owner moves the fee, and it must keep backing the current delta
+        vm.prank(manager);
+        vm.expectRevert(abi.encodeWithSelector(TideParams.NotOwner.selector, orderHash, manager));
+        params.setFee(orderHash, 100);
+        vm.prank(maker);
+        vm.expectRevert(abi.encodeWithSelector(TideMath.TideInvalidParameter.selector, "delta", 60));
+        params.setFee(orderHash, 10);
+        vm.prank(maker);
+        params.setFee(orderHash, 100);
+        (,,, uint32 f) = params.get(orderHash);
+        assertEq(f, 100);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // The round trip: sell on the active curve, buy back on the N-curve inside delta. Without the fee
+    // bound this takes (N - 1) N delta^2 / 4 of the active reserves every block, price gap or not.
+    // ---------------------------------------------------------------------------------------------
+
+    function test_RoundTrip_ActiveThenVirtual_LosesMoneyUnderFeeBound() public {
+        (ISwapVM.Order memory order, bytes32 orderHash) = _ship();
+        (uint256 a0, uint256 b0) = _aquaBalances(orderHash);
+        uint256 p = b0 * 1e18 / a0; // pre-attack price, B per A
+
+        uint256 activeA = a0 * LAMBDA / BPS;
+        // leg 1 (first fill of the block, N = 1): sell enough A to move the active price by ~2 delta
+        uint256 leg1 = activeA * DELTA / BPS; // ~delta/2 of x moves the price by ~delta ... times 2
+        (uint256 in1, uint256 out1) = _swap(order, 2 * leg1, true, true);
+
+        // leg 2 (same block, N-curve): buy A back with B, the largest amount the drift bound admits
+        uint256 lo = 0;
+        uint256 hi = out1 * 10;
+        for (uint256 i = 0; i < 40; i++) {
+            uint256 mid = (lo + hi) / 2;
+            (bool ok,) = _tryQuote(order, mid, true, false);
+            if (ok && _virtualQuoteHeld(order, orderHash, mid)) lo = mid;
+            else hi = mid;
+        }
+        (uint256 in2, uint256 out2) = _swap(order, lo, true, false);
+
+        // attacker's position at the pre-attack price: gave in1 of A and in2 of B, got out1 of B and out2 of A
+        int256 pnlInB = int256(out1) + int256(out2 * p / 1e18) - int256(in1 * p / 1e18) - int256(in2);
+        assertLt(pnlInB, 0, "round trip loses money");
+
+        (uint256 a1, uint256 b1) = _aquaBalances(orderHash);
+        assertGe(a1 * p / 1e18 + b1, a0 * p / 1e18 + b0, "maker's inventory is worth no less at the old price");
+    }
+
+    /// @dev True if the N-curve quote (not the re-priced active quote) was used for amountIn of B.
+    function _virtualQuoteHeld(ISwapVM.Order memory order, bytes32 orderHash, uint256 amountIn)
+        internal
+        returns (bool)
+    {
+        uint256 activeB = router.tideActive(orderHash, address(tokenB));
+        uint256 activeA = router.tideActive(orderHash, address(tokenA));
+        (, uint256 out) = _quote(order, amountIn, true, false);
+        uint256 net = amountIn - TideMath.feeOnInput(amountIn, FEE);
+        return out == TideMath.quoteExactIn(net, activeB, activeA, N);
+    }
+
+    function _tryQuote(ISwapVM.Order memory order, uint256 amount, bool isExactIn, bool isAToB)
+        internal
+        returns (bool ok, uint256 result)
+    {
+        ISwapVM view_ = router.asView();
+        try view_.quote(order, amount, _takerData(isExactIn, isAToB)) returns (uint256, uint256 o, bytes32) {
+            return (true, o);
+        } catch {
+            return (false, 0);
+        }
     }
 
     function test_Params_RevokeManager_BlocksFutureWrites() public {
@@ -306,6 +392,6 @@ contract TideAquaTest is TideAquaBase {
         vm.roll(block.number + 1);
         (uint256 a, uint256 b) = _aquaBalances(orderHash);
         (, uint256 out) = _quote(order, 1e18, true, true);
-        assertEq(out, _xyc(1e18, a * 2500 / BPS, b * 2500 / BPS), "lambda = 0.25 at next block");
+        assertEq(out, _xyc(_net(1e18), a * 2500 / BPS, b * 2500 / BPS), "lambda = 0.25 at next block");
     }
 }
