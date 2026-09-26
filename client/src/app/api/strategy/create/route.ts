@@ -13,6 +13,7 @@ const Body = z.object({
   lambdaBps: z.number().int().min(1).max(10_000),
   n: z.number().int().min(1).max(64),
   deltaBps: z.number().int().min(0).max(4999),
+  feeBps: z.number().int().min(0).max(9999),
   salt: z.string().regex(/^\d+$/),
   description: z.string().max(280).optional(),
 });
@@ -25,7 +26,8 @@ export async function POST(req: Request) {
     if (!validLabel(label)) return NextResponse.json({ error: "invalid label" }, { status: 400 });
     if (!(await labelAvailable(label))) return NextResponse.json({ error: "label taken" }, { status: 409 });
     const [tokenA, tokenB] = SEPOLIA_WETH.toLowerCase() < SEPOLIA_USDC.toLowerCase() ? [SEPOLIA_WETH, SEPOLIA_USDC] : [SEPOLIA_USDC, SEPOLIA_WETH];
-    const strat = await createName({ label, owner: getAddress(b.owner), tokenA, tokenB, salt: BigInt(b.salt), lambdaBps: b.lambdaBps, n: b.n, deltaBps: b.deltaBps, description: b.description });
+    if ((b.n - 1) * b.deltaBps > 2 * b.feeBps) return NextResponse.json({ error: "delta exceeds what the fee backs: (N - 1) * delta must be <= 2 * fee" }, { status: 400 });
+    const strat = await createName({ label, owner: getAddress(b.owner), tokenA, tokenB, salt: BigInt(b.salt), lambdaBps: b.lambdaBps, n: b.n, deltaBps: b.deltaBps, feeBps: b.feeBps, description: b.description });
     addStrategy(strat);
     update((s) => log(s, "info", `named ${strat.name} for ${strat.owner.slice(0, 10)}…, resolver ${strat.resolver}`, undefined, strat.name));
     return NextResponse.json(strat);

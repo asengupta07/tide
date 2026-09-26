@@ -29,7 +29,7 @@ export async function labelAvailable(label: string): Promise<boolean> {
 
 export async function orderHashFor(owner: Address, tokenA: Address, tokenB: Address, salt: bigint): Promise<Hex> {
   const dep = deployment();
-  return (await pc.readContract({ address: dep.tideApp, abi: tideAppAbi, functionName: "orderHash", args: [{ maker: owner, tokenA, tokenB, feeBps: 0, salt }] })) as Hex;
+  return (await pc.readContract({ address: dep.tideApp, abi: tideAppAbi, functionName: "orderHash", args: [{ maker: owner, tokenA, tokenB, salt }] })) as Hex;
 }
 
 export type CreateInput = {
@@ -41,6 +41,7 @@ export type CreateInput = {
   lambdaBps: number;
   n: number;
   deltaBps: number;
+  feeBps: number;
   description?: string;
 };
 
@@ -62,6 +63,7 @@ export async function createName(input: CreateInput): Promise<Strategy> {
     ["lambda", String(input.lambdaBps)],
     ["N", String(input.n)],
     ["delta", String(input.deltaBps)],
+    ["fee", String(input.feeBps)],
     ["strategyHash", orderHash],
     ["venue", "aqua"],
     ["description", input.description ?? `Tide strategy ${name}. Parameters governed by ${process.env.ENS_AGENT_LABEL ?? "manager"}.${PARENT} after owner approval.`],

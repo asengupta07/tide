@@ -38,16 +38,16 @@ async function main() {
 
   const label = `e2e-${Date.now().toString(36)}`;
   const salt = String(Date.now());
-  const lambda = 4000, n = 4, delta = 50;
+  const lambda = 4000, n = 4, delta = 20, fee = 30;
   const weth = parseEther("0.02");
   const usdc = parseUnits("60", 6);
 
   // 1. name (backend, registrar key)
-  const r = await fetch(`${base}/api/strategy/create`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ label, owner: me, lambdaBps: lambda, n, deltaBps: delta, salt }) });
+  const r = await fetch(`${base}/api/strategy/create`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ label, owner: me, lambdaBps: lambda, n, deltaBps: delta, feeBps: fee, salt }) });
   const strat = await r.json();
   if (!r.ok) throw new Error(strat.error);
   console.log(`named ${strat.name}, resolver ${strat.resolver}, orderHash ${strat.orderHash}`);
-  for (const k of ["lambda", "N", "delta", "strategyHash"]) console.log(`  record ${k} = ${await readText(pc, strat.name, k)}`);
+  for (const k of ["lambda", "N", "delta", "fee", "strategyHash"]) console.log(`  record ${k} = ${await readText(pc, strat.name, k)}`);
 
   // 2. fund + approve
   await wait(await user.writeContract({ address: ADDR.weth, abi: erc20Abi, functionName: "deposit", value: weth }), "wrap");
@@ -56,11 +56,11 @@ async function main() {
   await wait(await user.writeContract({ address: ADDR.usdc, abi: erc20Abi, functionName: "approve", args: [ADDR.aqua, 2n ** 256n - 1n] }), "approve usdc");
 
   // 3. params
-  await wait(await user.writeContract({ address: ADDR.tideParams, abi: tideParamsAbi, functionName: "init", args: [strat.orderHash, lambda, n, delta, ADDR.agent] }), "params.init");
+  await wait(await user.writeContract({ address: ADDR.tideParams, abi: tideParamsAbi, functionName: "init", args: [strat.orderHash, lambda, n, delta, fee, ADDR.agent] }), "params.init");
 
   // 4. ship
   const [tokenA, tokenB]: [Address, Address] = ADDR.weth.toLowerCase() < ADDR.usdc.toLowerCase() ? [ADDR.weth, ADDR.usdc] : [ADDR.usdc, ADDR.weth];
-  const order = (await pc.readContract({ address: ADDR.tideApp, abi: tideAppAbi, functionName: "order", args: [{ maker: me, tokenA, tokenB, feeBps: 0, salt: BigInt(salt) }] })) as { maker: Address; traits: bigint; data: Hex };
+  const order = (await pc.readContract({ address: ADDR.tideApp, abi: tideAppAbi, functionName: "order", args: [{ maker: me, tokenA, tokenB, salt: BigInt(salt) }] })) as { maker: Address; traits: bigint; data: Hex };
   const encoded = encodeAbiParameters(ORDER_TUPLE, [{ maker: order.maker, traits: order.traits, data: order.data }]);
   const amounts = tokenA === ADDR.weth ? [weth, usdc] : [usdc, weth];
   await wait(await user.writeContract({ address: ADDR.aqua, abi: aquaAbi, functionName: "ship", args: [ADDR.tideRouter, encoded, [tokenA, tokenB], amounts] }), "aqua.ship");

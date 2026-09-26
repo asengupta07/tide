@@ -28,9 +28,14 @@ const aquaAbi = parseAbi([
 export async function readParams(pc: PublicClient, key: Hex) {
   const dep = deployment();
   const p = (await pc.readContract({ address: dep.tideParams, abi: tideParamsAbi, functionName: "params", args: [key] })) as {
-    lambdaBps: number; n: number; deltaBps: number; owner: Address; manager: Address;
+    lambdaBps: number; n: number; deltaBps: number; feeBps: number; owner: Address; manager: Address;
   };
-  return { lambda: Number(p.lambdaBps), N: Number(p.n), delta: Number(p.deltaBps), owner: p.owner, manager: p.manager };
+  return { lambda: Number(p.lambdaBps), N: Number(p.n), delta: Number(p.deltaBps), fee: Number(p.feeBps), owner: p.owner, manager: p.manager };
+}
+
+/** Largest delta the fee backs at depth N: (N - 1) * delta <= 2 * fee (TideMath.checkParams). */
+export function maxDeltaBps(N: number, feeBps: number) {
+  return N <= 1 ? 4999 : Math.floor((2 * feeBps) / (N - 1));
 }
 
 /** Apply approved values on-chain as the manager agent. Reverts if the agent was revoked. */

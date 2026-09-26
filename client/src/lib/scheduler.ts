@@ -6,7 +6,7 @@
  */
 import { listStrategies } from "./registry";
 import { load, update, log } from "./store";
-import { agentEnabled, currentRecords, lambdaStar, propose } from "./agent";
+import { agentEnabled, currentRecords, deltaStar, lambdaStar, propose, strategyFee } from "./agent";
 import { realisedVolatility } from "./volatility";
 
 type TickInfo = { lastTick?: number; nextTick?: number; sigma?: number; measuredAt?: number; lastResult?: string; running: boolean };
@@ -42,12 +42,16 @@ export async function tick(reason = "schedule"): Promise<string> {
         continue;
       }
       const rec = await currentRecords(s);
-      if (Math.abs(target - rec.lambda) < minMoveBps()) {
-        out.push(`${s.label}: lambda ${rec.lambda} within ${minMoveBps()} bps of lambda* ${target}`);
+      const ds = deltaStar(vol.sigma, await strategyFee(s, rec), rec.N);
+      const lambdaOff = Math.abs(target - rec.lambda) >= minMoveBps();
+      // delta only moves when it leaves a wide band around delta*, so a noisy sigma does not spam proposals
+      const deltaOff = ds.N !== rec.N || rec.delta < 0.75 * ds.delta || rec.delta > 1.5 * ds.delta;
+      if (!lambdaOff && !deltaOff) {
+        out.push(`${s.label}: lambda ${rec.lambda} within ${minMoveBps()} bps of lambda* ${target}, delta ${rec.delta} near delta* ${ds.delta}`);
         continue;
       }
       const p = await propose(s.name, vol.sigma);
-      out.push(`${s.label}: proposed ${p.from.lambda} -> ${p.to.lambda}`);
+      out.push(`${s.label}: proposed lambda ${p.from.lambda} -> ${p.to.lambda}, delta ${p.from.delta} -> ${p.to.delta}`);
     }
     const summary = `σ ${(vol.sigma * 100).toFixed(0)}%, λ* ${target}: ${out.join("; ") || "no strategies"}`;
     update((st) => log(st, "info", `manager check (${reason}): ${summary}`));

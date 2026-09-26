@@ -10,9 +10,9 @@ import { motion, useReducedMotion, AnimatePresence } from "motion/react";
 
 const PHASES = [
   { key: "split", title: "Top of block", body: "λ of the inventory becomes active. The rest is passive: still in the wallet, not quotable." },
-  { key: "first", title: "First fill, informed", body: "The arbitrageur trades on the plain curve over the active slice only. It sees half the vault." },
-  { key: "virtual", title: "Later fills, uninformed", body: "Priced on a curve N times deeper than the active slice. Follow-on traders get a fraction of the slippage." },
-  { key: "guard", title: "Guard", body: "A fill that would move price past δ from the block's anchor is re-priced on the real curve. The deep curve cannot be walked." },
+  { key: "first", title: "First fill, informed", body: "The arbitrageur trades on the plain curve over the active slice only. It sees λ of the vault and pays the fee like everyone else." },
+  { key: "virtual", title: "Later fills, uninformed", body: "Priced on a curve N times deeper than the active slice, inside a δ band around the block's anchor. Follow-on traders get a fraction of the slippage." },
+  { key: "guard", title: "Guard", body: "A fill that would move the virtual price past δ is re-priced on the real curve. And the fee is at least the deep curve's best rebate, (N − 1)·δ / 2, so the curve cannot be farmed by trading against it." },
 ] as const;
 
 const ease = [0.77, 0, 0.175, 1] as const;
@@ -29,7 +29,7 @@ export function BlockAnimation() {
   const lambda = 0.5;
 
   return (
-    <div className="grid gap-8 md:grid-cols-[1.2fr_1fr] md:items-center">
+    <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr] lg:items-center">
       <div className="relative aspect-[4/3] w-full">
         <svg viewBox="0 0 400 300" className="h-full w-full" role="img" aria-label="Animated diagram of one block of Tide">
           {/* inventory bar */}

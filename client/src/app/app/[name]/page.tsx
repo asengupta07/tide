@@ -14,8 +14,8 @@ type Mgr = { sigma: number | null; measuredAt: number | null; ethPrice: number |
 type Snapshot = {
   strategy: { label: string; name: string; owner: string; resolver: string; orderHash: string; tokenA: string; tokenB: string };
   agentEnabled: boolean;
-  records: { name: string; lambda: number; N: number; delta: number; strategyHash: string };
-  onchain: { lambda: number; N: number; delta: number; owner: string; manager: string } | null;
+  records: { name: string; lambda: number; N: number; delta: number; fee?: number; strategyHash: string };
+  onchain: { lambda: number; N: number; delta: number; fee: number; owner: string; manager: string } | null;
   block: { blockNumber: number; active: { weth: string; usdc: string }; total: { weth: string; usdc: string } } | null;
   fills: { block: number; tx: string; taker: string; tokenIn: string; tokenOut: string; amountIn: string; amountOut: string }[];
   proposals: { id: string; status: string; from: { lambda: number; N: number; delta: number }; to: { lambda: number; N: number; delta: number }; reason: string; sigma: number; approvalUrl?: string; blockedReason?: string; txs?: { ens?: string; params?: string }; createdAt: number }[];
@@ -88,7 +88,7 @@ export default function Dashboard() {
   return (
     <>
       <Nav current="app" />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 pb-20 pt-32">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-5 pb-20 pt-28 sm:px-7 sm:pt-32 lg:px-10">
         {!s ? (
           <div className="space-y-4">{[0, 1, 2].map((i) => <div key={i} className="h-40 animate-pulse rounded-3xl bg-white/[0.03]" />)}</div>
         ) : s.error ? (
@@ -104,6 +104,8 @@ export default function Dashboard() {
 function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, advanced, setAdvanced }: { s: Snapshot; mgr: Mgr | null; sigma: number; setSigma: (n: number) => void; propose: () => void; busy: boolean; isOwner: boolean; justShipped: boolean; advanced: boolean; setAdvanced: (b: boolean) => void }) {
   const lambda = s.records.lambda / 100;
   const delta = s.records.delta / 100;
+  const feeBps = s.onchain?.fee ?? s.records.fee ?? 0;
+  const rebate = ((s.records.N - 1) * s.records.delta) / 2; // bps, the deep curve's best price improvement
   const w = { a: num(s.block?.active.weth, 18), t: num(s.block?.total.weth, 18) };
   const u = { a: num(s.block?.active.usdc, 6), t: num(s.block?.total.usdc, 6) };
   const hasSplit = (s.block?.blockNumber ?? 0) > 0;
@@ -141,11 +143,12 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
       {/* Plain-language settings */}
       <section className="mt-10">
         <h2 className="text-lg font-medium">How this strategy trades</h2>
-        <p className="mt-1 text-sm text-fg-3">Three settings, stored on your ENS name. Only you, or the manager with your approval, can change them.</p>
-        <div className="mt-5 grid gap-4 md:grid-cols-3">
+        <p className="mt-1 text-sm text-fg-3">Four settings, stored on your ENS name. The first three can be changed by you, or by the manager with your approval. Only you can change the fee.</p>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Setting big={`${lambda}%`} title="of your inventory is visible per block" body={`Arbitrage bots can only ever trade against ${lambda}% of your tokens in any block. The other ${100 - lambda}% is invisible to them until the next block.`} />
           <Setting big={`${s.records.N}×`} title="deeper prices for normal traders" body={`After the block's first trade, regular traders are quoted as if your pool were ${s.records.N} times larger, so they pay far less slippage.`} />
-          <Setting big={`${delta}%`} title="safety limit on the deep price" body={`If a trade would move the price more than ${delta}% from where the block started, it is quoted on the normal curve instead. The deep curve cannot be drained.`} />
+          <Setting big={`${delta}%`} title="band for the deep price" body={`The deep curve only serves trades that keep the price within ${delta}% of where the block's first trade left it. Anything bigger is quoted on the normal curve.`} />
+          <Setting big={`${feeBps / 100}%`} title="fee on every trade" body={`Paid by the trader, kept in your inventory. It also backs the deep curve: the most that curve can improve a price, ${rebate / 100}% here, never exceeds the fee, so nobody can farm it.`} />
         </div>
         {syncing && <div className="mt-3 text-xs text-warn">A parameter change is still being applied on-chain.</div>}
       </section>
@@ -177,7 +180,7 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
         </p>
 
         {s.agentEnabled && (
-          <div className="mt-5 grid gap-4 md:grid-cols-[1fr_1.3fr]">
+          <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_1.3fr]">
             <Bezel small>
               <div className="relative overflow-hidden rounded-[calc(1rem-0.25rem)] p-5">
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 opacity-30">
@@ -238,10 +241,13 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
                       <div className="text-sm">
                         <span className="font-medium">{dir === "keep" ? "Keep visibility at" : `${dir[0].toUpperCase()}${dir.slice(1)} of your inventory:`}</span>{" "}
                         <span className="num">{p.from.lambda / 100}% → {p.to.lambda / 100}%</span>
+                        {(p.to.N !== p.from.N || p.to.delta !== p.from.delta) && (
+                          <span className="num text-fg-3"> · deep curve {p.from.N}× within {p.from.delta / 100}% → {p.to.N}× within {p.to.delta / 100}%</span>
+                        )}
                       </div>
                       <Status s={p.status} />
                     </div>
-                    <p className="mt-2 text-sm text-fg-2">{humanReason(p.sigma, p.to.lambda, p.from.lambda)}</p>
+                    <p className="mt-2 text-sm text-fg-2">{humanReason(p.sigma, p.to.lambda, p.from.lambda)}{p.to.delta !== p.from.delta && ` The deep-curve band moves to ${p.to.delta / 100}%: about three one-block price moves at this volatility, so a stale first trade gives nobody an edge, and no more than the fee can back.`}</p>
                     <div className="mt-2 text-xs text-fg-3">{STATUS_TEXT[p.status] ?? p.status} · {ago(p.createdAt)}</div>
                     {p.status === "pending" && p.approvalUrl && isOwner && (
                       <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -279,7 +285,7 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
                   const a = inW ? `${fmt(num(f.amountIn, 18), 4)} WETH` : `${fmt(num(f.amountIn, 6))} USDC`;
                   const b = inW ? `${fmt(num(f.amountOut, 6))} USDC` : `${fmt(num(f.amountOut, 18), 4)} WETH`;
                   return (
-                    <li key={f.tx} className="flex items-center justify-between gap-4 px-5 py-3 text-sm">
+                    <li key={f.tx} className="flex flex-col items-start justify-between gap-1 px-5 py-3 text-sm sm:flex-row sm:items-center sm:gap-4">
                       <span>
                         A trader sold <span className="num">{a}</span> and received <span className="num">{b}</span> from you
                       </span>

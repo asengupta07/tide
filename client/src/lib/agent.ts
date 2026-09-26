@@ -12,7 +12,7 @@ import { publicClient, walletClient, readText, setTextCalldata, resolverAbi, can
 import { GOVERNED_KEYS } from "./ens/config";
 import { beginAuth, completeAuth, WorldAuthError, type AuthRequest } from "./world";
 import { load, save, update, log, expireStale, type Proposal, type State } from "./store";
-import { applyParams, readParams } from "./tide";
+import { applyParams, readParams, maxDeltaBps } from "./tide";
 import { getStrategy, listStrategies, type Strategy } from "./registry";
 
 type Frontier = { kappa: number; fee: number; curves: { sigma: number; lambda_star: number; lambda_star_bps: number }[] };
@@ -38,8 +38,33 @@ export function lambdaStar(sigma: number): number {
 
 export async function currentRecords(s: Strategy) {
   const pc = publicClient();
-  const [lambda, N, delta, strategyHash] = await Promise.all(["lambda", "N", "delta", "strategyHash"].map((k) => readText(pc, s.name, k)));
-  return { name: s.name, lambda: Number(lambda), N: Number(N), delta: Number(delta), strategyHash: (strategyHash || s.orderHash) as Hex };
+  const [lambda, N, delta, fee, strategyHash] = await Promise.all(["lambda", "N", "delta", "fee", "strategyHash"].map((k) => readText(pc, s.name, k)));
+  return { name: s.name, lambda: Number(lambda), N: Number(N), delta: Number(delta), fee: fee ? Number(fee) : undefined, strategyHash: (strategyHash || s.orderHash) as Hex };
+}
+
+const BLOCK_SECONDS = 12;
+
+/** One-block price move, sigma * sqrt(dt), in bps. About 3.7 bps at 60% annualised volatility. */
+export function blockMoveBps(sigma: number) {
+  return sigma * Math.sqrt(BLOCK_SECONDS / (365 * 86400)) * 1e4;
+}
+
+/**
+ * delta* and the depth it fits. Target: three one-block moves, so an anchor set by a dust first fill sits
+ * within noise of the true price and the deep curve gives a follower no edge. Cap: what the fee backs at
+ * depth N, (N - 1) * delta <= 2 * fee. If the cap is below the target, lower N until it fits.
+ */
+export function deltaStar(sigma: number, feeBps: number, N: number): { N: number; delta: number } {
+  const target = Math.max(1, Math.ceil(3 * blockMoveBps(sigma)));
+  let n = Math.max(1, N);
+  while (n > 1 && maxDeltaBps(n, feeBps) < target) n--;
+  return { N: n, delta: n <= 1 ? target : Math.min(target, maxDeltaBps(n, feeBps)) };
+}
+
+/** The strategy's fee in bps: on-chain first, the ENS record as fallback. */
+export async function strategyFee(s: Strategy, rec?: { fee?: number }): Promise<number> {
+  const onchain = await readParams(publicClient(), s.orderHash).catch(() => null);
+  return onchain?.fee ?? rec?.fee ?? 30;
 }
 
 /** Is the agent currently delegated on this strategy (all three keys)? */
@@ -56,13 +81,20 @@ export async function propose(strategyName: string, sigma: number, overrides?: P
   if (!strat) throw new Error(`unknown strategy ${strategyName}`);
   if (!(await agentEnabled(strat))) throw new Error("the manager agent is not enabled on this strategy");
   const rec = await currentRecords(strat);
+  const fee = await strategyFee(strat, rec);
   const lambda = lambdaStar(sigma);
-  const to = { lambda, N: overrides?.N ?? rec.N, delta: overrides?.delta ?? rec.delta };
+  const ds = deltaStar(sigma, fee, overrides?.N ?? rec.N);
+  const N = overrides?.N ?? ds.N;
+  const delta = overrides?.delta ?? Math.min(ds.delta, maxDeltaBps(N, fee));
+  const to = { lambda, N, delta };
   const from = { lambda: rec.lambda, N: rec.N, delta: rec.delta };
   const direction = to.lambda < from.lambda ? "down" : to.lambda > from.lambda ? "up" : "unchanged";
   const reason =
     `realised volatility ${(sigma * 100).toFixed(0)}% -> frontier lambda* = ${(lambda / 100).toFixed(0)}%; ` +
-    (direction === "down" ? "expose less inventory per block to cut LVR" : direction === "up" ? "expose more inventory per block; fee income outweighs LVR at this volatility" : "no change needed");
+    (direction === "down" ? "expose less inventory per block to cut LVR" : direction === "up" ? "expose more inventory per block; fee income outweighs LVR at this volatility" : "no change needed") +
+    (to.delta !== from.delta || to.N !== from.N
+      ? `; delta ${from.delta} -> ${to.delta} bps (three one-block moves of ${blockMoveBps(sigma).toFixed(1)} bps, capped at ${maxDeltaBps(N, fee)} bps by the ${fee} bp fee at ${N}x)`
+      : "");
 
   const id = randomBytes(6).toString("hex");
   const { request, url } = await beginAuth("stepup", { proposalId: id, owner: strat.owner });

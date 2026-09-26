@@ -7,9 +7,9 @@ import { BlockAnimation } from "@/components/BlockAnimation";
 import { WealthChart } from "@/components/WealthChart";
 
 const ADDR = {
-  router: "0x9A5883AA2068a133779cdaEB2b67Cc22f16b85B3",
-  params: "0xeDb9BC901D74382170CE603b23aFB5FD43d28176",
-  hook: "0x45DbC91351767e2C801623C87FbD88eA2Bc36A88",
+  router: "0xfDD5a4E385cc5082d1be12F215fa696a3c4B0957",
+  params: "0x4608489C117E0719dD5cd88B58ED172A048344FF",
+  hook: "0xEcbF515eEd6006270210db1c9bfcA1dB3AD1AA88",
   aqua: "0x1111113CCf1426A8E30e2bfF5E005d929bF6a90a",
 };
 const short = (h: string) => `${h.slice(0, 6)}…${h.slice(-4)}`;
@@ -26,8 +26,8 @@ export default function Landing() {
             <TideWater />
           </div>
           <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_20%_40%,rgba(11,15,20,0.96)_0%,rgba(11,15,20,0.75)_45%,rgba(11,15,20,0.15)_100%)]" />
-          <div className="relative mx-auto grid min-h-[100dvh] max-w-7xl items-center gap-14 px-6 pb-20 pt-32 md:grid-cols-12 md:pt-24">
-            <div className="md:col-span-7">
+          <div className="relative mx-auto grid min-h-[100dvh] max-w-7xl items-center gap-12 px-5 pb-16 pt-28 sm:px-7 sm:pb-20 sm:pt-32 lg:grid-cols-12 lg:gap-16 lg:px-10 lg:pt-28">
+            <div className="lg:col-span-7">
               <h1 className="rise max-w-[17ch] text-[2.75rem] font-semibold leading-[1.02] tracking-[-0.03em] md:text-6xl lg:text-7xl">
                 Never show the whole vault.
               </h1>
@@ -39,14 +39,14 @@ export default function Landing() {
                 <Pill href="/WHITEPAPER.pdf" variant="ghost" external>Read the whitepaper</Pill>
               </div>
             </div>
-            <div className="rise rise-3 md:col-span-5">
+            <div className="rise rise-3 lg:col-span-5">
               <LiveSplit />
             </div>
           </div>
         </section>
 
         {/* The problem, one sentence */}
-        <section className="mx-auto max-w-7xl px-6 py-28 md:py-36">
+        <section className="mx-auto max-w-7xl px-5 py-24 sm:px-7 md:py-32 lg:px-10 lg:py-36">
           <Reveal>
             <p className="max-w-[26ch] text-3xl font-medium leading-[1.15] tracking-tight md:text-5xl">
               The first trade of every block is a robbery at yesterday&apos;s price.
@@ -58,7 +58,7 @@ export default function Landing() {
         </section>
 
         {/* Mechanism: animated block, dither texture in the bezel */}
-        <section id="mechanism" className="mx-auto max-w-7xl px-6 pb-28 md:pb-36">
+        <section id="mechanism" className="mx-auto max-w-7xl px-5 pb-24 sm:px-7 md:pb-32 lg:px-10 lg:pb-36">
           <Reveal>
             <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">One block of Tide</h2>
           </Reveal>
@@ -84,15 +84,15 @@ export default function Landing() {
 
         {/* Results */}
         <section id="results" className="border-t border-line">
-          <div className="mx-auto grid max-w-7xl items-center gap-14 px-6 py-28 md:grid-cols-12 md:py-36">
-            <Reveal className="md:col-span-7">
+          <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-24 sm:px-7 md:py-32 lg:grid-cols-12 lg:gap-16 lg:px-10 lg:py-36">
+            <Reveal className="lg:col-span-7">
               <Bezel>
                 <div className="p-5 md:p-7">
                   <WealthChart />
                 </div>
               </Bezel>
             </Reveal>
-            <div className="grid gap-12 md:col-span-5 md:pl-6">
+            <div className="grid gap-10 sm:grid-cols-3 lg:col-span-5 lg:grid-cols-1 lg:gap-12 lg:pl-6">
               <Reveal><Stat value="33%" label="less arbitrage loss at λ = 0.5" sub="43% at λ = 0.25. Closed form 1/(2 − λ); a 10,000-path simulation agrees to three digits." /></Reveal>
               <Reveal delay={0.08}><Stat value="3.97×" label="less slippage for follow-on trades at N = 4" sub="Trade of 1% of active reserves." /></Reveal>
               <Reveal delay={0.16}><Stat value="+33k" label="gas per fill over a plain constant-product fill" sub="Three parameter reads and one guard. Cacheable per block." /></Reveal>
@@ -106,13 +106,13 @@ export default function Landing() {
             <GrainBand />
           </div>
           <div className="absolute inset-0 bg-[linear-gradient(180deg,var(--bg)_0%,rgba(11,15,20,0.55)_35%,rgba(11,15,20,0.55)_65%,var(--bg)_100%)]" />
-          <div className="relative mx-auto max-w-7xl px-6 py-28 md:py-36">
+          <div className="relative mx-auto max-w-7xl px-5 py-24 sm:px-7 md:py-32 lg:px-10 lg:py-36">
             <Reveal>
               <h2 className="max-w-[22ch] text-3xl font-semibold tracking-tight md:text-5xl">The knobs are ENS records. The hand on them is a human.</h2>
             </Reveal>
             <Reveal delay={0.1} className="mt-14">
               <Bezel>
-                <div className="grid-lines grid md:grid-cols-4">
+                <div className="grid-lines grid lg:grid-cols-4">
                   {[
                     [TextAa, "eth-usdc.tide.eth", "λ, N and δ are text records on an ENSv2 name. Anyone can read them. The contracts read them."],
                     [Key, "manager.tide.eth", "The manager has its own name and an access-control role for exactly three keys. It cannot touch anything else."],
@@ -135,7 +135,7 @@ export default function Landing() {
         </section>
 
         {/* Live */}
-        <section id="live" className="mx-auto max-w-7xl px-6 py-28 md:py-36">
+        <section id="live" className="mx-auto max-w-7xl px-5 py-24 sm:px-7 md:py-32 lg:px-10 lg:py-36">
           <Reveal>
             <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">On-chain, now</h2>
             <p className="mt-5 max-w-[58ch] text-lg leading-relaxed text-fg-2">Shipped through the official Aqua registry, filled by a resolver, swapped through the v4 hook. Every record written and read on-chain.</p>
@@ -169,7 +169,7 @@ export default function Landing() {
       </main>
 
       <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-10 text-sm text-fg-3">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-10 text-sm text-fg-3 sm:px-7 lg:px-10">
           <div>Tide. Built on arXiv 2602.09887 and 2605.19267.</div>
           <div className="flex gap-6">
             <a className="transition-colors hover:text-fg" href="https://github.com/asengupta07/tide">GitHub</a>

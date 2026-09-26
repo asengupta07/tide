@@ -22,6 +22,9 @@ import { ADDR, erc20Abi, aquaAbi, tideParamsAbi, tideAppAbi, resolverAbi, ORDER_
 type Step = "idle" | "running" | "done" | "error";
 const PARENT = "tide.eth";
 
+/** (N - 1) * delta <= 2 * fee, the on-chain parameter box. */
+const maxDelta = (n: number, fee: number) => (n <= 1 ? 500 : Math.min(500, Math.floor((2 * fee) / (n - 1))));
+
 export default function NewStrategy() {
   const { address, isConnected } = useAccount();
   const pc = usePublicClient();
@@ -32,7 +35,8 @@ export default function NewStrategy() {
   const [avail, setAvail] = useState<{ available: boolean; reason?: string } | null>(null);
   const [lambda, setLambda] = useState(5000);
   const [n, setN] = useState(4);
-  const [delta, setDelta] = useState(50);
+  const [delta, setDelta] = useState(20);
+  const [fee, setFee] = useState(30);
   const [weth, setWeth] = useState("0.1");
   const [usdc, setUsdc] = useState("300");
   const [enableAgent, setEnableAgent] = useState(true);
@@ -75,7 +79,7 @@ export default function NewStrategy() {
       let s = strat;
       if (!s) {
         await run("name", async () => {
-          const r = await fetch("/api/strategy/create", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ label, owner: address, lambdaBps: lambda, n, deltaBps: delta, salt }) });
+          const r = await fetch("/api/strategy/create", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ label, owner: address, lambdaBps: lambda, n, deltaBps: delta, feeBps: fee, salt }) });
           const j = await r.json();
           if (!r.ok) throw new Error(j.error);
           s = { name: j.name, orderHash: j.orderHash, resolver: j.resolver, label: j.label };
@@ -108,7 +112,7 @@ export default function NewStrategy() {
       await run("params", async () => {
         const p = (await pc.readContract({ address: ADDR.tideParams, abi: tideParamsAbi, functionName: "params", args: [s!.orderHash] })) as { owner: Address };
         if (p.owner !== "0x0000000000000000000000000000000000000000") return;
-        return wait(await writeContractAsync({ address: ADDR.tideParams, abi: tideParamsAbi, functionName: "init", args: [s!.orderHash, lambda, n, delta, enableAgent ? ADDR.agent : "0x0000000000000000000000000000000000000000"] }));
+        return wait(await writeContractAsync({ address: ADDR.tideParams, abi: tideParamsAbi, functionName: "init", args: [s!.orderHash, lambda, n, delta, fee, enableAgent ? ADDR.agent : "0x0000000000000000000000000000000000000000"] }));
       });
 
       // 4. ship
@@ -116,7 +120,7 @@ export default function NewStrategy() {
         const [tokenA, tokenB] = tokensSorted();
         const [bal] = (await pc.readContract({ address: ADDR.aqua, abi: aquaAbi, functionName: "rawBalances", args: [address, ADDR.tideRouter, s!.orderHash, tokenA] })) as [bigint, number];
         if (bal > 0n) return;
-        const order = (await pc.readContract({ address: ADDR.tideApp, abi: tideAppAbi, functionName: "order", args: [{ maker: address, tokenA, tokenB, feeBps: 0, salt: BigInt(salt) }] })) as { maker: Address; traits: bigint; data: Hex };
+        const order = (await pc.readContract({ address: ADDR.tideApp, abi: tideAppAbi, functionName: "order", args: [{ maker: address, tokenA, tokenB, salt: BigInt(salt) }] })) as { maker: Address; traits: bigint; data: Hex };
         const encoded = encodeAbiParameters(ORDER_TUPLE, [{ maker: order.maker, traits: order.traits, data: order.data }]);
         const amounts = tokenA === ADDR.weth ? [wethAmt, usdcAmt] : [usdcAmt, wethAmt];
         return wait(await writeContractAsync({ address: ADDR.aqua, abi: aquaAbi, functionName: "ship", args: [ADDR.tideRouter, encoded, [tokenA, tokenB], amounts] }));
@@ -145,17 +149,17 @@ export default function NewStrategy() {
   return (
     <>
       <Nav current="app" />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 pb-20 pt-32">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-5 pb-20 pt-28 sm:px-7 sm:pt-32 lg:px-10">
         <h1 className="text-4xl font-semibold tracking-tight">New strategy</h1>
         <p className="mt-2 max-w-[56ch] text-fg-2">Name it, choose how much of your inventory a block may see, ship. Your tokens stay in your wallet; Aqua pulls only at fill time.</p>
 
         {!isConnected && (
-          <div className="mt-10 flex items-center gap-4 rounded-3xl border border-dashed border-white/10 p-6 text-sm text-fg-2">
+          <div className="mt-10 flex flex-col items-start gap-4 rounded-2xl border border-dashed border-white/10 p-6 text-sm text-fg-2 sm:flex-row sm:items-center">
             Connect a wallet to begin. <WalletButton size="md" />
           </div>
         )}
 
-        <div className="mt-10 grid gap-6 md:grid-cols-[1.2fr_1fr]">
+        <div className="mt-10 grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
           <Bezel>
             <div className="space-y-8 p-6 md:p-8">
               <Field label="Name" hint={avail ? (avail.available ? `${label}.${PARENT} is free` : avail.reason ?? "taken") : `becomes <label>.${PARENT}, owned by your wallet`} ok={avail?.available}>
@@ -168,16 +172,19 @@ export default function NewStrategy() {
               <Field label={`λ, inventory exposed per block: ${lambda / 100}%`} hint="lower cuts arbitrage loss, raises drift. The frontier suggests 50% at 60% volatility.">
                 <input type="range" min={500} max={10000} step={100} value={lambda} onChange={(e) => setLambda(Number(e.target.value))} className="w-full" />
               </Field>
-              <div className="grid grid-cols-2 gap-4">
-                <Field label={`N, virtual depth: ${n}×`} hint="follow-on trades see a pool N times deeper">
-                  <input type="range" min={1} max={16} step={1} value={n} onChange={(e) => setN(Number(e.target.value))} className="w-full" />
+              <div className="grid gap-5 sm:grid-cols-3">
+                <Field label={`Fee: ${fee / 100}%`} hint="on every trade; it is what backs the deep curve">
+                  <input type="range" min={1} max={100} step={1} value={fee} onChange={(e) => { const f = Number(e.target.value); setFee(f); setDelta((d) => Math.min(d, maxDelta(n, f))); }} className="w-full" />
                 </Field>
-                <Field label={`δ, drift bound: ${delta / 100}%`} hint="max price move the deep curve honours">
-                  <input type="range" min={10} max={500} step={10} value={delta} onChange={(e) => setDelta(Number(e.target.value))} className="w-full" />
+                <Field label={`N, virtual depth: ${n}×`} hint="follow-on trades see a pool N times deeper">
+                  <input type="range" min={1} max={16} step={1} value={n} onChange={(e) => { const v = Number(e.target.value); setN(v); setDelta((d) => Math.min(d, maxDelta(v, fee))); }} className="w-full" />
+                </Field>
+                <Field label={`δ, drift bound: ${delta / 100}%`} hint={`max price move the deep curve honours; the fee backs up to ${maxDelta(n, fee) / 100}% at ${n}×`}>
+                  <input type="range" min={1} max={Math.max(1, maxDelta(n, fee))} step={1} value={delta} onChange={(e) => setDelta(Number(e.target.value))} className="w-full" />
                 </Field>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="WETH inventory" hint="wrapped from ETH if short">
                   <input value={weth} onChange={(e) => setWeth(e.target.value)} className="num w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 outline-none focus:border-accent" />
                 </Field>

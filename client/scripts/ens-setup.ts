@@ -5,7 +5,7 @@
  *      subregistry of `tide.eth` in the ETHRegistry
  *   2. deploy one PermissionedResolver proxy per subname (strategy name, agent name)
  *   3. register `eth-usdc.tide.eth` (owner) and `manager.tide.eth` (agent, ENSIP-26 agent name)
- *   4. write the strategy records lambda / N / delta / strategyHash / venue
+ *   4. write the strategy records lambda / N / delta / fee / strategyHash / venue
  *   5. grant the agent ROLE_SET_TEXT scoped to exactly lambda, N and delta via grantSetterRoles
  *   6. verify through the Universal Resolver and record everything in client/data/ens.json
  *
@@ -113,7 +113,7 @@ async function strategyHashFromChain(): Promise<Hex> {
     address: getAddress(dep.tideApp),
     abi: tideAppAbi,
     functionName: "orderHash",
-    args: [{ maker: OWNER.account.address, tokenA, tokenB, feeBps: 0, salt: 1n }],
+    args: [{ maker: OWNER.account.address, tokenA, tokenB, salt: 1n }],
   })) as Hex;
 }
 
@@ -229,7 +229,8 @@ async function main() {
   const records: [string, string][] = [
     ["lambda", process.env.TIDE_LAMBDA_BPS ?? "5000"],
     ["N", process.env.TIDE_N ?? "4"],
-    ["delta", process.env.TIDE_DELTA_BPS ?? "50"],
+    ["delta", process.env.TIDE_DELTA_BPS ?? "20"],
+    ["fee", process.env.TIDE_FEE_BPS ?? "30"],
     ["strategyHash", state.strategyHash],
     ["venue", "aqua:sepolia"],
     ["description", "Tide partially-active AMM strategy, ETH/USDC. Parameters governed by manager.tide.eth"],
