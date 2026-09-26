@@ -139,9 +139,11 @@ export default function Landing() {
             <Bezel>
               <div className="grid-lines grid md:grid-cols-2">
                 {[
-                  ["TideRouter", "redeployed AquaSwapVMRouter with the three opcodes", ADDR.tideRouter],
-                  ["TideHook", "Uniswap v4 hook, same math", ADDR.tideHook],
-                  ["TideParams", "governed λ, N, δ; owner or manager only", ADDR.tideParams],
+                  ["TideRouter", "1inch SwapVM router with the three Tide opcodes", ADDR.tideRouter],
+                  ["TideHook", "Uniswap v4 hook, same math, same fills", ADDR.tideHook],
+                  ["TideApp", "Aqua app: ships a strategy as an order the maker still holds", ADDR.tideApp],
+                  ["TideTaker", "quote and fill any strategy from a wallet in one call", ADDR.tideTaker],
+                  ["TideParams", "λ, N, δ, fee and the owner's guardrails, per strategy", ADDR.tideParams],
                   ["Aqua registry", "official 1inch, inventory never leaves the wallet", ADDR.aqua],
                 ].map(([n, d, a]) => (
                   <a key={a} href={scan(a)} className="group flex items-center justify-between gap-6 p-6 transition-colors duration-300 hover:bg-white/[0.03] md:p-7">
