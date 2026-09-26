@@ -13,6 +13,8 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
 - `/trade` is now the dedicated Tide-only trader venue: pick a strategy, compare the live router quote
   against a same-inventory constant-product pool, and swap only from a non-owner wallet. The LP dashboard
   is explicitly for liquidity management; owners see quote previews but cannot fill their own strategy.
+  Traders also get ETH/USD candles with the selected strategy's fills and a live Tide-vs-plain price-impact
+  chart by order size.
   The market list excludes uninitialized or empty test strategies, and stale quote links fall back to a
   funded market instead of exposing a raw contract revert.
 
