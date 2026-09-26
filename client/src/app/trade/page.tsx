@@ -6,9 +6,12 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle, Waves } from "@phosphor-icons/react";
 
 import { TradePanel } from "@/components/TradePanel";
+import { CandleChart } from "@/components/CandleChart";
+import { ImpactCurve } from "@/components/ImpactCurve";
 import { Bezel, Nav } from "@/components/ui";
 import { isTradeReady } from "@/lib/trade-readiness";
 import { short } from "@/lib/chain";
+import { ADDR, short } from "@/lib/chain";
 
 type StrategyRow = {
   label: string;
@@ -31,6 +34,14 @@ type TradeSnapshot = {
   block: {
     total: { weth: string; usdc: string };
   } | null;
+  fills: {
+    block: number;
+    at: number | null;
+    tokenIn: string;
+    amountIn: string;
+    amountOut: string;
+    tx: string;
+  }[];
   stale?: boolean;
   error?: string;
 };
@@ -213,6 +224,42 @@ function TradeMarket() {
             </div>
           </div>
         </div>
+
+        {activeSnapshot && (
+          <section className="mt-10">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-medium">Market context</h2>
+                <p className="mt-1 text-sm text-fg-3">Price history, this strategy&apos;s fills, and the execution curve behind the live quote.</p>
+              </div>
+              <span className="text-xs text-fg-3">Live reserves · fee excluded from impact curves</span>
+            </div>
+            <div className="mt-5 grid gap-5 xl:grid-cols-[1.45fr_1fr] [&>*]:min-w-0">
+              <Bezel small>
+                <div className="min-w-0 overflow-hidden p-5">
+                  <CandleChart fills={activeSnapshot.fills} weth={ADDR.weth} />
+                </div>
+              </Bezel>
+              <Bezel small>
+                <div className="p-5">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <div className="text-sm font-medium">WETH → USDC price impact</div>
+                    <span className="text-xs text-fg-3">by order size</span>
+                  </div>
+                  <div className="mt-4">
+                    <ImpactCurve
+                      totalIn={totals.weth}
+                      totalOut={totals.usdc}
+                      lambda={activeSnapshot.records.lambda / 10_000}
+                      N={activeSnapshot.records.N}
+                      deltaBps={activeSnapshot.records.delta}
+                    />
+                  </div>
+                </div>
+              </Bezel>
+            </div>
+          </section>
+        )}
       </main>
     </>
   );

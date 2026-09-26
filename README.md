@@ -148,3 +148,13 @@ research/    tide_math.py (vectors), frontier.py, sim.py, figures, JSON outputs
 docs/        idea brief, world-debrief.md, DEPLOYMENT.md (redeploy, World client, public host), whitepaper source
 CHANGELOG.md dated log of what changed and why
 ```
+
+## Strategy sharing and templates
+
+`/app` shows only the connected wallet’s strategies. Existing and new strategies are unlisted by default; no migration publishes them. Unlisted is a discovery preference: on-chain and ENS data, and direct strategy dashboard links, remain public.
+
+Owners can publish or unpublish a live strategy or a reusable template from the sharing panel on its dashboard. `/app/explore` lists only explicitly published entries. Shared live strategies open the separate `/trade` experience, whose market list also includes only published live strategies. Direct trading links still work for unlisted strategies; templates alone never publish a live market. Templates save parameters and manager guardrails as a snapshot; they do not follow later strategy changes. Publishing a new snapshot updates the template explicitly. Unpublishing prevents future discovery and template retrieval, but cannot recall copies already loaded or created.
+
+Using a template opens the creation wizard with a review step. The new owner supplies their own name and inventory, signs their own transactions, and applies the saved guardrails. Manager delegation defaults off and must be explicitly enabled. The current wizard supports the deployed Sepolia WETH/USDC pair.
+
+Publication metadata is stored separately in MongoDB’s `publications` collection so strategy reindexing does not reset sharing preferences. Publishing signatures bind the full payload, strategy label, timestamp, and revision; atomic revision checks reject stale or replayed changes. Restart the app after upgrading so MongoDB initializes the publication indexes. Run `cd client && pnpm exec tsx scripts/test-sharing.ts` for validation and signature integrity, and `pnpm exec tsx scripts/test-sharing-api.ts` for the publish/unpublish lifecycle against isolated test storage.
