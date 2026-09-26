@@ -5,6 +5,11 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
 
 ## Sep 26, 2026 (evening)
 
+**Whitepaper v0.2**
+- Rewritten shorter (six pages): abstract, model, mechanism, three propositions (steady-state LVR,
+  virtual depth and solvency, the fee-rebate bound), frontier, simulation, implementation, governance,
+  limitations. Event and sponsor material removed; figure titles neutralised.
+
 **Bind needs the wallet's signature**
 - `/api/world/bind` accepted any `?owner=`: anyone could bind their World ID to another owner's strategy
   and approve its proposals. Now the owner's wallet signs `Tide: bind World ID to <owner> at <ts>`
