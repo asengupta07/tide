@@ -2,20 +2,20 @@
  * On-chain side of a Tide strategy on Sepolia: TideParams (governed values the SwapVM program and the
  * v4 hook read), the router's block state, Aqua balances and fill events.
  */
-import fs from "node:fs";
-import path from "node:path";
 import { createPublicClient, getAddress, http, parseAbi, parseAbiItem, type Address, type Hex, type PublicClient } from "viem";
 import { sepolia } from "viem/chains";
 
 import tideParamsAbi from "@/abi/tide/TideParams.json";
 import tideRouterAbi from "@/abi/tide/TideRouter.json";
+import deploymentJson from "@/data/deployment.11155111.json";
 import { walletClient } from "./ens/client";
 
 export type Deployment = { chainId: number; aqua: Address; weth: Address; tideParams: Address; tideRouter: Address; tideApp: Address };
 
+/** Addresses from `src/data/deployment.11155111.json`, a copy of `contracts/deployments/11155111.json` kept by
+ *  `pnpm sync:contracts`. Bundled, so it works on hosts that only ship `client/`. */
 export function deployment(): Deployment {
-  const p = path.join(process.cwd(), "..", "contracts", "deployments", "11155111.json");
-  const d = JSON.parse(fs.readFileSync(p, "utf8"));
+  const d = deploymentJson;
   return { ...d, aqua: getAddress(d.aqua), weth: getAddress(d.weth), tideParams: getAddress(d.tideParams), tideRouter: getAddress(d.tideRouter), tideApp: getAddress(d.tideApp) };
 }
 
@@ -92,18 +92,11 @@ const swappedEvent = parseAbiItem(
   "event Swapped(bytes32 orderHash, address maker, address taker, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut)",
 );
 
-/** Router deployment block: written to deployments/11155111.json by Deploy.s.sol; broadcast file as fallback. */
+/** Router deployment block, written to the deployments JSON by Deploy.s.sol. */
 function deployBlock(): bigint {
-  try {
-    const d = JSON.parse(fs.readFileSync(path.join(process.cwd(), "..", "contracts", "deployments", "11155111.json"), "utf8"));
-    if (d.deployBlock) return BigInt(d.deployBlock);
-  } catch {}
-  try {
-    const p = path.join(process.cwd(), "..", "contracts", "broadcast", "Deploy.s.sol", "11155111", "run-latest.json");
-    const b = JSON.parse(fs.readFileSync(p, "utf8")).receipts?.[0]?.blockNumber;
-    if (b) return BigInt(b);
-  } catch {}
-  throw new Error("router deploy block unknown: add deployBlock to contracts/deployments/11155111.json");
+  const b = (deploymentJson as { deployBlock?: number }).deployBlock;
+  if (!b) throw new Error("router deploy block unknown: add deployBlock to contracts/deployments/11155111.json and run pnpm sync:contracts");
+  return BigInt(b);
 }
 
 /** Public nodes cap eth_getLogs ranges (publicnode: 50,000 blocks); scan in chunks. */

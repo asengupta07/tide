@@ -41,7 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 # runtime state (proposals, agent log, ens state)
-data/
+/data/
 !data/.gitkeep
 
 # next dev --experimental-https

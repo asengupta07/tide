@@ -1,0 +1,5433 @@
+{
+  "kappa": 0.016000917197529253,
+  "fee": 0.0001,
+  "block_seconds": 12,
+  "lvr_model": "sigma^2/8/(2-lambda)",
+  "curves": [
+    {
+      "sigma": 0.2,
+      "lambda_star": 1.0,
+      "lambda_star_bps": 10000,
+      "rows": [
+        {
+          "lambda": 0.05,
+          "lambda_bps": 500,
+          "lvr_per_year": 0.0025641025641025645,
+          "fees_per_year": 0.00032336480577109083,
+          "tracking_error": 0.024320855192277828,
+          "objective": 0.0026298937484362105
+        },
+        {
+          "lambda": 0.06,
+          "lambda_bps": 600,
+          "lvr_per_year": 0.0025773195876288664,
+          "fees_per_year": 0.00038803776692530894,
+          "tracking_error": 0.0203789193085118,
+          "objective": 0.0025153632211341852
+        },
+        {
+          "lambda": 0.07,
+          "lambda_bps": 700,
+          "lvr_per_year": 0.002590673575129534,
+          "fees_per_year": 0.00045271072807952716,
+          "tracking_error": 0.017565339497822945,
+          "objective": 0.0024190243899011622
+        },
+        {
+          "lambda": 0.08,
+          "lambda_bps": 800,
+          "lvr_per_year": 0.0026041666666666674,
+          "fees_per_year": 0.0005173836892337453,
+          "tracking_error": 0.015456069244686257,
+          "objective": 0.0023340942616164252
+        },
+        {
+          "lambda": 0.09,
+          "lambda_bps": 900,
+          "lvr_per_year": 0.0026178010471204194,
+          "fees_per_year": 0.0005820566503879634,
+          "tracking_error": 0.01381622587790977,
+          "objective": 0.002256816682987251
+        },
+        {
+          "lambda": 0.1,
+          "lambda_bps": 1000,
+          "lvr_per_year": 0.002631578947368422,
+          "fees_per_year": 0.0006467296115421817,
+          "tracking_error": 0.012505021455466185,
+          "objective": 0.002184941148688482
+        },
+        {
+          "lambda": 0.11,
+          "lambda_bps": 1100,
+          "lvr_per_year": 0.0026455026455026462,
+          "fees_per_year": 0.0007114025726963997,
+          "tracking_error": 0.011432880711621402,
+          "objective": 0.00211703665040213
+        },
+        {
+          "lambda": 0.12,
+          "lambda_bps": 1200,
+          "lvr_per_year": 0.002659574468085107,
+          "fees_per_year": 0.0007760755338506179,
+          "tracking_error": 0.010540079394905422,
+          "objective": 0.002052149871887755
+        },
+        {
+          "lambda": 0.13,
+          "lambda_bps": 1300,
+          "lvr_per_year": 0.0026737967914438505,
+          "fees_per_year": 0.0008407484950048359,
+          "tracking_error": 0.009785260901948124,
+          "objective": 0.001989621445887307
+        },
+        {
+          "lambda": 0.14,
+          "lambda_bps": 1400,
+          "lvr_per_year": 0.0026881720430107533,
+          "fees_per_year": 0.0009054214561590543,
+          "tracking_error": 0.009138878320373939,
+          "objective": 0.0019289810221342976
+        },
+        {
+          "lambda": 0.15,
+          "lambda_bps": 1500,
+          "lvr_per_year": 0.0027027027027027033,
+          "fees_per_year": 0.0009700944173132724,
+          "tracking_error": 0.008579259897920815,
+          "objective": 0.001869884312632145
+        },
+        {
+          "lambda": 0.16,
+          "lambda_bps": 1600,
+          "lvr_per_year": 0.0027173913043478264,
+          "fees_per_year": 0.0010347673784674907,
+          "tracking_error": 0.00809014945712399,
+          "objective": 0.001812073737459413
+        },
+        {
+          "lambda": 0.17,
+          "lambda_bps": 1700,
+          "lvr_per_year": 0.0027322404371584704,
+          "fees_per_year": 0.0010994403396217087,
+          "tracking_error": 0.00765911440453337,
+          "objective": 0.0017553529529301037
+        },
+        {
+          "lambda": 0.18,
+          "lambda_bps": 1800,
+          "lvr_per_year": 0.002747252747252748,
+          "fees_per_year": 0.0011641133007759268,
+          "tracking_error": 0.007276484065461161,
+          "objective": 0.0016995698654974061
+        },
+        {
+          "lambda": 0.19,
+          "lambda_bps": 1900,
+          "lvr_per_year": 0.0027624309392265197,
+          "fees_per_year": 0.0012287862619301453,
+          "tracking_error": 0.006934623086085912,
+          "objective": 0.0016446050070929097
+        },
+        {
+          "lambda": 0.2,
+          "lambda_bps": 2000,
+          "lvr_per_year": 0.0027777777777777783,
+          "fees_per_year": 0.0012934592230843633,
+          "tracking_error": 0.006627422717366044,
+          "objective": 0.0015903633968270133
+        },
+        {
+          "lambda": 0.21,
+          "lambda_bps": 2100,
+          "lvr_per_year": 0.0027932960893854754,
+          "fees_per_year": 0.0013581321842385814,
+          "tracking_error": 0.0063499374065058975,
+          "objective": 0.0015367687277978886
+        },
+        {
+          "lambda": 0.22,
+          "lambda_bps": 2200,
+          "lvr_per_year": 0.002808988764044944,
+          "fees_per_year": 0.0014228051453927994,
+          "tracking_error": 0.006098120489569357,
+          "objective": 0.0014837591396663005
+        },
+        {
+          "lambda": 0.23,
+          "lambda_bps": 2300,
+          "lvr_per_year": 0.0028248587570621473,
+          "fees_per_year": 0.0014874781065470177,
+          "tracking_error": 0.0058686288360890355,
+          "objective": 0.0014312840945844227
+        },
+        {
+          "lambda": 0.24,
+          "lambda_bps": 2400,
+          "lvr_per_year": 0.0028409090909090914,
+          "fees_per_year": 0.0015521510677012358,
+          "tracking_error": 0.005658676337984531,
+          "objective": 0.001379302034739564
+        },
+        {
+          "lambda": 0.25,
+          "lambda_bps": 2500,
+          "lvr_per_year": 0.0028571428571428576,
+          "fees_per_year": 0.001616824028855454,
+          "tracking_error": 0.005465922565480188,
+          "objective": 0.0013277786026657586
+        },
+        {
+          "lambda": 0.26,
+          "lambda_bps": 2600,
+          "lvr_per_year": 0.002873563218390805,
+          "fees_per_year": 0.0016814969900096719,
+          "tracking_error": 0.0052883871195257125,
+          "objective": 0.0012766852727891442
+        },
+        {
+          "lambda": 0.27,
+          "lambda_bps": 2700,
+          "lvr_per_year": 0.002890173410404625,
+          "fees_per_year": 0.0017461699511638902,
+          "tracking_error": 0.005124383016046324,
+          "objective": 0.0012259982875689173
+        },
+        {
+          "lambda": 0.28,
+          "lambda_bps": 2800,
+          "lvr_per_year": 0.002906976744186047,
+          "fees_per_year": 0.0018108429123181087,
+          "tracking_error": 0.004972464341912753,
+          "objective": 0.001175697822070551
+        },
+        {
+          "lambda": 0.29,
+          "lambda_bps": 2900,
+          "lvr_per_year": 0.002923976608187135,
+          "fees_per_year": 0.0018755158734723263,
+          "tracking_error": 0.004831384736236361,
+          "objective": 0.0011257673218287338
+        },
+        {
+          "lambda": 0.3,
+          "lambda_bps": 3000,
+          "lvr_per_year": 0.002941176470588236,
+          "fees_per_year": 0.0019401888346265448,
+          "tracking_error": 0.004700064170212551,
+          "objective": 0.0010761929735723364
+        },
+        {
+          "lambda": 0.31,
+          "lambda_bps": 3100,
+          "lvr_per_year": 0.0029585798816568055,
+          "fees_per_year": 0.002004861795780763,
+          "tracking_error": 0.004577562151292451,
+          "objective": 0.0010269632788254168
+        },
+        {
+          "lambda": 0.32,
+          "lambda_bps": 3200,
+          "lvr_per_year": 0.002976190476190477,
+          "fees_per_year": 0.0020695347569349813,
+          "tracking_error": 0.00446305594638247,
+          "objective": 0.000978068707901502
+        },
+        {
+          "lambda": 0.33,
+          "lambda_bps": 3300,
+          "lvr_per_year": 0.002994011976047905,
+          "fees_per_year": 0.002134207718089199,
+          "tracking_error": 0.004355822759700311,
+          "objective": 0.0009295014172637836
+        },
+        {
+          "lambda": 0.34,
+          "lambda_bps": 3400,
+          "lvr_per_year": 0.003012048192771085,
+          "fees_per_year": 0.0021988806792434174,
+          "tracking_error": 0.004255225051511377,
+          "objective": 0.0008812550172337532
+        },
+        {
+          "lambda": 0.35,
+          "lambda_bps": 3500,
+          "lvr_per_year": 0.003030303030303031,
+          "fees_per_year": 0.0022635536403976353,
+          "tracking_error": 0.004160698370057989,
+          "objective": 0.0008333243800085887
+        },
+        {
+          "lambda": 0.36,
+          "lambda_bps": 3600,
+          "lvr_per_year": 0.0030487804878048786,
+          "fees_per_year": 0.0023282266015518535,
+          "tracking_error": 0.004071741208510813,
+          "objective": 0.0007857054801801743
+        },
+        {
+          "lambda": 0.37,
+          "lambda_bps": 3700,
+          "lvr_per_year": 0.003067484662576688,
+          "fees_per_year": 0.0023928995627060714,
+          "tracking_error": 0.00398790650431875,
+          "objective": 0.0007383952616377093
+        },
+        {
+          "lambda": 0.38,
+          "lambda_bps": 3800,
+          "lvr_per_year": 0.00308641975308642,
+          "fees_per_year": 0.0024575725238602905,
+          "tracking_error": 0.003908794478860847,
+          "objective": 0.0006913915260245414
+        },
+        {
+          "lambda": 0.39,
+          "lambda_bps": 3900,
+          "lvr_per_year": 0.003105590062111802,
+          "fees_per_year": 0.002522245485014509,
+          "tracking_error": 0.0038340465772356567,
+          "objective": 0.0006446928389111112
+        },
+        {
+          "lambda": 0.4,
+          "lambda_bps": 4000,
+          "lvr_per_year": 0.0031250000000000006,
+          "fees_per_year": 0.0025869184461687266,
+          "tracking_error": 0.0037633403160144746,
+          "objective": 0.0005982984506139452
+        },
+        {
+          "lambda": 0.41,
+          "lambda_bps": 4100,
+          "lvr_per_year": 0.003144654088050315,
+          "fees_per_year": 0.0026515914073229445,
+          "tracking_error": 0.003696384884239441,
+          "objective": 0.0005522082291902846
+        },
+        {
+          "lambda": 0.42,
+          "lambda_bps": 4200,
+          "lvr_per_year": 0.003164556962025317,
+          "fees_per_year": 0.0027162643684771628,
+          "tracking_error": 0.00363291737237703,
+          "objective": 0.0005064226036090245
+        },
+        {
+          "lambda": 0.43,
+          "lambda_bps": 4300,
+          "lvr_per_year": 0.003184713375796179,
+          "fees_per_year": 0.002780937329631381,
+          "tracking_error": 0.003572699527209686,
+          "objective": 0.000460942515471332
+        },
+        {
+          "lambda": 0.44,
+          "lambda_bps": 4400,
+          "lvr_per_year": 0.0032051282051282055,
+          "fees_per_year": 0.002845610290785599,
+          "tracking_error": 0.003515514949163666,
+          "objective": 0.00041576937795085065
+        },
+        {
+          "lambda": 0.45,
+          "lambda_bps": 4500,
+          "lvr_per_year": 0.0032258064516129037,
+          "fees_per_year": 0.002910283251939817,
+          "tracking_error": 0.0034611666633870583,
+          "objective": 0.0003709050408607914
+        },
+        {
+          "lambda": 0.46,
+          "lambda_bps": 4600,
+          "lvr_per_year": 0.0032467532467532474,
+          "fees_per_year": 0.0029749562130940354,
+          "tracking_error": 0.003409475007812538,
+          "objective": 0.0003263517609462658
+        },
+        {
+          "lambda": 0.47,
+          "lambda_bps": 4700,
+          "lvr_per_year": 0.003267973856209151,
+          "fees_per_year": 0.0030396291742482537,
+          "tracking_error": 0.00336027579108089,
+          "objective": 0.00028211217665484456
+        },
+        {
+          "lambda": 0.48,
+          "lambda_bps": 4800,
+          "lvr_per_year": 0.003289473684210527,
+          "fees_per_year": 0.0031043021354024715,
+          "tracking_error": 0.0033134186810380036,
+          "objective": 0.00023818928676409113
+        },
+        {
+          "lambda": 0.49,
+          "lambda_bps": 4900,
+          "lvr_per_year": 0.003311258278145696,
+          "fees_per_year": 0.00316897509655669,
+          "tracking_error": 0.0032687657909181407,
+          "objective": 0.00019458643234760337
+        },
+        {
+          "lambda": 0.5,
+          "lambda_bps": 5000,
+          "lvr_per_year": 0.003333333333333334,
+          "fees_per_year": 0.003233648057710908,
+          "tracking_error": 0.003226190435576752,
+          "objective": 0.00015130728164555033
+        },
+        {
+          "lambda": 0.51,
+          "lambda_bps": 5100,
+          "lvr_per_year": 0.003355704697986578,
+          "fees_per_year": 0.0032983210188651264,
+          "tracking_error": 0.0031855760344620693,
+          "objective": 0.00010835581747531279
+        },
+        {
+          "lambda": 0.52,
+          "lambda_bps": 5200,
+          "lvr_per_year": 0.003378378378378379,
+          "fees_per_year": 0.0033629939800193438,
+          "tracking_error": 0.003146815141593751,
+          "objective": 6.573632687560812e-05
+        },
+        {
+          "lambda": 0.53,
+          "lambda_bps": 5300,
+          "lvr_per_year": 0.003401360544217688,
+          "fees_per_year": 0.0034276669411735625,
+          "tracking_error": 0.0031098085857895717,
+          "objective": 2.3453392725509814e-05
+        },
+        {
+          "lambda": 0.54,
+          "lambda_bps": 5400,
+          "lvr_per_year": 0.003424657534246576,
+          "fees_per_year": 0.0034923399023277803,
+          "tracking_error": 0.0030744647068596713,
+          "objective": -1.8488112880016657e-05
+        },
+        {
+          "lambda": 0.55,
+          "lambda_bps": 5500,
+          "lvr_per_year": 0.0034482758620689663,
+          "fees_per_year": 0.0035570128634819986,
+          "tracking_error": 0.0030406986755618978,
+          "objective": -6.0083033682729464e-05
+        },
+        {
+          "lambda": 0.56,
+          "lambda_bps": 5600,
+          "lvr_per_year": 0.003472222222222223,
+          "fees_per_year": 0.0036216858246362173,
+          "tracking_error": 0.0030084318868532326,
+          "objective": -0.00010132593289804913
+        },
+        {
+          "lambda": 0.57,
+          "lambda_bps": 5700,
+          "lvr_per_year": 0.003496503496503497,
+          "fees_per_year": 0.0036863587857904347,
+          "tracking_error": 0.002977591417439618,
+          "objective": -0.0001422110955684127
+        },
+        {
+          "lambda": 0.58,
+          "lambda_bps": 5800,
+          "lvr_per_year": 0.0035211267605633812,
+          "fees_per_year": 0.0037510317469446526,
+          "tracking_error": 0.002948109539866582,
+          "objective": -0.0001827325297446201
+        },
+        {
+          "lambda": 0.59,
+          "lambda_bps": 5900,
+          "lvr_per_year": 0.003546099290780142,
+          "fees_per_year": 0.0038157047080988713,
+          "tracking_error": 0.0029199232864445595,
+          "objective": -0.00022288396658919218
+        },
+        {
+          "lambda": 0.6,
+          "lambda_bps": 6000,
+          "lvr_per_year": 0.003571428571428572,
+          "fees_per_year": 0.0038803776692530895,
+          "tracking_error": 0.002892974057196907,
+          "objective": -0.0002626588594807094
+        },
+        {
+          "lambda": 0.61,
+          "lambda_bps": 6100,
+          "lvr_per_year": 0.0035971223021582736,
+          "fees_per_year": 0.003945050630407307,
+          "tracking_error": 0.0028672072667811173,
+          "objective": -0.000302050382185115
+        },
+        {
+          "lambda": 0.62,
+          "lambda_bps": 6200,
+          "lvr_per_year": 0.0036231884057971024,
+          "fees_per_year": 0.004009723591561526,
+          "tracking_error": 0.0028425720259858634,
+          "objective": -0.00034105142614861096
+        },
+        {
+          "lambda": 0.63,
+          "lambda_bps": 6300,
+          "lvr_per_year": 0.0036496350364963507,
+          "fees_per_year": 0.004074396552715744,
+          "tracking_error": 0.002819020853965592,
+          "objective": -0.0003796545969569816
+        },
+        {
+          "lambda": 0.64,
+          "lambda_bps": 6400,
+          "lvr_per_year": 0.0036764705882352954,
+          "fees_per_year": 0.004139069513869963,
+          "tracking_error": 0.0027965094178551172,
+          "objective": -0.0004178522099974568
+        },
+        {
+          "lambda": 0.65,
+          "lambda_bps": 6500,
+          "lvr_per_year": 0.0037037037037037043,
+          "fees_per_year": 0.00420374247502418,
+          "tracking_error": 0.0027749962968208956,
+          "objective": -0.00045563628535159385
+        },
+        {
+          "lambda": 0.66,
+          "lambda_bps": 6600,
+          "lvr_per_year": 0.0037313432835820908,
+          "fees_per_year": 0.004268415436178398,
+          "tracking_error": 0.002754442767963597,
+          "objective": -0.0004929985419407887
+        },
+        {
+          "lambda": 0.67,
+          "lambda_bps": 6700,
+          "lvr_per_year": 0.003759398496240602,
+          "fees_per_year": 0.004333088397332617,
+          "tracking_error": 0.0027348126117964673,
+          "objective": -0.0005299303909399009
+        },
+        {
+          "lambda": 0.68,
+          "lambda_bps": 6800,
+          "lvr_per_year": 0.0037878787878787893,
+          "fees_per_year": 0.004397761358486835,
+          "tracking_error": 0.0027160719352929893,
+          "objective": -0.0005664229284688895
+        },
+        {
+          "lambda": 0.69,
+          "lambda_bps": 6900,
+          "lvr_per_year": 0.0038167938931297717,
+          "fees_per_year": 0.004462434319641052,
+          "tracking_error": 0.002698189010731289,
+          "objective": -0.0006024669275672854
+        },
+        {
+          "lambda": 0.7,
+          "lambda_bps": 7000,
+          "lvr_per_year": 0.003846153846153847,
+          "fees_per_year": 0.0045271072807952705,
+          "tracking_error": 0.00268113412876675,
+          "objective": -0.0006380528294515572
+        },
+        {
+          "lambda": 0.71,
+          "lambda_bps": 7100,
+          "lvr_per_year": 0.003875968992248063,
+          "fees_per_year": 0.004591780241949489,
+          "tracking_error": 0.0026648794643423985,
+          "objective": -0.0006731707340510876
+        },
+        {
+          "lambda": 0.72,
+          "lambda_bps": 7200,
+          "lvr_per_year": 0.003906250000000001,
+          "fees_per_year": 0.004656453203103707,
+          "tracking_error": 0.0026493989542026165,
+          "objective": -0.0007078103898142896
+        },
+        {
+          "lambda": 0.73,
+          "lambda_bps": 7300,
+          "lvr_per_year": 0.003937007874015749,
+          "fees_per_year": 0.004721126164257925,
+          "tracking_error": 0.002634668184912533,
+          "objective": -0.000741961182772426
+        },
+        {
+          "lambda": 0.74,
+          "lambda_bps": 7400,
+          "lvr_per_year": 0.003968253968253969,
+          "fees_per_year": 0.004785799125412143,
+          "tracking_error": 0.002620664290405641,
+          "objective": -0.0007756121248448715
+        },
+        {
+          "lambda": 0.75,
+          "lambda_bps": 7500,
+          "lvr_per_year": 0.004000000000000001,
+          "fees_per_year": 0.004850472086566362,
+          "tracking_error": 0.002607365858188065,
+          "objective": -0.0008087518413658294
+        },
+        {
+          "lambda": 0.76,
+          "lambda_bps": 7600,
+          "lvr_per_year": 0.00403225806451613,
+          "fees_per_year": 0.004915145047720581,
+          "tracking_error": 0.0025947528434212747,
+          "objective": -0.0008413685578088139
+        },
+        {
+          "lambda": 0.77,
+          "lambda_bps": 7700,
+          "lvr_per_year": 0.0040650406504065045,
+          "fees_per_year": 0.004979818008874799,
+          "tracking_error": 0.0025828064901876105,
+          "objective": -0.0008734500856815612
+        },
+        {
+          "lambda": 0.78,
+          "lambda_bps": 7800,
+          "lvr_per_year": 0.004098360655737706,
+          "fees_per_year": 0.005044490970029018,
+          "tracking_error": 0.002571509259316098,
+          "objective": -0.0009049838075603149
+        },
+        {
+          "lambda": 0.79,
+          "lambda_bps": 7900,
+          "lvr_per_year": 0.004132231404958679,
+          "fees_per_year": 0.005109163931183235,
+          "tracking_error": 0.002560844762210876,
+          "objective": -0.0009359566612286932
+        },
+        {
+          "lambda": 0.8,
+          "lambda_bps": 8000,
+          "lvr_per_year": 0.0041666666666666675,
+          "fees_per_year": 0.005173836892337453,
+          "tracking_error": 0.002550797700182276,
+          "objective": -0.0009663551228825211
+        },
+        {
+          "lambda": 0.81,
+          "lambda_bps": 8100,
+          "lvr_per_year": 0.004201680672268908,
+          "fees_per_year": 0.005238509853491671,
+          "tracking_error": 0.002541353808831933,
+          "objective": -0.0009961651893580176
+        },
+        {
+          "lambda": 0.82,
+          "lambda_bps": 8200,
+          "lvr_per_year": 0.00423728813559322,
+          "fees_per_year": 0.005303182814645889,
+          "tracking_error": 0.002532499807089176,
+          "objective": -0.001025372359336676
+        },
+        {
+          "lambda": 0.83,
+          "lambda_bps": 8300,
+          "lvr_per_year": 0.004273504273504275,
+          "fees_per_year": 0.005367855775800108,
+          "tracking_error": 0.002524223350536975,
+          "objective": -0.0010539616134758209
+        },
+        {
+          "lambda": 0.84,
+          "lambda_bps": 8400,
+          "lvr_per_year": 0.004310344827586207,
+          "fees_per_year": 0.0054325287369543255,
+          "tracking_error": 0.0025165129887024565,
+          "objective": -0.0010819173934093838
+        },
+        {
+          "lambda": 0.85,
+          "lambda_bps": 8500,
+          "lvr_per_year": 0.004347826086956523,
+          "fees_per_year": 0.005497201698108544,
+          "tracking_error": 0.0025093581260200483,
+          "objective": -0.0011092235795586275
+        },
+        {
+          "lambda": 0.86,
+          "lambda_bps": 8600,
+          "lvr_per_year": 0.004385964912280702,
+          "fees_per_year": 0.005561874659262762,
+          "tracking_error": 0.002502748986205063,
+          "objective": -0.0011358634676875922
+        },
+        {
+          "lambda": 0.87,
+          "lambda_bps": 8700,
+          "lvr_per_year": 0.004424778761061949,
+          "fees_per_year": 0.005626547620416979,
+          "tracking_error": 0.002496676579802346,
+          "objective": -0.0011618197441326027
+        },
+        {
+          "lambda": 0.88,
+          "lambda_bps": 8800,
+          "lvr_per_year": 0.004464285714285715,
+          "fees_per_year": 0.005691220581571198,
+          "tracking_error": 0.0024911326746989517,
+          "objective": -0.0011870744596295653
+        },
+        {
+          "lambda": 0.89,
+          "lambda_bps": 8900,
+          "lvr_per_year": 0.004504504504504506,
+          "fees_per_year": 0.005755893542725417,
+          "tracking_error": 0.0024861097694118773,
+          "objective": -0.001211609001656583
+        },
+        {
+          "lambda": 0.9,
+          "lambda_bps": 9000,
+          "lvr_per_year": 0.004545454545454546,
+          "fees_per_year": 0.005820566503879634,
+          "tracking_error": 0.002481601068981956,
+          "objective": -0.0012354040652030078
+        },
+        {
+          "lambda": 0.91,
+          "lambda_bps": 9100,
+          "lvr_per_year": 0.004587155963302753,
+          "fees_per_year": 0.005885239465033854,
+          "tracking_error": 0.002477600463323414,
+          "objective": -0.0012584396218689024
+        },
+        {
+          "lambda": 0.92,
+          "lambda_bps": 9200,
+          "lvr_per_year": 0.00462962962962963,
+          "fees_per_year": 0.005949912426188071,
+          "tracking_error": 0.0024741025078954325,
+          "objective": -0.0012806948871914063
+        },
+        {
+          "lambda": 0.93,
+          "lambda_bps": 9300,
+          "lvr_per_year": 0.004672897196261684,
+          "fees_per_year": 0.006014585387342289,
+          "tracking_error": 0.002471102406577582,
+          "objective": -0.0013021482860863418
+        },
+        {
+          "lambda": 0.94,
+          "lambda_bps": 9400,
+          "lvr_per_year": 0.004716981132075472,
+          "fees_per_year": 0.006079258348496507,
+          "tracking_error": 0.002468595996645386,
+          "objective": -0.00132277741628456
+        },
+        {
+          "lambda": 0.95,
+          "lambda_bps": 9500,
+          "lvr_per_year": 0.004761904761904762,
+          "fees_per_year": 0.006143931309650724,
+          "tracking_error": 0.002466579735755633,
+          "objective": -0.0013425590096330325
+        },
+        {
+          "lambda": 0.96,
+          "lambda_bps": 9600,
+          "lvr_per_year": 0.004807692307692309,
+          "fees_per_year": 0.006208604270804943,
+          "tracking_error": 0.00246505069086355,
+          "objective": -0.0013614688911204142
+        },
+        {
+          "lambda": 0.97,
+          "lambda_bps": 9700,
+          "lvr_per_year": 0.004854368932038835,
+          "fees_per_year": 0.006273277231959161,
+          "tracking_error": 0.0024640065290057697,
+          "objective": -0.0013794819354755327
+        },
+        {
+          "lambda": 0.98,
+          "lambda_bps": 9800,
+          "lvr_per_year": 0.004901960784313726,
+          "fees_per_year": 0.00633795019311338,
+          "tracking_error": 0.0024634455098941493,
+          "objective": -0.0013965720211752118
+        },
+        {
+          "lambda": 0.99,
+          "lambda_bps": 9900,
+          "lvr_per_year": 0.004950495049504951,
+          "fees_per_year": 0.0064026231542675975,
+          "tracking_error": 0.002463366480276133,
+          "objective": -0.0014127119816845786
+        },
+        {
+          "lambda": 1.0,
+          "lambda_bps": 10000,
+          "lvr_per_year": 0.005000000000000001,
+          "fees_per_year": 0.006467296115421816,
+          "tracking_error": 0.002463768870027656,
+          "objective": -0.0014278735537386524
+        }
+      ]
+    },
+    {
+      "sigma": 0.3,
+      "lambda_star": 0.92,
+      "lambda_star_bps": 9200,
+      "rows": [
+        {
+          "lambda": 0.05,
+          "lambda_bps": 500,
+          "lvr_per_year": 0.0057692307692307696,
+          "fees_per_year": 0.0004850472086566362,
+          "tracking_error": 0.0547219241826251,
+          "objective": 0.0061597845383097915
+        },
+        {
+          "lambda": 0.06,
+          "lambda_bps": 600,
+          "lvr_per_year": 0.005798969072164949,
+          "fees_per_year": 0.0005820566503879634,
+          "tracking_error": 0.04585256844415155,
+          "objective": 0.005950595572745897
+        },
+        {
+          "lambda": 0.07,
+          "lambda_bps": 700,
+          "lvr_per_year": 0.005829015544041451,
+          "fees_per_year": 0.0006790660921192907,
+          "tracking_error": 0.03952201387010163,
+          "objective": 0.005782337923337259
+        },
+        {
+          "lambda": 0.08,
+          "lambda_bps": 800,
+          "lvr_per_year": 0.005859375,
+          "fees_per_year": 0.0007760755338506179,
+          "tracking_error": 0.034776155800544085,
+          "objective": 0.005639749855562265
+        },
+        {
+          "lambda": 0.09,
+          "lambda_bps": 900,
+          "lvr_per_year": 0.0058900523560209425,
+          "fees_per_year": 0.0008730849755819451,
+          "tracking_error": 0.031086508225296985,
+          "objective": 0.005514380024512287
+        },
+        {
+          "lambda": 0.1,
+          "lambda_bps": 1000,
+          "lvr_per_year": 0.0059210526315789476,
+          "fees_per_year": 0.0009700944173132724,
+          "tracking_error": 0.02813629827479892,
+          "objective": 0.005401164793205717
+        },
+        {
+          "lambda": 0.11,
+          "lambda_bps": 1100,
+          "lvr_per_year": 0.005952380952380952,
+          "fees_per_year": 0.0010671038590445996,
+          "tracking_error": 0.02572398160114815,
+          "objective": 0.00529688439292709
+        },
+        {
+          "lambda": 0.12,
+          "lambda_bps": 1200,
+          "lvr_per_year": 0.005984042553191489,
+          "fees_per_year": 0.0011641133007759268,
+          "tracking_error": 0.0237151786385372,
+          "objective": 0.005199393862135411
+        },
+        {
+          "lambda": 0.13,
+          "lambda_bps": 1300,
+          "lvr_per_year": 0.006016042780748663,
+          "fees_per_year": 0.001261122742507254,
+          "tracking_error": 0.02201683702938328,
+          "objective": 0.005107209624500067
+        },
+        {
+          "lambda": 0.14,
+          "lambda_bps": 1400,
+          "lvr_per_year": 0.006048387096774193,
+          "fees_per_year": 0.0013581321842385814,
+          "tracking_error": 0.020562476220841362,
+          "objective": 0.005019273391921458
+        },
+        {
+          "lambda": 0.15,
+          "lambda_bps": 1500,
+          "lvr_per_year": 0.0060810810810810806,
+          "fees_per_year": 0.0014551416259699086,
+          "tracking_error": 0.019303334770321832,
+          "objective": 0.0049348105164072785
+        },
+        {
+          "lambda": 0.16,
+          "lambda_bps": 1600,
+          "lvr_per_year": 0.006114130434782608,
+          "fees_per_year": 0.0015521510677012358,
+          "tracking_error": 0.018202836278528974,
+          "objective": 0.004853241443134296
+        },
+        {
+          "lambda": 0.17,
+          "lambda_bps": 1700,
+          "lvr_per_year": 0.006147540983606557,
+          "fees_per_year": 0.0016491605094325632,
+          "tracking_error": 0.017233007410200084,
+          "objective": 0.004774124398809014
+        },
+        {
+          "lambda": 0.18,
+          "lambda_bps": 1800,
+          "lvr_per_year": 0.006181318681318681,
+          "fees_per_year": 0.0017461699511638902,
+          "tracking_error": 0.016372089147287612,
+          "objective": 0.004697117172951107
+        },
+        {
+          "lambda": 0.19,
+          "lambda_bps": 1900,
+          "lvr_per_year": 0.006215469613259668,
+          "fees_per_year": 0.0018431793928952174,
+          "tracking_error": 0.015602901943693301,
+          "objective": 0.004621950962406656
+        },
+        {
+          "lambda": 0.2,
+          "lambda_bps": 2000,
+          "lvr_per_year": 0.0062499999999999995,
+          "fees_per_year": 0.0019401888346265448,
+          "tracking_error": 0.014911701114073599,
+          "objective": 0.0045484120601740514
+        },
+        {
+          "lambda": 0.21,
+          "lambda_bps": 2100,
+          "lvr_per_year": 0.006284916201117318,
+          "fees_per_year": 0.002037198276357872,
+          "tracking_error": 0.014287359164638271,
+          "objective": 0.004476328775724184
+        },
+        {
+          "lambda": 0.22,
+          "lambda_bps": 2200,
+          "lvr_per_year": 0.006320224719101123,
+          "fees_per_year": 0.002134207718089199,
+          "tracking_error": 0.013720771101531054,
+          "objective": 0.004405561923293775
+        },
+        {
+          "lambda": 0.23,
+          "lambda_bps": 2300,
+          "lvr_per_year": 0.00635593220338983,
+          "fees_per_year": 0.002231217159820527,
+          "tracking_error": 0.01320441488120033,
+          "objective": 0.004335997792725213
+        },
+        {
+          "lambda": 0.24,
+          "lambda_bps": 2400,
+          "lvr_per_year": 0.006392045454545454,
+          "fees_per_year": 0.0023282266015518535,
+          "tracking_error": 0.012732021760465192,
+          "objective": 0.004267542878939944
+        },
+        {
+          "lambda": 0.25,
+          "lambda_bps": 2500,
+          "lvr_per_year": 0.0064285714285714285,
+          "fees_per_year": 0.0024252360432831807,
+          "tracking_error": 0.012298325772330419,
+          "objective": 0.0042001198776395465
+        },
+        {
+          "lambda": 0.26,
+          "lambda_bps": 2600,
+          "lvr_per_year": 0.00646551724137931,
+          "fees_per_year": 0.002522245485014508,
+          "tracking_error": 0.011898871018932854,
+          "objective": 0.004133664606282827
+        },
+        {
+          "lambda": 0.27,
+          "lambda_bps": 2700,
+          "lvr_per_year": 0.006502890173410405,
+          "fees_per_year": 0.0026192549267458356,
+          "tracking_error": 0.01152986178610423,
+          "objective": 0.00406812361040298
+        },
+        {
+          "lambda": 0.28,
+          "lambda_bps": 2800,
+          "lvr_per_year": 0.006540697674418604,
+          "fees_per_year": 0.0027162643684771628,
+          "tracking_error": 0.011188044769303695,
+          "objective": 0.00400345228389732
+        },
+        {
+          "lambda": 0.29,
+          "lambda_bps": 2900,
+          "lvr_per_year": 0.006578947368421052,
+          "fees_per_year": 0.0028132738102084895,
+          "tracking_error": 0.010870615656531813,
+          "objective": 0.003939613379218893
+        },
+        {
+          "lambda": 0.3,
+          "lambda_bps": 3000,
+          "lvr_per_year": 0.006617647058823529,
+          "fees_per_year": 0.002910283251939817,
+          "tracking_error": 0.01057514438297824,
+          "objective": 0.0038765758165076637
+        },
+        {
+          "lambda": 0.31,
+          "lambda_bps": 3100,
+          "lvr_per_year": 0.006656804733727811,
+          "fees_per_year": 0.0030072926936711443,
+          "tracking_error": 0.010299514840408017,
+          "objective": 0.003814313724192759
+        },
+        {
+          "lambda": 0.32,
+          "lambda_bps": 3200,
+          "lvr_per_year": 0.006696428571428571,
+          "fees_per_year": 0.0031043021354024715,
+          "tracking_error": 0.010041875879360559,
+          "objective": 0.0037528056604796143
+        },
+        {
+          "lambda": 0.33,
+          "lambda_bps": 3300,
+          "lvr_per_year": 0.006736526946107785,
+          "fees_per_year": 0.0032013115771337987,
+          "tracking_error": 0.0098006012093257,
+          "objective": 0.0036920339774104117
+        },
+        {
+          "lambda": 0.34,
+          "lambda_bps": 3400,
+          "lvr_per_year": 0.00677710843373494,
+          "fees_per_year": 0.0032983210188651264,
+          "tracking_error": 0.009574256365900601,
+          "objective": 0.0036319842982085065
+        },
+        {
+          "lambda": 0.35,
+          "lambda_bps": 3500,
+          "lvr_per_year": 0.006818181818181819,
+          "fees_per_year": 0.003395330460596453,
+          "tracking_error": 0.009361571332630474,
+          "objective": 0.003572645085317549
+        },
+        {
+          "lambda": 0.36,
+          "lambda_bps": 3600,
+          "lvr_per_year": 0.006859756097560975,
+          "fees_per_year": 0.0034923399023277803,
+          "tracking_error": 0.009161417719149328,
+          "objective": 0.00351400728156928
+        },
+        {
+          "lambda": 0.37,
+          "lambda_bps": 3700,
+          "lvr_per_year": 0.006901840490797546,
+          "fees_per_year": 0.003589349344059108,
+          "tracking_error": 0.008972789634717189,
+          "objective": 0.0034560640107143964
+        },
+        {
+          "lambda": 0.38,
+          "lambda_bps": 3800,
+          "lvr_per_year": 0.006944444444444444,
+          "fees_per_year": 0.0036863587857904347,
+          "tracking_error": 0.008794787577436904,
+          "objective": 0.003398810326450436
+        },
+        {
+          "lambda": 0.39,
+          "lambda_bps": 3900,
+          "lvr_per_year": 0.006987577639751553,
+          "fees_per_year": 0.003783368227521762,
+          "tracking_error": 0.008626604798780227,
+          "objective": 0.003342243001310882
+        },
+        {
+          "lambda": 0.4,
+          "lambda_bps": 4000,
+          "lvr_per_year": 0.007031249999999999,
+          "fees_per_year": 0.0038803776692530895,
+          "tracking_error": 0.008467515711032568,
+          "objective": 0.00328636034850792
+        },
+        {
+          "lambda": 0.41,
+          "lambda_bps": 4100,
+          "lvr_per_year": 0.007075471698113207,
+          "fees_per_year": 0.003977387110984417,
+          "tracking_error": 0.00831686598953874,
+          "objective": 0.0032311620711703466
+        },
+        {
+          "lambda": 0.42,
+          "lambda_bps": 4200,
+          "lvr_per_year": 0.007120253164556962,
+          "fees_per_year": 0.004074396552715744,
+          "tracking_error": 0.008174064087848319,
+          "objective": 0.003176649134478176
+        },
+        {
+          "lambda": 0.43,
+          "lambda_bps": 4300,
+          "lvr_per_year": 0.0071656050955414006,
+          "fees_per_year": 0.004171405994447071,
+          "tracking_error": 0.008038573936221793,
+          "objective": 0.003122823657034031
+        },
+        {
+          "lambda": 0.44,
+          "lambda_bps": 4400,
+          "lvr_per_year": 0.007211538461538461,
+          "fees_per_year": 0.004268415436178398,
+          "tracking_error": 0.007909908635618247,
+          "objective": 0.003069688818478612
+        },
+        {
+          "lambda": 0.45,
+          "lambda_bps": 4500,
+          "lvr_per_year": 0.007258064516129032,
+          "fees_per_year": 0.0043654248779097255,
+          "tracking_error": 0.00778762499262088,
+          "objective": 0.0030172487808916423
+        },
+        {
+          "lambda": 0.46,
+          "lambda_bps": 4600,
+          "lvr_per_year": 0.007305194805194805,
+          "fees_per_year": 0.004462434319641054,
+          "tracking_error": 0.007671318767578209,
+          "objective": 0.0029655086219496224
+        },
+        {
+          "lambda": 0.47,
+          "lambda_bps": 4700,
+          "lvr_per_year": 0.007352941176470588,
+          "fees_per_year": 0.004559443761372379,
+          "tracking_error": 0.007560620529932003,
+          "objective": 0.0029144742781595906
+        },
+        {
+          "lambda": 0.48,
+          "lambda_bps": 4800,
+          "lvr_per_year": 0.007401315789473684,
+          "fees_per_year": 0.004656453203103707,
+          "tracking_error": 0.007455192032335508,
+          "objective": 0.002864152496771057
+        },
+        {
+          "lambda": 0.49,
+          "lambda_bps": 4900,
+          "lvr_per_year": 0.0074503311258278145,
+          "fees_per_year": 0.004753462644835034,
+          "tracking_error": 0.007354723029565817,
+          "objective": 0.0028145507951996243
+        },
+        {
+          "lambda": 0.5,
+          "lambda_bps": 5000,
+          "lvr_per_year": 0.0075,
+          "fees_per_year": 0.0048504720865663615,
+          "tracking_error": 0.007258928480047693,
+          "objective": 0.0027656774269856684
+        },
+        {
+          "lambda": 0.51,
+          "lambda_bps": 5100,
+          "lvr_per_year": 0.007550335570469798,
+          "fees_per_year": 0.004947481528297689,
+          "tracking_error": 0.007167546077539656,
+          "objective": 0.002717541353468297
+        },
+        {
+          "lambda": 0.52,
+          "lambda_bps": 5200,
+          "lvr_per_year": 0.007601351351351351,
+          "fees_per_year": 0.005044490970029016,
+          "tracking_error": 0.00708033406858594,
+          "objective": 0.002670152220484624
+        },
+        {
+          "lambda": 0.53,
+          "lambda_bps": 5300,
+          "lvr_per_year": 0.007653061224489796,
+          "fees_per_year": 0.005141500411760343,
+          "tracking_error": 0.0069970693180265355,
+          "objective": 0.0026235203395125676
+        },
+        {
+          "lambda": 0.54,
+          "lambda_bps": 5400,
+          "lvr_per_year": 0.007705479452054794,
+          "fees_per_year": 0.005238509853491671,
+          "tracking_error": 0.006917545590434262,
+          "objective": 0.002577656672765795
+        },
+        {
+          "lambda": 0.55,
+          "lambda_bps": 5500,
+          "lvr_per_year": 0.007758620689655172,
+          "fees_per_year": 0.005335519295222998,
+          "tracking_error": 0.00684157202001427,
+          "objective": 0.0025325728218253555
+        },
+        {
+          "lambda": 0.56,
+          "lambda_bps": 5600,
+          "lvr_per_year": 0.0078125,
+          "fees_per_year": 0.0054325287369543255,
+          "tracking_error": 0.006768971745419772,
+          "objective": 0.002488281019456551
+        },
+        {
+          "lambda": 0.57,
+          "lambda_bps": 5700,
+          "lvr_per_year": 0.007867132867132866,
+          "fees_per_year": 0.005529538178685651,
+          "tracking_error": 0.006699580689239142,
+          "objective": 0.0024447941243138966
+        },
+        {
+          "lambda": 0.58,
+          "lambda_bps": 5800,
+          "lvr_per_year": 0.007922535211267605,
+          "fees_per_year": 0.005626547620416979,
+          "tracking_error": 0.006633246464699809,
+          "objective": 0.0024021256182830916
+        },
+        {
+          "lambda": 0.59,
+          "lambda_bps": 5900,
+          "lvr_per_year": 0.007978723404255319,
+          "fees_per_year": 0.005723557062148307,
+          "tracking_error": 0.006569827394500261,
+          "objective": 0.0023602896062484696
+        },
+        {
+          "lambda": 0.6,
+          "lambda_bps": 6000,
+          "lvr_per_year": 0.008035714285714287,
+          "fees_per_year": 0.005820566503879634,
+          "tracking_error": 0.0065091916286930404,
+          "objective": 0.0023193008181082203
+        },
+        {
+          "lambda": 0.61,
+          "lambda_bps": 6100,
+          "lvr_per_year": 0.008093525179856113,
+          "fees_per_year": 0.005917575945610961,
+          "tracking_error": 0.006451216350257515,
+          "objective": 0.00227917461288897
+        },
+        {
+          "lambda": 0.62,
+          "lambda_bps": 6200,
+          "lvr_per_year": 0.008152173913043478,
+          "fees_per_year": 0.006014585387342289,
+          "tracking_error": 0.006395787058468193,
+          "objective": 0.0022399269848367683
+        },
+        {
+          "lambda": 0.63,
+          "lambda_bps": 6300,
+          "lvr_per_year": 0.008211678832116787,
+          "fees_per_year": 0.006111594829073615,
+          "tracking_error": 0.006342796921422584,
+          "objective": 0.002201574571383598
+        },
+        {
+          "lambda": 0.64,
+          "lambda_bps": 6400,
+          "lvr_per_year": 0.008272058823529412,
+          "fees_per_year": 0.006208604270804943,
+          "tracking_error": 0.006292146190174014,
+          "objective": 0.002164134662908192
+        },
+        {
+          "lambda": 0.65,
+          "lambda_bps": 6500,
+          "lvr_per_year": 0.008333333333333333,
+          "fees_per_year": 0.00630561371253627,
+          "tracking_error": 0.006243741667847014,
+          "objective": 0.002127625214227046
+        },
+        {
+          "lambda": 0.66,
+          "lambda_bps": 6600,
+          "lvr_per_year": 0.008395522388059701,
+          "fees_per_year": 0.0064026231542675975,
+          "tracking_error": 0.006197496227918091,
+          "objective": 0.0020920648577670213
+        },
+        {
+          "lambda": 0.67,
+          "lambda_bps": 6700,
+          "lvr_per_year": 0.008458646616541353,
+          "fees_per_year": 0.006499632595998924,
+          "tracking_error": 0.006153328376542054,
+          "objective": 0.0020574729183846854
+        },
+        {
+          "lambda": 0.68,
+          "lambda_bps": 6800,
+          "lvr_per_year": 0.008522727272727274,
+          "fees_per_year": 0.006596642037730253,
+          "tracking_error": 0.006111161854409226,
+          "objective": 0.0020238694298101226
+        },
+        {
+          "lambda": 0.69,
+          "lambda_bps": 6900,
+          "lvr_per_year": 0.008587786259541983,
+          "fees_per_year": 0.00669365147946158,
+          "tracking_error": 0.006070925274145399,
+          "objective": 0.0019912751527043915
+        },
+        {
+          "lambda": 0.7,
+          "lambda_bps": 7000,
+          "lvr_per_year": 0.008653846153846153,
+          "fees_per_year": 0.006790660921192906,
+          "tracking_error": 0.006032551789725186,
+          "objective": 0.001959711594330446
+        },
+        {
+          "lambda": 0.71,
+          "lambda_bps": 7100,
+          "lvr_per_year": 0.00872093023255814,
+          "fees_per_year": 0.0068876703629242335,
+          "tracking_error": 0.005995978794770396,
+          "objective": 0.0019292010298471683
+        },
+        {
+          "lambda": 0.72,
+          "lambda_bps": 7200,
+          "lvr_per_year": 0.0087890625,
+          "fees_per_year": 0.006984679804655561,
+          "tracking_error": 0.005961147646955887,
+          "objective": 0.001899766525245627
+        },
+        {
+          "lambda": 0.73,
+          "lambda_bps": 7300,
+          "lvr_per_year": 0.008858267716535433,
+          "fees_per_year": 0.007081689246386887,
+          "tracking_error": 0.005928003416053198,
+          "objective": 0.0018714319619554838
+        },
+        {
+          "lambda": 0.74,
+          "lambda_bps": 7400,
+          "lvr_per_year": 0.008928571428571428,
+          "fees_per_year": 0.007178698688118216,
+          "tracking_error": 0.005896494653412692,
+          "objective": 0.0018442220631581425
+        },
+        {
+          "lambda": 0.75,
+          "lambda_bps": 7500,
+          "lvr_per_year": 0.009,
+          "fees_per_year": 0.0072757081298495405,
+          "tracking_error": 0.005866573180923147,
+          "objective": 0.001818162421851656
+        },
+        {
+          "lambda": 0.76,
+          "lambda_bps": 7600,
+          "lvr_per_year": 0.00907258064516129,
+          "fees_per_year": 0.007372717571580869,
+          "tracking_error": 0.005838193897697868,
+          "objective": 0.001793279530720604
+        },
+        {
+          "lambda": 0.77,
+          "lambda_bps": 7700,
+          "lvr_per_year": 0.009146341463414634,
+          "fees_per_year": 0.007469727013312197,
+          "tracking_error": 0.005811314602922125,
+          "objective": 0.0017696008138725866
+        },
+        {
+          "lambda": 0.78,
+          "lambda_bps": 7800,
+          "lvr_per_year": 0.009221311475409836,
+          "fees_per_year": 0.007566736455043524,
+          "tracking_error": 0.00578589583346122,
+          "objective": 0.0017471546605110546
+        },
+        {
+          "lambda": 0.79,
+          "lambda_bps": 7900,
+          "lvr_per_year": 0.009297520661157025,
+          "fees_per_year": 0.00766374589677485,
+          "tracking_error": 0.0057619007149744715,
+          "objective": 0.001725970460622866
+        },
+        {
+          "lambda": 0.8,
+          "lambda_bps": 8000,
+          "lvr_per_year": 0.009375,
+          "fees_per_year": 0.007760755338506179,
+          "tracking_error": 0.005739294825410123,
+          "objective": 0.001706078642767416
+        },
+        {
+          "lambda": 0.81,
+          "lambda_bps": 8100,
+          "lvr_per_year": 0.009453781512605041,
+          "fees_per_year": 0.007857764780237506,
+          "tracking_error": 0.005718046069871849,
+          "objective": 0.0016875107140632121
+        },
+        {
+          "lambda": 0.82,
+          "lambda_bps": 8200,
+          "lvr_per_year": 0.009533898305084745,
+          "fees_per_year": 0.007954774221968833,
+          "tracking_error": 0.0056981245659506454,
+          "objective": 0.0016702993024768947
+        },
+        {
+          "lambda": 0.83,
+          "lambda_bps": 8300,
+          "lvr_per_year": 0.009615384615384616,
+          "fees_per_year": 0.008051783663700159,
+          "tracking_error": 0.005679502538708194,
+          "objective": 0.001654478201529484
+        },
+        {
+          "lambda": 0.84,
+          "lambda_bps": 8400,
+          "lvr_per_year": 0.009698275862068964,
+          "fees_per_year": 0.008148793105431488,
+          "tracking_error": 0.005662154224580528,
+          "objective": 0.0016400824175446297
+        },
+        {
+          "lambda": 0.85,
+          "lambda_bps": 8500,
+          "lvr_per_year": 0.009782608695652175,
+          "fees_per_year": 0.008245802547162815,
+          "tracking_error": 0.005646055783545109,
+          "objective": 0.001627148219574496
+        },
+        {
+          "lambda": 0.86,
+          "lambda_bps": 8600,
+          "lvr_per_year": 0.009868421052631577,
+          "fees_per_year": 0.008342811988894142,
+          "tracking_error": 0.005631185218961392,
+          "objective": 0.0016157131921499862
+        },
+        {
+          "lambda": 0.87,
+          "lambda_bps": 8700,
+          "lvr_per_year": 0.00995575221238938,
+          "fees_per_year": 0.008439821430625471,
+          "tracking_error": 0.0056175223045552775,
+          "objective": 0.0016058162910143718
+        },
+        {
+          "lambda": 0.88,
+          "lambda_bps": 8800,
+          "lvr_per_year": 0.010044642857142856,
+          "fees_per_year": 0.008536830872356797,
+          "tracking_error": 0.005605048518072642,
+          "objective": 0.0015974979020118739
+        },
+        {
+          "lambda": 0.89,
+          "lambda_bps": 8900,
+          "lvr_per_year": 0.010135135135135136,
+          "fees_per_year": 0.008633840314088124,
+          "tracking_error": 0.005593746981176723,
+          "objective": 0.00159079990331675
+        },
+        {
+          "lambda": 0.9,
+          "lambda_bps": 9000,
+          "lvr_per_year": 0.010227272727272725,
+          "fees_per_year": 0.008730849755819451,
+          "tracking_error": 0.005583602405209399,
+          "objective": 0.0015857657312029552
+        },
+        {
+          "lambda": 0.91,
+          "lambda_bps": 9100,
+          "lvr_per_year": 0.010321100917431193,
+          "fees_per_year": 0.008827859197550778,
+          "tracking_error": 0.0055746010424776804,
+          "objective": 0.0015824404495703606
+        },
+        {
+          "lambda": 0.92,
+          "lambda_bps": 9200,
+          "lvr_per_year": 0.010416666666666666,
+          "fees_per_year": 0.008924868639282107,
+          "tracking_error": 0.005566730642764722,
+          "objective": 0.001580870823460386
+        },
+        {
+          "lambda": 0.93,
+          "lambda_bps": 9300,
+          "lvr_per_year": 0.010514018691588786,
+          "fees_per_year": 0.009021878081013433,
+          "tracking_error": 0.0055599804147995575,
+          "objective": 0.0015811053968124457
+        },
+        {
+          "lambda": 0.94,
+          "lambda_bps": 9400,
+          "lvr_per_year": 0.01061320754716981,
+          "fees_per_year": 0.009118887522744758,
+          "tracking_error": 0.005554340992452119,
+          "objective": 0.0015831945747321215
+        },
+        {
+          "lambda": 0.95,
+          "lambda_bps": 9500,
+          "lvr_per_year": 0.010714285714285713,
+          "fees_per_year": 0.009215896964476087,
+          "tracking_error": 0.0055498044054501745,
+          "objective": 0.0015871907105637168
+        },
+        {
+          "lambda": 0.96,
+          "lambda_bps": 9600,
+          "lvr_per_year": 0.010817307692307692,
+          "fees_per_year": 0.009312906406207414,
+          "tracking_error": 0.0055463640544429855,
+          "objective": 0.0015931481980827728
+        },
+        {
+          "lambda": 0.97,
+          "lambda_bps": 9700,
+          "lvr_per_year": 0.010922330097087377,
+          "fees_per_year": 0.00940991584793874,
+          "tracking_error": 0.005544014690262982,
+          "objective": 0.0016011235691494215
+        },
+        {
+          "lambda": 0.98,
+          "lambda_bps": 9800,
+          "lvr_per_year": 0.011029411764705881,
+          "fees_per_year": 0.009506925289670069,
+          "tracking_error": 0.005542752397261835,
+          "objective": 0.0016111755971908062
+        },
+        {
+          "lambda": 0.99,
+          "lambda_bps": 9900,
+          "lvr_per_year": 0.011138613861386138,
+          "fees_per_year": 0.009603934731401396,
+          "tracking_error": 0.0055425745806213,
+          "objective": 0.0016233654069103941
+        },
+        {
+          "lambda": 1.0,
+          "lambda_bps": 10000,
+          "lvr_per_year": 0.01125,
+          "fees_per_year": 0.009700944173132723,
+          "tracking_error": 0.005543479957562225,
+          "objective": 0.0016377565906543928
+        }
+      ]
+    },
+    {
+      "sigma": 0.45,
+      "lambda_star": 0.69,
+      "lambda_star_bps": 6900,
+      "rows": [
+        {
+          "lambda": 0.05,
+          "lambda_bps": 500,
+          "lvr_per_year": 0.012980769230769231,
+          "fees_per_year": 0.0007275708129849543,
+          "tracking_error": 0.12312432941090648,
+          "objective": 0.014223300617689508
+        },
+        {
+          "lambda": 0.06,
+          "lambda_bps": 600,
+          "lvr_per_year": 0.013047680412371135,
+          "fees_per_year": 0.0008730849755819451,
+          "tracking_error": 0.10316827899934099,
+          "objective": 0.01382538252646924
+        },
+        {
+          "lambda": 0.07,
+          "lambda_bps": 700,
+          "lvr_per_year": 0.013115284974093266,
+          "fees_per_year": 0.0010185991381789362,
+          "tracking_error": 0.08892453120772867,
+          "objective": 0.013519559896598303
+        },
+        {
+          "lambda": 0.08,
+          "lambda_bps": 800,
+          "lvr_per_year": 0.013183593750000002,
+          "fees_per_year": 0.0011641133007759268,
+          "tracking_error": 0.07824635055122418,
+          "objective": 0.01327149382540306
+        },
+        {
+          "lambda": 0.09,
+          "lambda_bps": 900,
+          "lvr_per_year": 0.013252617801047122,
+          "fees_per_year": 0.0013096274633729178,
+          "tracking_error": 0.06994464350691822,
+          "objective": 0.013062168786839105
+        },
+        {
+          "lambda": 0.1,
+          "lambda_bps": 1000,
+          "lvr_per_year": 0.013322368421052633,
+          "fees_per_year": 0.0014551416259699086,
+          "tracking_error": 0.06330667111829757,
+          "objective": 0.012880191597697821
+        },
+        {
+          "lambda": 0.11,
+          "lambda_bps": 1100,
+          "lvr_per_year": 0.013392857142857144,
+          "fees_per_year": 0.0016006557885668994,
+          "tracking_error": 0.05787895860258335,
+          "objective": 0.012718317778369405
+        },
+        {
+          "lambda": 0.12,
+          "lambda_bps": 1200,
+          "lvr_per_year": 0.013464095744680852,
+          "fees_per_year": 0.0017461699511638902,
+          "tracking_error": 0.05335915193670869,
+          "objective": 0.012571721165386622
+        },
+        {
+          "lambda": 0.13,
+          "lambda_bps": 1300,
+          "lvr_per_year": 0.013536096256684492,
+          "fees_per_year": 0.001891684113760881,
+          "tracking_error": 0.04953788331611238,
+          "objective": 0.012437063712005592
+        },
+        {
+          "lambda": 0.14,
+          "lambda_bps": 1400,
+          "lvr_per_year": 0.013608870967741937,
+          "fees_per_year": 0.0020371982763578724,
+          "tracking_error": 0.046265571496893074,
+          "objective": 0.01231196427000222
+        },
+        {
+          "lambda": 0.15,
+          "lambda_bps": 1500,
+          "lvr_per_year": 0.013682432432432433,
+          "fees_per_year": 0.0021827124389548628,
+          "tracking_error": 0.04343250323322413,
+          "objective": 0.01219467988139381
+        },
+        {
+          "lambda": 0.16,
+          "lambda_bps": 1600,
+          "lvr_per_year": 0.01375679347826087,
+          "fees_per_year": 0.0023282266015518535,
+          "tracking_error": 0.0409563816266902,
+          "objective": 0.012083906547828094
+        },
+        {
+          "lambda": 0.17,
+          "lambda_bps": 1700,
+          "lvr_per_year": 0.013831967213114754,
+          "fees_per_year": 0.0024737407641488448,
+          "tracking_error": 0.03877426667295019,
+          "objective": 0.011978650279394702
+        },
+        {
+          "lambda": 0.18,
+          "lambda_bps": 1800,
+          "lvr_per_year": 0.013907967032967034,
+          "fees_per_year": 0.0026192549267458356,
+          "tracking_error": 0.03683720058139713,
+          "objective": 0.01187814110251291
+        },
+        {
+          "lambda": 0.19,
+          "lambda_bps": 1900,
+          "lvr_per_year": 0.013984806629834255,
+          "fees_per_year": 0.0027647690893428264,
+          "tracking_error": 0.03510652937330993,
+          "objective": 0.01178177421008639
+        },
+        {
+          "lambda": 0.2,
+          "lambda_bps": 2000,
+          "lvr_per_year": 0.0140625,
+          "fees_per_year": 0.002910283251939817,
+          "tracking_error": 0.0335513275066656,
+          "objective": 0.011689068761361525
+        },
+        {
+          "lambda": 0.21,
+          "lambda_bps": 2100,
+          "lvr_per_year": 0.014141061452513967,
+          "fees_per_year": 0.0030557974145368075,
+          "tracking_error": 0.03214655812043611,
+          "objective": 0.011599638452647821
+        },
+        {
+          "lambda": 0.22,
+          "lambda_bps": 2200,
+          "lvr_per_year": 0.014220505617977528,
+          "fees_per_year": 0.0032013115771337987,
+          "tracking_error": 0.030871734978444868,
+          "objective": 0.011513170115977894
+        },
+        {
+          "lambda": 0.23,
+          "lambda_bps": 2300,
+          "lvr_per_year": 0.014300847457627119,
+          "fees_per_year": 0.00334682573973079,
+          "tracking_error": 0.029709933482700745,
+          "objective": 0.011429407903497125
+        },
+        {
+          "lambda": 0.24,
+          "lambda_bps": 2400,
+          "lvr_per_year": 0.014382102272727274,
+          "fees_per_year": 0.0034923399023277803,
+          "tracking_error": 0.028647048961046688,
+          "objective": 0.011348141428778767
+        },
+        {
+          "lambda": 0.25,
+          "lambda_bps": 2500,
+          "lvr_per_year": 0.014464285714285716,
+          "fees_per_year": 0.0036378540649247715,
+          "tracking_error": 0.027671232987743443,
+          "objective": 0.011269196757151368
+        },
+        {
+          "lambda": 0.26,
+          "lambda_bps": 2600,
+          "lvr_per_year": 0.01454741379310345,
+          "fees_per_year": 0.003783368227521762,
+          "tracking_error": 0.02677245979259892,
+          "objective": 0.011192429477897243
+        },
+        {
+          "lambda": 0.27,
+          "lambda_bps": 2700,
+          "lvr_per_year": 0.014631502890173412,
+          "fees_per_year": 0.003928882390118754,
+          "tracking_error": 0.02594218901873451,
+          "objective": 0.01111771931846608
+        },
+        {
+          "lambda": 0.28,
+          "lambda_bps": 2800,
+          "lvr_per_year": 0.014716569767441862,
+          "fees_per_year": 0.004074396552715745,
+          "tracking_error": 0.025173100730933307,
+          "objective": 0.011044965915126844
+        },
+        {
+          "lambda": 0.29,
+          "lambda_bps": 2900,
+          "lvr_per_year": 0.01480263157894737,
+          "fees_per_year": 0.004219910715312736,
+          "tracking_error": 0.02445888522719658,
+          "objective": 0.010974085460898876
+        },
+        {
+          "lambda": 0.3,
+          "lambda_bps": 3000,
+          "lvr_per_year": 0.014889705882352942,
+          "fees_per_year": 0.0043654248779097255,
+          "tracking_error": 0.023794074861701042,
+          "objective": 0.010905008026097108
+        },
+        {
+          "lambda": 0.31,
+          "lambda_bps": 3100,
+          "lvr_per_year": 0.014977810650887576,
+          "fees_per_year": 0.004510939040506716,
+          "tracking_error": 0.02317390839091803,
+          "objective": 0.010837675399687068
+        },
+        {
+          "lambda": 0.32,
+          "lambda_bps": 3200,
+          "lvr_per_year": 0.015066964285714288,
+          "fees_per_year": 0.004656453203103707,
+          "tracking_error": 0.022594220728561255,
+          "objective": 0.010772039337630988
+        },
+        {
+          "lambda": 0.33,
+          "lambda_bps": 3300,
+          "lvr_per_year": 0.015157185628742516,
+          "fees_per_year": 0.004801967365700699,
+          "tracking_error": 0.02205135272098283,
+          "objective": 0.010708060132023774
+        },
+        {
+          "lambda": 0.34,
+          "lambda_bps": 3400,
+          "lvr_per_year": 0.015248493975903617,
+          "fees_per_year": 0.0049474815282976896,
+          "tracking_error": 0.02154207682327635,
+          "objective": 0.010645705435117985
+        },
+        {
+          "lambda": 0.35,
+          "lambda_bps": 3500,
+          "lvr_per_year": 0.015340909090909093,
+          "fees_per_year": 0.0050929956908946795,
+          "tracking_error": 0.021063535498418565,
+          "objective": 0.010584949287411827
+        },
+        {
+          "lambda": 0.36,
+          "lambda_bps": 3600,
+          "lvr_per_year": 0.015434451219512195,
+          "fees_per_year": 0.005238509853491671,
+          "tracking_error": 0.020613189868085992,
+          "objective": 0.010525771310276716
+        },
+        {
+          "lambda": 0.37,
+          "lambda_bps": 3700,
+          "lvr_per_year": 0.01552914110429448,
+          "fees_per_year": 0.005384024016088661,
+          "tracking_error": 0.020188776678113675,
+          "objective": 0.010468156032151727
+        },
+        {
+          "lambda": 0.38,
+          "lambda_bps": 3800,
+          "lvr_per_year": 0.015625,
+          "fees_per_year": 0.005529538178685653,
+          "tracking_error": 0.019788272049233033,
+          "objective": 0.010412092323856306
+        },
+        {
+          "lambda": 0.39,
+          "lambda_bps": 3900,
+          "lvr_per_year": 0.015722049689440996,
+          "fees_per_year": 0.005675052341282644,
+          "tracking_error": 0.019409860797255513,
+          "objective": 0.010357572923590805
+        },
+        {
+          "lambda": 0.4,
+          "lambda_bps": 4000,
+          "lvr_per_year": 0.0158203125,
+          "fees_per_year": 0.005820566503879634,
+          "tracking_error": 0.019051910349823276,
+          "objective": 0.010304594036082637
+        },
+        {
+          "lambda": 0.41,
+          "lambda_bps": 4100,
+          "lvr_per_year": 0.015919811320754717,
+          "fees_per_year": 0.005966080666476624,
+          "tracking_error": 0.018712948476462165,
+          "objective": 0.010253154993371595
+        },
+        {
+          "lambda": 0.42,
+          "lambda_bps": 4200,
+          "lvr_per_year": 0.016020569620253163,
+          "fees_per_year": 0.006111594829073615,
+          "tracking_error": 0.018391644197658718,
+          "objective": 0.010203257967112704
+        },
+        {
+          "lambda": 0.43,
+          "lambda_bps": 4300,
+          "lvr_per_year": 0.016122611464968153,
+          "fees_per_year": 0.0062571089916706076,
+          "tracking_error": 0.01808679135649903,
+          "objective": 0.010154907724161874
+        },
+        {
+          "lambda": 0.44,
+          "lambda_bps": 4400,
+          "lvr_per_year": 0.01622596153846154,
+          "fees_per_year": 0.0064026231542675975,
+          "tracking_error": 0.017797294430141056,
+          "objective": 0.010108111418710677
+        },
+        {
+          "lambda": 0.45,
+          "lambda_bps": 4500,
+          "lvr_per_year": 0.016330645161290323,
+          "fees_per_year": 0.00654813731686459,
+          "tracking_error": 0.017522156233396983,
+          "objective": 0.01006287841543849
+        },
+        {
+          "lambda": 0.46,
+          "lambda_bps": 4600,
+          "lvr_per_year": 0.016436688311688312,
+          "fees_per_year": 0.00669365147946158,
+          "tracking_error": 0.017260467227050973,
+          "objective": 0.010019220139117442
+        },
+        {
+          "lambda": 0.47,
+          "lambda_bps": 4700,
+          "lvr_per_year": 0.016544117647058824,
+          "fees_per_year": 0.00683916564205857,
+          "tracking_error": 0.017011396192347008,
+          "objective": 0.009977149946888362
+        },
+        {
+          "lambda": 0.48,
+          "lambda_bps": 4800,
+          "lvr_per_year": 0.01665296052631579,
+          "fees_per_year": 0.006984679804655561,
+          "tracking_error": 0.01677418207275489,
+          "objective": 0.00993668302006266
+        },
+        {
+          "lambda": 0.49,
+          "lambda_bps": 4900,
+          "lvr_per_year": 0.016763245033112585,
+          "fees_per_year": 0.007130193967252551,
+          "tracking_error": 0.01654812681652309,
+          "objective": 0.009897836272825434
+        },
+        {
+          "lambda": 0.5,
+          "lambda_bps": 5000,
+          "lvr_per_year": 0.016875,
+          "fees_per_year": 0.007275708129849543,
+          "tracking_error": 0.016332589080107308,
+          "objective": 0.009860628275642526
+        },
+        {
+          "lambda": 0.51,
+          "lambda_bps": 5100,
+          "lvr_per_year": 0.016988255033557047,
+          "fees_per_year": 0.007421222292446534,
+          "tracking_error": 0.016126978674464224,
+          "objective": 0.009825079191526935
+        },
+        {
+          "lambda": 0.52,
+          "lambda_bps": 5200,
+          "lvr_per_year": 0.017103040540540543,
+          "fees_per_year": 0.007566736455043524,
+          "tracking_error": 0.015930751654318367,
+          "objective": 0.009791210723612168
+        },
+        {
+          "lambda": 0.53,
+          "lambda_bps": 5300,
+          "lvr_per_year": 0.017219387755102043,
+          "fees_per_year": 0.0077122506176405155,
+          "tracking_error": 0.015743405965559704,
+          "objective": 0.009759046072723536
+        },
+        {
+          "lambda": 0.54,
+          "lambda_bps": 5400,
+          "lvr_per_year": 0.017337328767123288,
+          "fees_per_year": 0.007857764780237508,
+          "tracking_error": 0.015564477578477088,
+          "objective": 0.009728609903841792
+        },
+        {
+          "lambda": 0.55,
+          "lambda_bps": 5500,
+          "lvr_per_year": 0.017456896551724138,
+          "fees_per_year": 0.008003278942834497,
+          "tracking_error": 0.015393537045032107,
+          "objective": 0.009699928320524298
+        },
+        {
+          "lambda": 0.56,
+          "lambda_bps": 5600,
+          "lvr_per_year": 0.017578125000000003,
+          "fees_per_year": 0.00814879310543149,
+          "tracking_error": 0.015230186427194486,
+          "objective": 0.009673028846492987
+        },
+        {
+          "lambda": 0.57,
+          "lambda_bps": 5700,
+          "lvr_per_year": 0.017701048951048952,
+          "fees_per_year": 0.00829430726802848,
+          "tracking_error": 0.015074056550788067,
+          "objective": 0.009647940413720505
+        },
+        {
+          "lambda": 0.58,
+          "lambda_bps": 5800,
+          "lvr_per_year": 0.017825704225352113,
+          "fees_per_year": 0.008439821430625471,
+          "tracking_error": 0.014924804545574571,
+          "objective": 0.00962469335644969
+        },
+        {
+          "lambda": 0.59,
+          "lambda_bps": 5900,
+          "lvr_per_year": 0.017952127659574466,
+          "fees_per_year": 0.00858533559322246,
+          "tracking_error": 0.014782111637625587,
+          "objective": 0.009603319410670287
+        },
+        {
+          "lambda": 0.6,
+          "lambda_bps": 6000,
+          "lvr_per_year": 0.018080357142857145,
+          "fees_per_year": 0.008730849755819451,
+          "tracking_error": 0.01464568116455934,
+          "objective": 0.009583851718653221
+        },
+        {
+          "lambda": 0.61,
+          "lambda_bps": 6100,
+          "lvr_per_year": 0.01821043165467626,
+          "fees_per_year": 0.008876363918416444,
+          "tracking_error": 0.014515236788079406,
+          "objective": 0.009566324838208407
+        },
+        {
+          "lambda": 0.62,
+          "lambda_bps": 6200,
+          "lvr_per_year": 0.018342391304347828,
+          "fees_per_year": 0.009021878081013433,
+          "tracking_error": 0.014390520881553433,
+          "objective": 0.009550774756389447
+        },
+        {
+          "lambda": 0.63,
+          "lambda_bps": 6300,
+          "lvr_per_year": 0.018476277372262772,
+          "fees_per_year": 0.009167392243610423,
+          "tracking_error": 0.014271293073200813,
+          "objective": 0.009537238907418307
+        },
+        {
+          "lambda": 0.64,
+          "lambda_bps": 6400,
+          "lvr_per_year": 0.01861213235294118,
+          "fees_per_year": 0.009312906406207414,
+          "tracking_error": 0.014157328927891531,
+          "objective": 0.009525756194647144
+        },
+        {
+          "lambda": 0.65,
+          "lambda_bps": 6500,
+          "lvr_per_year": 0.01875,
+          "fees_per_year": 0.009458420568804407,
+          "tracking_error": 0.014048418752655781,
+          "objective": 0.009516367016413054
+        },
+        {
+          "lambda": 0.66,
+          "lambda_bps": 6600,
+          "lvr_per_year": 0.01888992537313433,
+          "fees_per_year": 0.009603934731401398,
+          "tracking_error": 0.013944366512815708,
+          "objective": 0.009509113295676497
+        },
+        {
+          "lambda": 0.67,
+          "lambda_bps": 6700,
+          "lvr_per_year": 0.019031954887218046,
+          "fees_per_year": 0.009749448893998387,
+          "tracking_error": 0.013844988847219622,
+          "objective": 0.009504038513364736
+        },
+        {
+          "lambda": 0.68,
+          "lambda_bps": 6800,
+          "lvr_per_year": 0.019176136363636367,
+          "fees_per_year": 0.009894963056595379,
+          "tracking_error": 0.013750114172420759,
+          "objective": 0.009501187745370466
+        },
+        {
+          "lambda": 0.69,
+          "lambda_bps": 6900,
+          "lvr_per_year": 0.019322519083969467,
+          "fees_per_year": 0.010040477219192368,
+          "tracking_error": 0.013659581866827149,
+          "objective": 0.009500607703181072
+        },
+        {
+          "lambda": 0.7,
+          "lambda_bps": 7000,
+          "lvr_per_year": 0.019471153846153846,
+          "fees_per_year": 0.010185991381789359,
+          "tracking_error": 0.013573241526881672,
+          "objective": 0.009502346778138186
+        },
+        {
+          "lambda": 0.71,
+          "lambda_bps": 7100,
+          "lvr_per_year": 0.019622093023255814,
+          "fees_per_year": 0.01033150554438635,
+          "tracking_error": 0.01349095228823339,
+          "objective": 0.009506455089349304
+        },
+        {
+          "lambda": 0.72,
+          "lambda_bps": 7200,
+          "lvr_per_year": 0.019775390625,
+          "fees_per_year": 0.010477019706983342,
+          "tracking_error": 0.013412582205650747,
+          "objective": 0.00951298453529433
+        },
+        {
+          "lambda": 0.73,
+          "lambda_bps": 7300,
+          "lvr_per_year": 0.019931102362204727,
+          "fees_per_year": 0.010622533869580331,
+          "tracking_error": 0.013338007686119695,
+          "objective": 0.009521988849190005
+        },
+        {
+          "lambda": 0.74,
+          "lambda_bps": 7400,
+          "lvr_per_year": 0.020089285714285716,
+          "fees_per_year": 0.010768048032177322,
+          "tracking_error": 0.013267112970178555,
+          "objective": 0.009533523658194487
+        },
+        {
+          "lambda": 0.75,
+          "lambda_bps": 7500,
+          "lvr_per_year": 0.02025,
+          "fees_per_year": 0.010913562194774315,
+          "tracking_error": 0.013199789657077078,
+          "objective": 0.009547646546553379
+        },
+        {
+          "lambda": 0.76,
+          "lambda_bps": 7600,
+          "lvr_per_year": 0.020413306451612906,
+          "fees_per_year": 0.011059076357371305,
+          "tracking_error": 0.013135936269820203,
+          "objective": 0.009564417122807015
+        },
+        {
+          "lambda": 0.77,
+          "lambda_bps": 7700,
+          "lvr_per_year": 0.020579268292682928,
+          "fees_per_year": 0.011204590519968296,
+          "tracking_error": 0.01307545785657478,
+          "objective": 0.009583897091197467
+        },
+        {
+          "lambda": 0.78,
+          "lambda_bps": 7800,
+          "lvr_per_year": 0.020747950819672133,
+          "fees_per_year": 0.011350104682565289,
+          "tracking_error": 0.013018265625287748,
+          "objective": 0.009606150327432516
+        },
+        {
+          "lambda": 0.79,
+          "lambda_bps": 7900,
+          "lvr_per_year": 0.02091942148760331,
+          "fees_per_year": 0.011495618845162278,
+          "tracking_error": 0.01296427660869256,
+          "objective": 0.009631242958982586
+        },
+        {
+          "lambda": 0.8,
+          "lambda_bps": 8000,
+          "lvr_per_year": 0.02109375,
+          "fees_per_year": 0.011641133007759269,
+          "tracking_error": 0.012913413357172773,
+          "objective": 0.009659243450106323
+        },
+        {
+          "lambda": 0.81,
+          "lambda_bps": 8100,
+          "lvr_per_year": 0.021271008403361345,
+          "fees_per_year": 0.011786647170356261,
+          "tracking_error": 0.012865603657211658,
+          "objective": 0.009690222691820358
+        },
+        {
+          "lambda": 0.82,
+          "lambda_bps": 8200,
+          "lvr_per_year": 0.021451271186440676,
+          "fees_per_year": 0.011932161332953248,
+          "tracking_error": 0.012820780273388952,
+          "objective": 0.00972425409704964
+        },
+        {
+          "lambda": 0.83,
+          "lambda_bps": 8300,
+          "lvr_per_year": 0.021634615384615388,
+          "fees_per_year": 0.012077675495550241,
+          "tracking_error": 0.012778880712093437,
+          "objective": 0.009761413701216456
+        },
+        {
+          "lambda": 0.84,
+          "lambda_bps": 8400,
+          "lvr_per_year": 0.021821120689655173,
+          "fees_per_year": 0.01222318965814723,
+          "tracking_error": 0.012739847005306183,
+          "objective": 0.009801780268549038
+        },
+        {
+          "lambda": 0.85,
+          "lambda_bps": 8500,
+          "lvr_per_year": 0.022010869565217396,
+          "fees_per_year": 0.012368703820744223,
+          "tracking_error": 0.012703625512976493,
+          "objective": 0.00984543540441473
+        },
+        {
+          "lambda": 0.86,
+          "lambda_bps": 8600,
+          "lvr_per_year": 0.022203947368421052,
+          "fees_per_year": 0.012514217983341215,
+          "tracking_error": 0.012670166742663132,
+          "objective": 0.00989246367400808
+        },
+        {
+          "lambda": 0.87,
+          "lambda_bps": 8700,
+          "lvr_per_year": 0.02240044247787611,
+          "fees_per_year": 0.012659732145938206,
+          "tracking_error": 0.012639425185249378,
+          "objective": 0.009942952727751446
+        },
+        {
+          "lambda": 0.88,
+          "lambda_bps": 8800,
+          "lvr_per_year": 0.022600446428571428,
+          "fees_per_year": 0.012805246308535195,
+          "tracking_error": 0.012611359165663444,
+          "objective": 0.009996993433794316
+        },
+        {
+          "lambda": 0.89,
+          "lambda_bps": 8900,
+          "lvr_per_year": 0.022804054054054057,
+          "fees_per_year": 0.012950760471132187,
+          "tracking_error": 0.01258593070764763,
+          "objective": 0.01005468001802878
+        },
+        {
+          "lambda": 0.9,
+          "lambda_bps": 9000,
+          "lvr_per_year": 0.023011363636363635,
+          "fees_per_year": 0.01309627463372918,
+          "tracking_error": 0.01256310541172115,
+          "objective": 0.010116110212071237
+        },
+        {
+          "lambda": 0.91,
+          "lambda_bps": 9100,
+          "lvr_per_year": 0.023222477064220187,
+          "fees_per_year": 0.013241788796326167,
+          "tracking_error": 0.012542852345574782,
+          "objective": 0.010181385409696396
+        },
+        {
+          "lambda": 0.92,
+          "lambda_bps": 9200,
+          "lvr_per_year": 0.0234375,
+          "fees_per_year": 0.01338730295892316,
+          "tracking_error": 0.012525143946220623,
+          "objective": 0.010250610832247452
+        },
+        {
+          "lambda": 0.93,
+          "lambda_bps": 9300,
+          "lvr_per_year": 0.023656542056074772,
+          "fees_per_year": 0.013532817121520152,
+          "tracking_error": 0.012509955933299005,
+          "objective": 0.010323895703588078
+        },
+        {
+          "lambda": 0.94,
+          "lambda_bps": 9400,
+          "lvr_per_year": 0.023879716981132077,
+          "fees_per_year": 0.01367833128411714,
+          "tracking_error": 0.01249726723301727,
+          "objective": 0.010401353435205842
+        },
+        {
+          "lambda": 0.95,
+          "lambda_bps": 9500,
+          "lvr_per_year": 0.024107142857142858,
+          "fees_per_year": 0.013823845446714129,
+          "tracking_error": 0.01248705991226289,
+          "objective": 0.010483101822125435
+        },
+        {
+          "lambda": 0.96,
+          "lambda_bps": 9600,
+          "lvr_per_year": 0.024338942307692308,
+          "fees_per_year": 0.013969359609311121,
+          "tracking_error": 0.012479319122496718,
+          "objective": 0.0105692632503418
+        },
+        {
+          "lambda": 0.97,
+          "lambda_bps": 9700,
+          "lvr_per_year": 0.0245752427184466,
+          "fees_per_year": 0.014114873771908114,
+          "tracking_error": 0.01247403305309171,
+          "objective": 0.010659964916540251
+        },
+        {
+          "lambda": 0.98,
+          "lambda_bps": 9800,
+          "lvr_per_year": 0.024816176470588237,
+          "fees_per_year": 0.014260387934505101,
+          "tracking_error": 0.01247119289383913,
+          "objective": 0.010755339060931872
+        },
+        {
+          "lambda": 0.99,
+          "lambda_bps": 9900,
+          "lvr_per_year": 0.025061881188118813,
+          "fees_per_year": 0.014405902097102094,
+          "tracking_error": 0.012470792806397926,
+          "objective": 0.010855523214099437
+        },
+        {
+          "lambda": 1.0,
+          "lambda_bps": 10000,
+          "lvr_per_year": 0.0253125,
+          "fees_per_year": 0.014551416259699086,
+          "tracking_error": 0.012472829904515008,
+          "objective": 0.010960660458821927
+        }
+      ]
+    },
+    {
+      "sigma": 0.6,
+      "lambda_star": 0.5,
+      "lambda_star_bps": 5000,
+      "rows": [
+        {
+          "lambda": 0.05,
+          "lambda_bps": 500,
+          "lvr_per_year": 0.023076923076923078,
+          "fees_per_year": 0.0009700944173132724,
+          "tracking_error": 0.2188876967305004,
+          "objective": 0.025609232570552438
+        },
+        {
+          "lambda": 0.06,
+          "lambda_bps": 600,
+          "lvr_per_year": 0.023195876288659795,
+          "fees_per_year": 0.0011641133007759268,
+          "tracking_error": 0.1834102737766062,
+          "objective": 0.024966495591759515
+        },
+        {
+          "lambda": 0.07,
+          "lambda_bps": 700,
+          "lvr_per_year": 0.023316062176165803,
+          "fees_per_year": 0.0013581321842385814,
+          "tracking_error": 0.15808805548040653,
+          "objective": 0.024487483877587618
+        },
+        {
+          "lambda": 0.08,
+          "lambda_bps": 800,
+          "lvr_per_year": 0.0234375,
+          "fees_per_year": 0.0015521510677012358,
+          "tracking_error": 0.13910462320217634,
+          "objective": 0.024111150489950293
+        },
+        {
+          "lambda": 0.09,
+          "lambda_bps": 900,
+          "lvr_per_year": 0.02356020942408377,
+          "fees_per_year": 0.0017461699511638902,
+          "tracking_error": 0.12434603290118794,
+          "objective": 0.02380369004921304
+        },
+        {
+          "lambda": 0.1,
+          "lambda_bps": 1000,
+          "lvr_per_year": 0.02368421052631579,
+          "fees_per_year": 0.0019401888346265448,
+          "tracking_error": 0.11254519309919568,
+          "objective": 0.023544848007449416
+        },
+        {
+          "lambda": 0.11,
+          "lambda_bps": 1100,
+          "lvr_per_year": 0.023809523809523808,
+          "fees_per_year": 0.002134207718089199,
+          "tracking_error": 0.1028959264045926,
+          "objective": 0.02332174528979756
+        },
+        {
+          "lambda": 0.12,
+          "lambda_bps": 1200,
+          "lvr_per_year": 0.023936170212765957,
+          "fees_per_year": 0.0023282266015518535,
+          "tracking_error": 0.0948607145541488,
+          "objective": 0.023125802050093496
+        },
+        {
+          "lambda": 0.13,
+          "lambda_bps": 1300,
+          "lvr_per_year": 0.02406417112299465,
+          "fees_per_year": 0.002522245485014508,
+          "tracking_error": 0.08806734811753313,
+          "objective": 0.022951083983014774
+        },
+        {
+          "lambda": 0.14,
+          "lambda_bps": 1400,
+          "lvr_per_year": 0.024193548387096774,
+          "fees_per_year": 0.0027162643684771628,
+          "tracking_error": 0.08224990488336545,
+          "objective": 0.022793357936162998
+        },
+        {
+          "lambda": 0.15,
+          "lambda_bps": 1500,
+          "lvr_per_year": 0.024324324324324322,
+          "fees_per_year": 0.002910283251939817,
+          "tracking_error": 0.07721333908128733,
+          "objective": 0.022649525317568933
+        },
+        {
+          "lambda": 0.16,
+          "lambda_bps": 1600,
+          "lvr_per_year": 0.024456521739130432,
+          "fees_per_year": 0.0031043021354024715,
+          "tracking_error": 0.0728113451141159,
+          "objective": 0.022517267907939658
+        },
+        {
+          "lambda": 0.17,
+          "lambda_bps": 1700,
+          "lvr_per_year": 0.02459016393442623,
+          "fees_per_year": 0.0032983210188651264,
+          "tracking_error": 0.06893202964080034,
+          "objective": 0.022394818614101183
+        },
+        {
+          "lambda": 0.18,
+          "lambda_bps": 1800,
+          "lvr_per_year": 0.024725274725274724,
+          "fees_per_year": 0.0034923399023277803,
+          "tracking_error": 0.06548835658915045,
+          "objective": 0.02228080859413221
+        },
+        {
+          "lambda": 0.19,
+          "lambda_bps": 1900,
+          "lvr_per_year": 0.024861878453038673,
+          "fees_per_year": 0.0036863587857904347,
+          "tracking_error": 0.062411607774773205,
+          "objective": 0.02217416263541706
+        },
+        {
+          "lambda": 0.2,
+          "lambda_bps": 2000,
+          "lvr_per_year": 0.024999999999999998,
+          "fees_per_year": 0.0038803776692530895,
+          "tracking_error": 0.059646804456294396,
+          "objective": 0.022074025909949294
+        },
+        {
+          "lambda": 0.21,
+          "lambda_bps": 2100,
+          "lvr_per_year": 0.02513966480446927,
+          "fees_per_year": 0.004074396552715744,
+          "tracking_error": 0.057149436658553085,
+          "objective": 0.021979711655612477
+        },
+        {
+          "lambda": 0.22,
+          "lambda_bps": 2200,
+          "lvr_per_year": 0.025280898876404494,
+          "fees_per_year": 0.004268415436178398,
+          "tracking_error": 0.054883084406124216,
+          "objective": 0.0218906631293535
+        },
+        {
+          "lambda": 0.23,
+          "lambda_bps": 2300,
+          "lvr_per_year": 0.02542372881355932,
+          "fees_per_year": 0.004462434319641054,
+          "tracking_error": 0.05281765952480132,
+          "objective": 0.021806425490541903
+        },
+        {
+          "lambda": 0.24,
+          "lambda_bps": 2400,
+          "lvr_per_year": 0.025568181818181816,
+          "fees_per_year": 0.004656453203103707,
+          "tracking_error": 0.05092808704186077,
+          "objective": 0.021726624718863486
+        },
+        {
+          "lambda": 0.25,
+          "lambda_bps": 2500,
+          "lvr_per_year": 0.025714285714285714,
+          "fees_per_year": 0.0048504720865663615,
+          "tracking_error": 0.049193303089321676,
+          "objective": 0.021650951597124546
+        },
+        {
+          "lambda": 0.26,
+          "lambda_bps": 2600,
+          "lvr_per_year": 0.02586206896551724,
+          "fees_per_year": 0.005044490970029016,
+          "tracking_error": 0.047595484075731415,
+          "objective": 0.021579149395160323
+        },
+        {
+          "lambda": 0.27,
+          "lambda_bps": 2700,
+          "lvr_per_year": 0.02601156069364162,
+          "fees_per_year": 0.005238509853491671,
+          "tracking_error": 0.04611944714441692,
+          "objective": 0.02151100429510359
+        },
+        {
+          "lambda": 0.28,
+          "lambda_bps": 2800,
+          "lvr_per_year": 0.026162790697674417,
+          "fees_per_year": 0.0054325287369543255,
+          "tracking_error": 0.04475217907721478,
+          "objective": 0.021446337872543606
+        },
+        {
+          "lambda": 0.29,
+          "lambda_bps": 2900,
+          "lvr_per_year": 0.02631578947368421,
+          "fees_per_year": 0.005626547620416979,
+          "tracking_error": 0.043482462626127254,
+          "objective": 0.021385001137292553
+        },
+        {
+          "lambda": 0.3,
+          "lambda_bps": 3000,
+          "lvr_per_year": 0.026470588235294117,
+          "fees_per_year": 0.005820566503879634,
+          "tracking_error": 0.04230057753191296,
+          "objective": 0.021326869769910287
+        },
+        {
+          "lambda": 0.31,
+          "lambda_bps": 3100,
+          "lvr_per_year": 0.026627218934911243,
+          "fees_per_year": 0.006014585387342289,
+          "tracking_error": 0.04119805936163207,
+          "objective": 0.021271840284113323
+        },
+        {
+          "lambda": 0.32,
+          "lambda_bps": 3200,
+          "lvr_per_year": 0.026785714285714284,
+          "fees_per_year": 0.006208604270804943,
+          "tracking_error": 0.040167503517442235,
+          "objective": 0.021219826912723398
+        },
+        {
+          "lambda": 0.33,
+          "lambda_bps": 3300,
+          "lvr_per_year": 0.02694610778443114,
+          "fees_per_year": 0.0064026231542675975,
+          "tracking_error": 0.0392024048373028,
+          "objective": 0.021170759063909243
+        },
+        {
+          "lambda": 0.34,
+          "lambda_bps": 3400,
+          "lvr_per_year": 0.02710843373493976,
+          "fees_per_year": 0.006596642037730253,
+          "tracking_error": 0.038297025463602405,
+          "objective": 0.021124579230564277
+        },
+        {
+          "lambda": 0.35,
+          "lambda_bps": 3500,
+          "lvr_per_year": 0.027272727272727275,
+          "fees_per_year": 0.006790660921192906,
+          "tracking_error": 0.0374462853305219,
+          "objective": 0.021081241262463104
+        },
+        {
+          "lambda": 0.36,
+          "lambda_bps": 3600,
+          "lvr_per_year": 0.0274390243902439,
+          "fees_per_year": 0.006984679804655561,
+          "tracking_error": 0.036645670876597314,
+          "objective": 0.02104070893093268
+        },
+        {
+          "lambda": 0.37,
+          "lambda_bps": 3700,
+          "lvr_per_year": 0.027607361963190184,
+          "fees_per_year": 0.007178698688118216,
+          "tracking_error": 0.035891158538868755,
+          "objective": 0.0210029547309758
+        },
+        {
+          "lambda": 0.38,
+          "lambda_bps": 3800,
+          "lvr_per_year": 0.027777777777777776,
+          "fees_per_year": 0.007372717571580869,
+          "tracking_error": 0.035179150309747616,
+          "objective": 0.020967958877382613
+        },
+        {
+          "lambda": 0.39,
+          "lambda_bps": 3900,
+          "lvr_per_year": 0.027950310559006212,
+          "fees_per_year": 0.007566736455043524,
+          "tracking_error": 0.03450641919512091,
+          "objective": 0.020935708460287052
+        },
+        {
+          "lambda": 0.4,
+          "lambda_bps": 4000,
+          "lvr_per_year": 0.028124999999999997,
+          "fees_per_year": 0.007760755338506179,
+          "tracking_error": 0.03387006284413027,
+          "objective": 0.02090619673253786
+        },
+        {
+          "lambda": 0.41,
+          "lambda_bps": 4100,
+          "lvr_per_year": 0.028301886792452827,
+          "fees_per_year": 0.007954774221968833,
+          "tracking_error": 0.03326746395815496,
+          "objective": 0.02087942250665022
+        },
+        {
+          "lambda": 0.42,
+          "lambda_bps": 4200,
+          "lvr_per_year": 0.028481012658227847,
+          "fees_per_year": 0.008148793105431488,
+          "tracking_error": 0.032696256351393276,
+          "objective": 0.020855389643344192
+        },
+        {
+          "lambda": 0.43,
+          "lambda_bps": 4300,
+          "lvr_per_year": 0.028662420382165602,
+          "fees_per_year": 0.008342811988894142,
+          "tracking_error": 0.03215429574488717,
+          "objective": 0.020834106617030265
+        },
+        {
+          "lambda": 0.44,
+          "lambda_bps": 4400,
+          "lvr_per_year": 0.028846153846153844,
+          "fees_per_year": 0.008536830872356797,
+          "tracking_error": 0.03163963454247299,
+          "objective": 0.020815586146271246
+        },
+        {
+          "lambda": 0.45,
+          "lambda_bps": 4500,
+          "lvr_per_year": 0.029032258064516127,
+          "fees_per_year": 0.008730849755819451,
+          "tracking_error": 0.03115049997048352,
+          "objective": 0.02079984487938602
+        },
+        {
+          "lambda": 0.46,
+          "lambda_bps": 4600,
+          "lvr_per_year": 0.02922077922077922,
+          "fees_per_year": 0.008924868639282107,
+          "tracking_error": 0.030685275070312837,
+          "objective": 0.0207869031270806
+        },
+        {
+          "lambda": 0.47,
+          "lambda_bps": 4700,
+          "lvr_per_year": 0.029411764705882353,
+          "fees_per_year": 0.009118887522744758,
+          "tracking_error": 0.030242482119728013,
+          "objective": 0.020776784635383124
+        },
+        {
+          "lambda": 0.48,
+          "lambda_bps": 4800,
+          "lvr_per_year": 0.029605263157894735,
+          "fees_per_year": 0.009312906406207414,
+          "tracking_error": 0.02982076812934203,
+          "objective": 0.02076951639329164
+        },
+        {
+          "lambda": 0.49,
+          "lambda_bps": 4900,
+          "lvr_per_year": 0.029801324503311258,
+          "fees_per_year": 0.009506925289670069,
+          "tracking_error": 0.02941889211826327,
+          "objective": 0.020765128470468564
+        },
+        {
+          "lambda": 0.5,
+          "lambda_bps": 5000,
+          "lvr_per_year": 0.03,
+          "fees_per_year": 0.009700944173132723,
+          "tracking_error": 0.029035713920190772,
+          "objective": 0.020763653881075397
+        },
+        {
+          "lambda": 0.51,
+          "lambda_bps": 5100,
+          "lvr_per_year": 0.030201342281879193,
+          "fees_per_year": 0.009894963056595377,
+          "tracking_error": 0.028670184310158622,
+          "objective": 0.020765128470468564
+        },
+        {
+          "lambda": 0.52,
+          "lambda_bps": 5200,
+          "lvr_per_year": 0.030405405405405404,
+          "fees_per_year": 0.010088981940058032,
+          "tracking_error": 0.02832133627434376,
+          "objective": 0.020769590821996527
+        },
+        {
+          "lambda": 0.53,
+          "lambda_bps": 5300,
+          "lvr_per_year": 0.030612244897959183,
+          "fees_per_year": 0.010283000823520686,
+          "tracking_error": 0.027988277272106142,
+          "objective": 0.02077708218157096
+        },
+        {
+          "lambda": 0.54,
+          "lambda_bps": 5400,
+          "lvr_per_year": 0.030821917808219176,
+          "fees_per_year": 0.010477019706983342,
+          "tracking_error": 0.027670182361737048,
+          "objective": 0.020787646398046523
+        },
+        {
+          "lambda": 0.55,
+          "lambda_bps": 5500,
+          "lvr_per_year": 0.03103448275862069,
+          "fees_per_year": 0.010671038590445997,
+          "tracking_error": 0.02736628808005708,
+          "objective": 0.020801329877747417
+        },
+        {
+          "lambda": 0.56,
+          "lambda_bps": 5600,
+          "lvr_per_year": 0.03125,
+          "fees_per_year": 0.010865057473908651,
+          "tracking_error": 0.02707588698167909,
+          "objective": 0.020818181551734854
+        },
+        {
+          "lambda": 0.57,
+          "lambda_bps": 5700,
+          "lvr_per_year": 0.031468531468531465,
+          "fees_per_year": 0.011059076357371302,
+          "tracking_error": 0.026798322756956566,
+          "objective": 0.02083825285462689
+        },
+        {
+          "lambda": 0.58,
+          "lambda_bps": 5800,
+          "lvr_per_year": 0.03169014084507042,
+          "fees_per_year": 0.011253095240833958,
+          "tracking_error": 0.026532985858799235,
+          "objective": 0.020861597713966326
+        },
+        {
+          "lambda": 0.59,
+          "lambda_bps": 5900,
+          "lvr_per_year": 0.031914893617021274,
+          "fees_per_year": 0.011447114124296614,
+          "tracking_error": 0.026279309578001044,
+          "objective": 0.02088827254929049
+        },
+        {
+          "lambda": 0.6,
+          "lambda_bps": 6000,
+          "lvr_per_year": 0.03214285714285715,
+          "fees_per_year": 0.011641133007759269,
+          "tracking_error": 0.026036766514772162,
+          "objective": 0.020918336280192146
+        },
+        {
+          "lambda": 0.61,
+          "lambda_bps": 6100,
+          "lvr_per_year": 0.03237410071942445,
+          "fees_per_year": 0.011835151891221921,
+          "tracking_error": 0.02580486540103006,
+          "objective": 0.0209518503427778
+        },
+        {
+          "lambda": 0.62,
+          "lambda_bps": 6200,
+          "lvr_per_year": 0.03260869565217391,
+          "fees_per_year": 0.012029170774684577,
+          "tracking_error": 0.025583148233872772,
+          "objective": 0.02098887871403165
+        },
+        {
+          "lambda": 0.63,
+          "lambda_bps": 6300,
+          "lvr_per_year": 0.03284671532846715,
+          "fees_per_year": 0.01222318965814723,
+          "tracking_error": 0.025371187685690334,
+          "objective": 0.021029487943681622
+        },
+        {
+          "lambda": 0.64,
+          "lambda_bps": 6400,
+          "lvr_per_year": 0.03308823529411765,
+          "fees_per_year": 0.012417208541609886,
+          "tracking_error": 0.025168584760696056,
+          "objective": 0.021073747193242655
+        },
+        {
+          "lambda": 0.65,
+          "lambda_bps": 6500,
+          "lvr_per_year": 0.03333333333333333,
+          "fees_per_year": 0.01261122742507254,
+          "tracking_error": 0.024974966671388057,
+          "objective": 0.021121728281980723
+        },
+        {
+          "lambda": 0.66,
+          "lambda_bps": 6600,
+          "lvr_per_year": 0.033582089552238806,
+          "fees_per_year": 0.012805246308535195,
+          "tracking_error": 0.024789984911672364,
+          "objective": 0.021173505739603277
+        },
+        {
+          "lambda": 0.67,
+          "lambda_bps": 6700,
+          "lvr_per_year": 0.03383458646616541,
+          "fees_per_year": 0.012999265191997848,
+          "tracking_error": 0.024613313506168216,
+          "objective": 0.02122915686553659
+        },
+        {
+          "lambda": 0.68,
+          "lambda_bps": 6800,
+          "lvr_per_year": 0.034090909090909095,
+          "fees_per_year": 0.013193284075460505,
+          "tracking_error": 0.024444647417636904,
+          "objective": 0.021288761794700996
+        },
+        {
+          "lambda": 0.69,
+          "lambda_bps": 6900,
+          "lvr_per_year": 0.034351145038167934,
+          "fees_per_year": 0.01338730295892316,
+          "tracking_error": 0.024283701096581595,
+          "objective": 0.021352403569740726
+        },
+        {
+          "lambda": 0.7,
+          "lambda_bps": 7000,
+          "lvr_per_year": 0.03461538461538461,
+          "fees_per_year": 0.013581321842385813,
+          "tracking_error": 0.024130207158900744,
+          "objective": 0.021420168219707596
+        },
+        {
+          "lambda": 0.71,
+          "lambda_bps": 7100,
+          "lvr_per_year": 0.03488372093023256,
+          "fees_per_year": 0.013775340725848467,
+          "tracking_error": 0.023983915179081584,
+          "objective": 0.02149214484523714
+        },
+        {
+          "lambda": 0.72,
+          "lambda_bps": 7200,
+          "lvr_per_year": 0.03515625,
+          "fees_per_year": 0.013969359609311121,
+          "tracking_error": 0.02384459058782355,
+          "objective": 0.021568425710293628
+        },
+        {
+          "lambda": 0.73,
+          "lambda_bps": 7300,
+          "lvr_per_year": 0.03543307086614173,
+          "fees_per_year": 0.014163378492773774,
+          "tracking_error": 0.023712013664212793,
+          "objective": 0.02164910634059571
+        },
+        {
+          "lambda": 0.74,
+          "lambda_bps": 7400,
+          "lvr_per_year": 0.03571428571428571,
+          "fees_per_year": 0.014357397376236432,
+          "tracking_error": 0.02358597861365077,
+          "objective": 0.021734285628869
+        },
+        {
+          "lambda": 0.75,
+          "lambda_bps": 7500,
+          "lvr_per_year": 0.036,
+          "fees_per_year": 0.014551416259699081,
+          "tracking_error": 0.023466292723692588,
+          "objective": 0.021824065947105706
+        },
+        {
+          "lambda": 0.76,
+          "lambda_bps": 7600,
+          "lvr_per_year": 0.03629032258064516,
+          "fees_per_year": 0.014745435143161739,
+          "tracking_error": 0.02335277559079147,
+          "objective": 0.021918553266044152
+        },
+        {
+          "lambda": 0.77,
+          "lambda_bps": 7700,
+          "lvr_per_year": 0.036585365853658534,
+          "fees_per_year": 0.014939454026624393,
+          "tracking_error": 0.0232452584116885,
+          "objective": 0.022017857282114736
+        },
+        {
+          "lambda": 0.78,
+          "lambda_bps": 7800,
+          "lvr_per_year": 0.036885245901639344,
+          "fees_per_year": 0.015133472910087048,
+          "tracking_error": 0.02314358333384488,
+          "objective": 0.022122091552131264
+        },
+        {
+          "lambda": 0.79,
+          "lambda_bps": 7900,
+          "lvr_per_year": 0.0371900826446281,
+          "fees_per_year": 0.0153274917935497,
+          "tracking_error": 0.023047602859897886,
+          "objective": 0.022231373636041163
+        },
+        {
+          "lambda": 0.8,
+          "lambda_bps": 8000,
+          "lvr_per_year": 0.0375,
+          "fees_per_year": 0.015521510677012358,
+          "tracking_error": 0.02295717930164049,
+          "objective": 0.022345825248082023
+        },
+        {
+          "lambda": 0.81,
+          "lambda_bps": 8100,
+          "lvr_per_year": 0.037815126050420166,
+          "fees_per_year": 0.015715529560475013,
+          "tracking_error": 0.022872184279487395,
+          "objective": 0.02246557241672786
+        },
+        {
+          "lambda": 0.82,
+          "lambda_bps": 8200,
+          "lvr_per_year": 0.03813559322033898,
+          "fees_per_year": 0.015909548443937667,
+          "tracking_error": 0.022792498263802582,
+          "objective": 0.022590745653845248
+        },
+        {
+          "lambda": 0.83,
+          "lambda_bps": 8300,
+          "lvr_per_year": 0.038461538461538464,
+          "fees_per_year": 0.016103567327400318,
+          "tracking_error": 0.022718010154832775,
+          "objective": 0.022721480133518254
+        },
+        {
+          "lambda": 0.84,
+          "lambda_bps": 8400,
+          "lvr_per_year": 0.038793103448275856,
+          "fees_per_year": 0.016297586210862976,
+          "tracking_error": 0.02264861689832211,
+          "objective": 0.022857915881041496
+        },
+        {
+          "lambda": 0.85,
+          "lambda_bps": 8500,
+          "lvr_per_year": 0.0391304347826087,
+          "fees_per_year": 0.01649160509432563,
+          "tracking_error": 0.022584223134180435,
+          "objective": 0.023000197972623614
+        },
+        {
+          "lambda": 0.86,
+          "lambda_bps": 8600,
+          "lvr_per_year": 0.03947368421052631,
+          "fees_per_year": 0.016685623977788284,
+          "tracking_error": 0.022524740875845568,
+          "objective": 0.02314847674638823
+        },
+        {
+          "lambda": 0.87,
+          "lambda_bps": 8700,
+          "lvr_per_year": 0.03982300884955752,
+          "fees_per_year": 0.016879642861250942,
+          "tracking_error": 0.02247008921822111,
+          "objective": 0.02330290802530843
+        },
+        {
+          "lambda": 0.88,
+          "lambda_bps": 8800,
+          "lvr_per_year": 0.040178571428571425,
+          "fees_per_year": 0.017073661744713593,
+          "tracking_error": 0.022420194072290567,
+          "objective": 0.02346365335276109
+        },
+        {
+          "lambda": 0.89,
+          "lambda_bps": 8900,
+          "lvr_per_year": 0.04054054054054054,
+          "fees_per_year": 0.017267680628176248,
+          "tracking_error": 0.022374987924706893,
+          "objective": 0.023630880241443247
+        },
+        {
+          "lambda": 0.9,
+          "lambda_bps": 9000,
+          "lvr_per_year": 0.0409090909090909,
+          "fees_per_year": 0.017461699511638902,
+          "tracking_error": 0.022334409620837596,
+          "objective": 0.023804762436450723
+        },
+        {
+          "lambda": 0.91,
+          "lambda_bps": 9100,
+          "lvr_per_year": 0.04128440366972477,
+          "fees_per_year": 0.017655718395101556,
+          "tracking_error": 0.022298404169910722,
+          "objective": 0.023985480193383
+        },
+        {
+          "lambda": 0.92,
+          "lambda_bps": 9200,
+          "lvr_per_year": 0.041666666666666664,
+          "fees_per_year": 0.017849737278564214,
+          "tracking_error": 0.02226692257105889,
+          "objective": 0.024173220572405757
+        },
+        {
+          "lambda": 0.93,
+          "lambda_bps": 9300,
+          "lvr_per_year": 0.042056074766355145,
+          "fees_per_year": 0.018043756162026865,
+          "tracking_error": 0.02223992165919823,
+          "objective": 0.02436817774927665
+        },
+        {
+          "lambda": 0.94,
+          "lambda_bps": 9400,
+          "lvr_per_year": 0.04245283018867924,
+          "fees_per_year": 0.018237775045489516,
+          "tracking_error": 0.022217363969808477,
+          "objective": 0.024570553344418003
+        },
+        {
+          "lambda": 0.95,
+          "lambda_bps": 9500,
+          "lvr_per_year": 0.04285714285714285,
+          "fees_per_year": 0.018431793928952174,
+          "tracking_error": 0.022199217621800698,
+          "objective": 0.02478055677120704
+        },
+        {
+          "lambda": 0.96,
+          "lambda_bps": 9600,
+          "lvr_per_year": 0.04326923076923077,
+          "fees_per_year": 0.01862581281241483,
+          "tracking_error": 0.022185456217771942,
+          "objective": 0.024998405604745918
+        },
+        {
+          "lambda": 0.97,
+          "lambda_bps": 9700,
+          "lvr_per_year": 0.04368932038834951,
+          "fees_per_year": 0.01881983169587748,
+          "tracking_error": 0.02217605876105193,
+          "objective": 0.025224325972475165
+        },
+        {
+          "lambda": 0.98,
+          "lambda_bps": 9800,
+          "lvr_per_year": 0.044117647058823525,
+          "fees_per_year": 0.019013850579340137,
+          "tracking_error": 0.02217100958904734,
+          "objective": 0.02545855296810336
+        },
+        {
+          "lambda": 0.99,
+          "lambda_bps": 9900,
+          "lvr_per_year": 0.04455445544554455,
+          "fees_per_year": 0.01920786946280279,
+          "tracking_error": 0.0221702983224852,
+          "objective": 0.025701331090444368
+        },
+        {
+          "lambda": 1.0,
+          "lambda_bps": 10000,
+          "lvr_per_year": 0.045,
+          "fees_per_year": 0.019401888346265446,
+          "tracking_error": 0.0221739198302489,
+          "objective": 0.025952914708883015
+        }
+      ]
+    },
+    {
+      "sigma": 0.8,
+      "lambda_star": 0.33,
+      "lambda_star_bps": 3300,
+      "rows": [
+        {
+          "lambda": 0.05,
+          "lambda_bps": 500,
+          "lvr_per_year": 0.04102564102564103,
+          "fees_per_year": 0.0012934592230843633,
+          "tracking_error": 0.38913368307644525,
+          "objective": 0.04595867764423246
+        },
+        {
+          "lambda": 0.06,
+          "lambda_bps": 600,
+          "lvr_per_year": 0.04123711340206186,
+          "fees_per_year": 0.0015521510677012358,
+          "tracking_error": 0.3260627089361888,
+          "objective": 0.04490226474125067
+        },
+        {
+          "lambda": 0.07,
+          "lambda_bps": 700,
+          "lvr_per_year": 0.04145077720207255,
+          "fees_per_year": 0.0018108429123181087,
+          "tracking_error": 0.2810454319651671,
+          "objective": 0.04413691897537292
+        },
+        {
+          "lambda": 0.08,
+          "lambda_bps": 800,
+          "lvr_per_year": 0.04166666666666668,
+          "fees_per_year": 0.0020695347569349813,
+          "tracking_error": 0.2472971079149801,
+          "objective": 0.04355411245666775
+        },
+        {
+          "lambda": 0.09,
+          "lambda_bps": 900,
+          "lvr_per_year": 0.04188481675392671,
+          "fees_per_year": 0.0023282266015518535,
+          "tracking_error": 0.22105961404655633,
+          "objective": 0.04309374673245158
+        },
+        {
+          "lambda": 0.1,
+          "lambda_bps": 1000,
+          "lvr_per_year": 0.04210526315789475,
+          "fees_per_year": 0.0025869184461687266,
+          "tracking_error": 0.20008034328745897,
+          "objective": 0.042719813717521884
+        },
+        {
+          "lambda": 0.11,
+          "lambda_bps": 1100,
+          "lvr_per_year": 0.04232804232804234,
+          "fees_per_year": 0.002845610290785599,
+          "tracking_error": 0.18292609138594243,
+          "objective": 0.04240941727879087
+        },
+        {
+          "lambda": 0.12,
+          "lambda_bps": 1200,
+          "lvr_per_year": 0.042553191489361715,
+          "fees_per_year": 0.0031043021354024715,
+          "tracking_error": 0.16864127031848675,
+          "objective": 0.0421473043564115
+        },
+        {
+          "lambda": 0.13,
+          "lambda_bps": 1300,
+          "lvr_per_year": 0.04278074866310161,
+          "fees_per_year": 0.0033629939800193438,
+          "tracking_error": 0.15656417443117,
+          "objective": 0.04192292507425494
+        },
+        {
+          "lambda": 0.14,
+          "lambda_bps": 1400,
+          "lvr_per_year": 0.04301075268817205,
+          "fees_per_year": 0.0036216858246362173,
+          "tracking_error": 0.14622205312598302,
+          "objective": 0.04172875382805741
+        },
+        {
+          "lambda": 0.15,
+          "lambda_bps": 1500,
+          "lvr_per_year": 0.04324324324324325,
+          "fees_per_year": 0.0038803776692530895,
+          "tracking_error": 0.13726815836673303,
+          "objective": 0.04155928200987359
+        },
+        {
+          "lambda": 0.16,
+          "lambda_bps": 1600,
+          "lvr_per_year": 0.04347826086956522,
+          "fees_per_year": 0.004139069513869963,
+          "tracking_error": 0.12944239131398383,
+          "objective": 0.041410388340960495
+        },
+        {
+          "lambda": 0.17,
+          "lambda_bps": 1700,
+          "lvr_per_year": 0.043715846994535526,
+          "fees_per_year": 0.004397761358486835,
+          "tracking_error": 0.12254583047253392,
+          "objective": 0.04127893132234216
+        },
+        {
+          "lambda": 0.18,
+          "lambda_bps": 1800,
+          "lvr_per_year": 0.043956043956043966,
+          "fees_per_year": 0.004656453203103707,
+          "tracking_error": 0.11642374504737858,
+          "objective": 0.04116247745726962
+        },
+        {
+          "lambda": 0.19,
+          "lambda_bps": 1900,
+          "lvr_per_year": 0.044198895027624314,
+          "fees_per_year": 0.004915145047720581,
+          "tracking_error": 0.11095396937737459,
+          "objective": 0.0410591152566483
+        },
+        {
+          "lambda": 0.2,
+          "lambda_bps": 2000,
+          "lvr_per_year": 0.04444444444444445,
+          "fees_per_year": 0.005173836892337453,
+          "tracking_error": 0.1060387634778567,
+          "objective": 0.040967325026244575
+        },
+        {
+          "lambda": 0.21,
+          "lambda_bps": 2100,
+          "lvr_per_year": 0.044692737430167606,
+          "fees_per_year": 0.0054325287369543255,
+          "tracking_error": 0.10159899850409436,
+          "objective": 0.040885885855629196
+        },
+        {
+          "lambda": 0.22,
+          "lambda_bps": 2200,
+          "lvr_per_year": 0.04494382022471911,
+          "fees_per_year": 0.005691220581571198,
+          "tracking_error": 0.09756992783310971,
+          "objective": 0.0408138079793744
+        },
+        {
+          "lambda": 0.23,
+          "lambda_bps": 2300,
+          "lvr_per_year": 0.04519774011299436,
+          "fees_per_year": 0.005949912426188071,
+          "tracking_error": 0.09389806137742457,
+          "objective": 0.04075028279191498
+        },
+        {
+          "lambda": 0.24,
+          "lambda_bps": 2400,
+          "lvr_per_year": 0.04545454545454546,
+          "fees_per_year": 0.006208604270804943,
+          "tracking_error": 0.09053882140775249,
+          "objective": 0.04069464536824786
+        },
+        {
+          "lambda": 0.25,
+          "lambda_bps": 2500,
+          "lvr_per_year": 0.04571428571428572,
+          "fees_per_year": 0.006467296115421816,
+          "tracking_error": 0.087454761047683,
+          "objective": 0.04064634598891759
+        },
+        {
+          "lambda": 0.26,
+          "lambda_bps": 2600,
+          "lvr_per_year": 0.04597701149425288,
+          "fees_per_year": 0.0067259879600386875,
+          "tracking_error": 0.0846141939124114,
+          "objective": 0.04060492824474237
+        },
+        {
+          "lambda": 0.27,
+          "lambda_bps": 2700,
+          "lvr_per_year": 0.046242774566474,
+          "fees_per_year": 0.006984679804655561,
+          "tracking_error": 0.08199012825674118,
+          "objective": 0.04057001201506936
+        },
+        {
+          "lambda": 0.28,
+          "lambda_bps": 2800,
+          "lvr_per_year": 0.04651162790697675,
+          "fees_per_year": 0.007243371649272435,
+          "tracking_error": 0.07955942947060404,
+          "objective": 0.04054128010094612
+        },
+        {
+          "lambda": 0.29,
+          "lambda_bps": 2900,
+          "lvr_per_year": 0.04678362573099416,
+          "fees_per_year": 0.007502063493889305,
+          "tracking_error": 0.07730215577978178,
+          "objective": 0.04051846763092765
+        },
+        {
+          "lambda": 0.3,
+          "lambda_bps": 3000,
+          "lvr_per_year": 0.04705882352941178,
+          "fees_per_year": 0.007760755338506179,
+          "tracking_error": 0.07520102672340082,
+          "objective": 0.040501353592675926
+        },
+        {
+          "lambda": 0.31,
+          "lambda_bps": 3100,
+          "lvr_per_year": 0.04733727810650889,
+          "fees_per_year": 0.008019447183123052,
+          "tracking_error": 0.07324099442067922,
+          "objective": 0.04048975401057583
+        },
+        {
+          "lambda": 0.32,
+          "lambda_bps": 3200,
+          "lvr_per_year": 0.04761904761904763,
+          "fees_per_year": 0.008278139027739925,
+          "tracking_error": 0.07140889514211952,
+          "objective": 0.04048351640964381
+        },
+        {
+          "lambda": 0.33,
+          "lambda_bps": 3300,
+          "lvr_per_year": 0.04790419161676648,
+          "fees_per_year": 0.008536830872356797,
+          "tracking_error": 0.06969316415520498,
+          "objective": 0.04048251529329092
+        },
+        {
+          "lambda": 0.34,
+          "lambda_bps": 3400,
+          "lvr_per_year": 0.04819277108433736,
+          "fees_per_year": 0.00879552271697367,
+          "tracking_error": 0.06808360082418204,
+          "objective": 0.04048664842666106
+        },
+        {
+          "lambda": 0.35,
+          "lambda_bps": 3500,
+          "lvr_per_year": 0.0484848484848485,
+          "fees_per_year": 0.009054214561590541,
+          "tracking_error": 0.06657117392092782,
+          "objective": 0.04049583376490904
+        },
+        {
+          "lambda": 0.36,
+          "lambda_bps": 3600,
+          "lvr_per_year": 0.04878048780487806,
+          "fees_per_year": 0.009312906406207414,
+          "tracking_error": 0.06514785933617301,
+          "objective": 0.040510006901505025
+        },
+        {
+          "lambda": 0.37,
+          "lambda_bps": 3700,
+          "lvr_per_year": 0.04907975460122701,
+          "fees_per_year": 0.009571598250824286,
+          "tracking_error": 0.0638065040691,
+          "objective": 0.04052911893867621
+        },
+        {
+          "lambda": 0.38,
+          "lambda_bps": 3800,
+          "lvr_per_year": 0.04938271604938272,
+          "fees_per_year": 0.009830290095441162,
+          "tracking_error": 0.06254071166177355,
+          "objective": 0.040553134702716154
+        },
+        {
+          "lambda": 0.39,
+          "lambda_bps": 3900,
+          "lvr_per_year": 0.04968944099378883,
+          "fees_per_year": 0.010088981940058035,
+          "tracking_error": 0.061344745235770506,
+          "objective": 0.040582031242751886
+        },
+        {
+          "lambda": 0.4,
+          "lambda_bps": 4000,
+          "lvr_per_year": 0.05000000000000001,
+          "fees_per_year": 0.010347673784674907,
+          "tracking_error": 0.06021344505623159,
+          "objective": 0.040615796563847846
+        },
+        {
+          "lambda": 0.41,
+          "lambda_bps": 4100,
+          "lvr_per_year": 0.05031446540880504,
+          "fees_per_year": 0.010606365629291778,
+          "tracking_error": 0.05914215814783105,
+          "objective": 0.04065442855491989
+        },
+        {
+          "lambda": 0.42,
+          "lambda_bps": 4200,
+          "lvr_per_year": 0.05063291139240507,
+          "fees_per_year": 0.010865057473908651,
+          "tracking_error": 0.05812667795803248,
+          "objective": 0.040697934079470345
+        },
+        {
+          "lambda": 0.43,
+          "lambda_bps": 4300,
+          "lvr_per_year": 0.05095541401273886,
+          "fees_per_year": 0.011123749318525524,
+          "tracking_error": 0.057163192435354976,
+          "objective": 0.04074632820311789
+        },
+        {
+          "lambda": 0.44,
+          "lambda_bps": 4400,
+          "lvr_per_year": 0.05128205128205129,
+          "fees_per_year": 0.011382441163142396,
+          "tracking_error": 0.056248239186618657,
+          "objective": 0.040799633536640796
+        },
+        {
+          "lambda": 0.45,
+          "lambda_bps": 4500,
+          "lvr_per_year": 0.05161290322580646,
+          "fees_per_year": 0.011641133007759269,
+          "tracking_error": 0.05537866661419293,
+          "objective": 0.040857879677050464
+        },
+        {
+          "lambda": 0.46,
+          "lambda_bps": 4600,
+          "lvr_per_year": 0.05194805194805196,
+          "fees_per_year": 0.011899824852376142,
+          "tracking_error": 0.054551600125000606,
+          "objective": 0.040921102732268684
+        },
+        {
+          "lambda": 0.47,
+          "lambda_bps": 4700,
+          "lvr_per_year": 0.052287581699346414,
+          "fees_per_year": 0.012158516696993015,
+          "tracking_error": 0.05376441265729424,
+          "objective": 0.04098934491745656
+        },
+        {
+          "lambda": 0.48,
+          "lambda_bps": 4800,
+          "lvr_per_year": 0.05263157894736843,
+          "fees_per_year": 0.012417208541609886,
+          "tracking_error": 0.05301469889660806,
+          "objective": 0.04106265421305511
+        },
+        {
+          "lambda": 0.49,
+          "lambda_bps": 4900,
+          "lvr_per_year": 0.05298013245033113,
+          "fees_per_year": 0.01267590038622676,
+          "tracking_error": 0.05230025265469025,
+          "objective": 0.04114108407624193
+        },
+        {
+          "lambda": 0.5,
+          "lambda_bps": 5000,
+          "lvr_per_year": 0.053333333333333344,
+          "fees_per_year": 0.012934592230843632,
+          "tracking_error": 0.05161904696922803,
+          "objective": 0.041224693198859706
+        },
+        {
+          "lambda": 0.51,
+          "lambda_bps": 5100,
+          "lvr_per_year": 0.05369127516778525,
+          "fees_per_year": 0.013193284075460505,
+          "tracking_error": 0.05096921655139311,
+          "objective": 0.04131354530598652
+        },
+        {
+          "lambda": 0.52,
+          "lambda_bps": 5200,
+          "lvr_per_year": 0.054054054054054064,
+          "fees_per_year": 0.013451975920077375,
+          "tracking_error": 0.050349042265500014,
+          "objective": 0.041407708990241855
+        },
+        {
+          "lambda": 0.53,
+          "lambda_bps": 5300,
+          "lvr_per_year": 0.054421768707483005,
+          "fees_per_year": 0.01371066776469425,
+          "tracking_error": 0.04975693737263315,
+          "objective": 0.04150725757769091
+        },
+        {
+          "lambda": 0.54,
+          "lambda_bps": 5400,
+          "lvr_per_year": 0.054794520547945216,
+          "fees_per_year": 0.013969359609311121,
+          "tracking_error": 0.04919143530975474,
+          "objective": 0.041612269021853096
+        },
+        {
+          "lambda": 0.55,
+          "lambda_bps": 5500,
+          "lvr_per_year": 0.05517241379310346,
+          "fees_per_year": 0.014228051453927994,
+          "tracking_error": 0.048651178808990364,
+          "objective": 0.041722825822860306
+        },
+        {
+          "lambda": 0.56,
+          "lambda_bps": 5600,
+          "lvr_per_year": 0.055555555555555566,
+          "fees_per_year": 0.01448674329854487,
+          "tracking_error": 0.04813491018965172,
+          "objective": 0.04183901496926583
+        },
+        {
+          "lambda": 0.57,
+          "lambda_bps": 5700,
+          "lvr_per_year": 0.05594405594405595,
+          "fees_per_year": 0.014745435143161739,
+          "tracking_error": 0.04764146267903389,
+          "objective": 0.04196092790039061
+        },
+        {
+          "lambda": 0.58,
+          "lambda_bps": 5800,
+          "lvr_per_year": 0.0563380281690141,
+          "fees_per_year": 0.01500412698777861,
+          "tracking_error": 0.04716975263786531,
+          "objective": 0.04208866048742191
+        },
+        {
+          "lambda": 0.59,
+          "lambda_bps": 5900,
+          "lvr_per_year": 0.056737588652482275,
+          "fees_per_year": 0.015262818832395485,
+          "tracking_error": 0.04671877258311295,
+          "objective": 0.042222313031759384
+        },
+        {
+          "lambda": 0.6,
+          "lambda_bps": 6000,
+          "lvr_per_year": 0.057142857142857155,
+          "fees_per_year": 0.015521510677012358,
+          "tracking_error": 0.04628758491515051,
+          "objective": 0.04236199027934572
+        },
+        {
+          "lambda": 0.61,
+          "lambda_bps": 6100,
+          "lvr_per_year": 0.05755395683453238,
+          "fees_per_year": 0.01578020252162923,
+          "tracking_error": 0.045875316268497876,
+          "objective": 0.042507801449925844
+        },
+        {
+          "lambda": 0.62,
+          "lambda_bps": 6200,
+          "lvr_per_year": 0.05797101449275364,
+          "fees_per_year": 0.016038894366246104,
+          "tracking_error": 0.045481152415773815,
+          "objective": 0.042659860280360534
+        },
+        {
+          "lambda": 0.63,
+          "lambda_bps": 6300,
+          "lvr_per_year": 0.05839416058394161,
+          "fees_per_year": 0.016297586210862976,
+          "tracking_error": 0.04510433366344947,
+          "objective": 0.04281828508127722
+        },
+        {
+          "lambda": 0.64,
+          "lambda_bps": 6400,
+          "lvr_per_year": 0.058823529411764726,
+          "fees_per_year": 0.01655627805547985,
+          "tracking_error": 0.044744150685681876,
+          "objective": 0.042983198806480244
+        },
+        {
+          "lambda": 0.65,
+          "lambda_bps": 6500,
+          "lvr_per_year": 0.05925925925925927,
+          "fees_per_year": 0.01681496990009672,
+          "tracking_error": 0.04439994074913433,
+          "objective": 0.04315472913466465
+        },
+        {
+          "lambda": 0.66,
+          "lambda_bps": 6600,
+          "lvr_per_year": 0.05970149253731345,
+          "fees_per_year": 0.017073661744713593,
+          "tracking_error": 0.04407108428741755,
+          "objective": 0.04333300856308816
+        },
+        {
+          "lambda": 0.67,
+          "lambda_bps": 6700,
+          "lvr_per_year": 0.060150375939849635,
+          "fees_per_year": 0.017332353589330468,
+          "tracking_error": 0.04375700178874348,
+          "objective": 0.04351817451295299
+        },
+        {
+          "lambda": 0.68,
+          "lambda_bps": 6800,
+          "lvr_per_year": 0.06060606060606063,
+          "fees_per_year": 0.01759104543394734,
+          "tracking_error": 0.04345715096468783,
+          "objective": 0.043710369446339783
+        },
+        {
+          "lambda": 0.69,
+          "lambda_bps": 6900,
+          "lvr_per_year": 0.06106870229007635,
+          "fees_per_year": 0.017849737278564207,
+          "tracking_error": 0.04317102417170062,
+          "objective": 0.04390974099461605
+        },
+        {
+          "lambda": 0.7,
+          "lambda_bps": 7000,
+          "lvr_per_year": 0.06153846153846155,
+          "fees_per_year": 0.018108429123181082,
+          "tracking_error": 0.042898146060268,
+          "objective": 0.04411644209831833
+        },
+        {
+          "lambda": 0.71,
+          "lambda_bps": 7100,
+          "lvr_per_year": 0.062015503875969005,
+          "fees_per_year": 0.018367120967797957,
+          "tracking_error": 0.042638071429478376,
+          "objective": 0.044330631158576474
+        },
+        {
+          "lambda": 0.72,
+          "lambda_bps": 7200,
+          "lvr_per_year": 0.06250000000000001,
+          "fees_per_year": 0.01862581281241483,
+          "tracking_error": 0.042390383267241864,
+          "objective": 0.044552472200215854
+        },
+        {
+          "lambda": 0.73,
+          "lambda_bps": 7300,
+          "lvr_per_year": 0.06299212598425198,
+          "fees_per_year": 0.0188845046570317,
+          "tracking_error": 0.04215469095860053,
+          "objective": 0.04478213504673628
+        },
+        {
+          "lambda": 0.74,
+          "lambda_bps": 7400,
+          "lvr_per_year": 0.0634920634920635,
+          "fees_per_year": 0.01914319650164857,
+          "tracking_error": 0.041930628646490255,
+          "objective": 0.04501979550742777
+        },
+        {
+          "lambda": 0.75,
+          "lambda_bps": 7500,
+          "lvr_per_year": 0.06400000000000002,
+          "fees_per_year": 0.01940188834626545,
+          "tracking_error": 0.04171785373100904,
+          "objective": 0.045265635576943075
+        },
+        {
+          "lambda": 0.76,
+          "lambda_bps": 7600,
+          "lvr_per_year": 0.06451612903225808,
+          "fees_per_year": 0.019660580190882324,
+          "tracking_error": 0.041516045494740396,
+          "objective": 0.045519843647705956
+        },
+        {
+          "lambda": 0.77,
+          "lambda_bps": 7700,
+          "lvr_per_year": 0.06504065040650407,
+          "fees_per_year": 0.019919272035499196,
+          "tracking_error": 0.04132490384300177,
+          "objective": 0.04578261473559261
+        },
+        {
+          "lambda": 0.78,
+          "lambda_bps": 7800,
+          "lvr_per_year": 0.0655737704918033,
+          "fees_per_year": 0.02017796388011607,
+          "tracking_error": 0.04114414814905757,
+          "objective": 0.04605415071938317
+        },
+        {
+          "lambda": 0.79,
+          "lambda_bps": 7900,
+          "lvr_per_year": 0.06611570247933886,
+          "fees_per_year": 0.02043665572473294,
+          "tracking_error": 0.04097351619537402,
+          "objective": 0.04633466059453972
+        },
+        {
+          "lambda": 0.8,
+          "lambda_bps": 8000,
+          "lvr_per_year": 0.06666666666666668,
+          "fees_per_year": 0.020695347569349813,
+          "tracking_error": 0.040812763202916415,
+          "objective": 0.0466243607419291
+        },
+        {
+          "lambda": 0.81,
+          "lambda_bps": 8100,
+          "lvr_per_year": 0.06722689075630253,
+          "fees_per_year": 0.020954039413966685,
+          "tracking_error": 0.04066166094131093,
+          "objective": 0.04692347521217177
+        },
+        {
+          "lambda": 0.82,
+          "lambda_bps": 8200,
+          "lvr_per_year": 0.06779661016949153,
+          "fees_per_year": 0.021212731258583556,
+          "tracking_error": 0.040519996913426816,
+          "objective": 0.04723223602636385
+        },
+        {
+          "lambda": 0.83,
+          "lambda_bps": 8300,
+          "lvr_per_year": 0.0683760683760684,
+          "fees_per_year": 0.02147142310320043,
+          "tracking_error": 0.0403875736085916,
+          "objective": 0.04755088349398816
+        },
+        {
+          "lambda": 0.84,
+          "lambda_bps": 8400,
+          "lvr_per_year": 0.06896551724137931,
+          "fees_per_year": 0.021730114947817302,
+          "tracking_error": 0.040264207819239305,
+          "objective": 0.04787966654890176
+        },
+        {
+          "lambda": 0.85,
+          "lambda_bps": 8500,
+          "lvr_per_year": 0.06956521739130436,
+          "fees_per_year": 0.021988806792434177,
+          "tracking_error": 0.04014973001632077,
+          "objective": 0.048218843104364494
+        },
+        {
+          "lambda": 0.86,
+          "lambda_bps": 8600,
+          "lvr_per_year": 0.07017543859649124,
+          "fees_per_year": 0.02224749863705105,
+          "tracking_error": 0.040043983779281006,
+          "objective": 0.04856868042815167
+        },
+        {
+          "lambda": 0.87,
+          "lambda_bps": 8700,
+          "lvr_per_year": 0.07079646017699118,
+          "fees_per_year": 0.022506190481667916,
+          "tracking_error": 0.03994682527683754,
+          "objective": 0.04892945553888211
+        },
+        {
+          "lambda": 0.88,
+          "lambda_bps": 8800,
+          "lvr_per_year": 0.07142857142857144,
+          "fees_per_year": 0.02276488232628479,
+          "tracking_error": 0.03985812279518323,
+          "objective": 0.049301455624781325
+        },
+        {
+          "lambda": 0.89,
+          "lambda_bps": 8900,
+          "lvr_per_year": 0.0720720720720721,
+          "fees_per_year": 0.02302357417090167,
+          "tracking_error": 0.03977775631059004,
+          "objective": 0.049684978486199675
+        },
+        {
+          "lambda": 0.9,
+          "lambda_bps": 9000,
+          "lvr_per_year": 0.07272727272727274,
+          "fees_per_year": 0.023282266015518537,
+          "tracking_error": 0.039705617103711295,
+          "objective": 0.050080333003307484
+        },
+        {
+          "lambda": 0.91,
+          "lambda_bps": 9100,
+          "lvr_per_year": 0.07339449541284405,
+          "fees_per_year": 0.023540957860135416,
+          "tracking_error": 0.03964160741317462,
+          "objective": 0.05048783963050381
+        },
+        {
+          "lambda": 0.92,
+          "lambda_bps": 9200,
+          "lvr_per_year": 0.07407407407407408,
+          "fees_per_year": 0.023799649704752283,
+          "tracking_error": 0.03958564012632692,
+          "objective": 0.05090783091919435
+        },
+        {
+          "lambda": 0.93,
+          "lambda_bps": 9300,
+          "lvr_per_year": 0.07476635514018694,
+          "fees_per_year": 0.024058341549369155,
+          "tracking_error": 0.039537638505241314,
+          "objective": 0.05134065207072599
+        },
+        {
+          "lambda": 0.94,
+          "lambda_bps": 9400,
+          "lvr_per_year": 0.07547169811320756,
+          "fees_per_year": 0.02431703339398603,
+          "tracking_error": 0.03949753594632618,
+          "objective": 0.05178666152140513
+        },
+        {
+          "lambda": 0.95,
+          "lambda_bps": 9500,
+          "lvr_per_year": 0.0761904761904762,
+          "fees_per_year": 0.024575725238602898,
+          "tracking_error": 0.03946527577209013,
+          "objective": 0.05224623156168017
+        },
+        {
+          "lambda": 0.96,
+          "lambda_bps": 9600,
+          "lvr_per_year": 0.07692307692307694,
+          "fees_per_year": 0.024834417083219772,
+          "tracking_error": 0.0394408110538168,
+          "objective": 0.052719748991732686
+        },
+        {
+          "lambda": 0.97,
+          "lambda_bps": 9700,
+          "lvr_per_year": 0.07766990291262137,
+          "fees_per_year": 0.025093108927836644,
+          "tracking_error": 0.039424104464092315,
+          "objective": 0.05320761581590141
+        },
+        {
+          "lambda": 0.98,
+          "lambda_bps": 9800,
+          "lvr_per_year": 0.07843137254901962,
+          "fees_per_year": 0.02535180077245352,
+          "tracking_error": 0.03941512815830639,
+          "objective": 0.05371024997855717
+        },
+        {
+          "lambda": 0.99,
+          "lambda_bps": 9900,
+          "lvr_per_year": 0.07920792079207922,
+          "fees_per_year": 0.02561049261707039,
+          "tracking_error": 0.03941386368441813,
+          "objective": 0.054228086144257906
+        },
+        {
+          "lambda": 1.0,
+          "lambda_bps": 10000,
+          "lvr_per_year": 0.08000000000000002,
+          "fees_per_year": 0.025869184461687265,
+          "tracking_error": 0.0394203019204425,
+          "objective": 0.054761576525243355
+        }
+      ]
+    },
+    {
+      "sigma": 1.0,
+      "lambda_star": 0.24,
+      "lambda_star_bps": 2400,
+      "rows": [
+        {
+          "lambda": 0.05,
+          "lambda_bps": 500,
+          "lvr_per_year": 0.06410256410256411,
+          "fees_per_year": 0.001616824028855454,
+          "tracking_error": 0.6080213798069456,
+          "objective": 0.07221463982632707
+        },
+        {
+          "lambda": 0.06,
+          "lambda_bps": 600,
+          "lvr_per_year": 0.06443298969072166,
+          "fees_per_year": 0.0019401888346265448,
+          "tracking_error": 0.509472982712795,
+          "objective": 0.0706448358668608
+        },
+        {
+          "lambda": 0.07,
+          "lambda_bps": 700,
+          "lvr_per_year": 0.06476683937823835,
+          "fees_per_year": 0.0022635536403976357,
+          "tracking_error": 0.4391334874455737,
+          "objective": 0.06952982430911958
+        },
+        {
+          "lambda": 0.08,
+          "lambda_bps": 800,
+          "lvr_per_year": 0.06510416666666667,
+          "fees_per_year": 0.002586918446168726,
+          "tracking_error": 0.3864017311171564,
+          "objective": 0.06870003032508554
+        },
+        {
+          "lambda": 0.09,
+          "lambda_bps": 900,
+          "lvr_per_year": 0.06544502617801047,
+          "fees_per_year": 0.002910283251939817,
+          "tracking_error": 0.3454056469477442,
+          "objective": 0.06806155008244054
+        },
+        {
+          "lambda": 0.1,
+          "lambda_bps": 1000,
+          "lvr_per_year": 0.06578947368421052,
+          "fees_per_year": 0.003233648057710908,
+          "tracking_error": 0.3126255363866547,
+          "objective": 0.06755812094805565
+        },
+        {
+          "lambda": 0.11,
+          "lambda_bps": 1100,
+          "lvr_per_year": 0.06613756613756615,
+          "fees_per_year": 0.003557012863481998,
+          "tracking_error": 0.28582201779053507,
+          "objective": 0.06715396771398124
+        },
+        {
+          "lambda": 0.12,
+          "lambda_bps": 1200,
+          "lvr_per_year": 0.06648936170212766,
+          "fees_per_year": 0.0038803776692530895,
+          "tracking_error": 0.26350198487263554,
+          "objective": 0.06682525747420621
+        },
+        {
+          "lambda": 0.13,
+          "lambda_bps": 1300,
+          "lvr_per_year": 0.06684491978609625,
+          "fees_per_year": 0.00420374247502418,
+          "tracking_error": 0.24463152254870305,
+          "objective": 0.06655550604727938
+        },
+        {
+          "lambda": 0.14,
+          "lambda_bps": 1400,
+          "lvr_per_year": 0.06720430107526883,
+          "fees_per_year": 0.004527107280795271,
+          "tracking_error": 0.22847195800934847,
+          "objective": 0.06633295467653853
+        },
+        {
+          "lambda": 0.15,
+          "lambda_bps": 1500,
+          "lvr_per_year": 0.06756756756756756,
+          "fees_per_year": 0.0048504720865663615,
+          "tracking_error": 0.21448149744802034,
+          "objective": 0.06614899616206905
+        },
+        {
+          "lambda": 0.16,
+          "lambda_bps": 1600,
+          "lvr_per_year": 0.06793478260869565,
+          "fees_per_year": 0.005173836892337452,
+          "tracking_error": 0.20225373642809974,
+          "objective": 0.06599719100583512
+        },
+        {
+          "lambda": 0.17,
+          "lambda_bps": 1700,
+          "lvr_per_year": 0.06830601092896174,
+          "fees_per_year": 0.005497201698108544,
+          "tracking_error": 0.19147786011333426,
+          "objective": 0.06587263061568674
+        },
+        {
+          "lambda": 0.18,
+          "lambda_bps": 1800,
+          "lvr_per_year": 0.06868131868131867,
+          "fees_per_year": 0.005820566503879634,
+          "tracking_error": 0.18191210163652902,
+          "objective": 0.06577151265295367
+        },
+        {
+          "lambda": 0.19,
+          "lambda_bps": 1900,
+          "lvr_per_year": 0.06906077348066299,
+          "fees_per_year": 0.006143931309650724,
+          "tracking_error": 0.17336557715214773,
+          "objective": 0.06569085041592565
+        },
+        {
+          "lambda": 0.2,
+          "lambda_bps": 2000,
+          "lvr_per_year": 0.06944444444444445,
+          "fees_per_year": 0.006467296115421816,
+          "tracking_error": 0.16568556793415112,
+          "objective": 0.06562826938236259
+        },
+        {
+          "lambda": 0.21,
+          "lambda_bps": 2100,
+          "lvr_per_year": 0.06983240223463687,
+          "fees_per_year": 0.006790660921192906,
+          "tracking_error": 0.15874843516264742,
+          "objective": 0.06558186187971883
+        },
+        {
+          "lambda": 0.22,
+          "lambda_bps": 2200,
+          "lvr_per_year": 0.0702247191011236,
+          "fees_per_year": 0.007114025726963996,
+          "tracking_error": 0.15245301223923388,
+          "objective": 0.0655500813995135
+        },
+        {
+          "lambda": 0.23,
+          "lambda_bps": 2300,
+          "lvr_per_year": 0.07062146892655367,
+          "fees_per_year": 0.007437390532735089,
+          "tracking_error": 0.14671572090222587,
+          "objective": 0.06553166449555091
+        },
+        {
+          "lambda": 0.24,
+          "lambda_bps": 2400,
+          "lvr_per_year": 0.07102272727272728,
+          "fees_per_year": 0.007760755338506179,
+          "tracking_error": 0.14146690844961327,
+          "objective": 0.06552557222251382
+        },
+        {
+          "lambda": 0.25,
+          "lambda_bps": 2500,
+          "lvr_per_year": 0.07142857142857142,
+          "fees_per_year": 0.00808412014427727,
+          "tracking_error": 0.13664806413700467,
+          "objective": 0.06553094564375303
+        },
+        {
+          "lambda": 0.26,
+          "lambda_bps": 2600,
+          "lvr_per_year": 0.07183908045977011,
+          "fees_per_year": 0.00840748495004836,
+          "tracking_error": 0.13220967798814282,
+          "objective": 0.06554707161992203
+        },
+        {
+          "lambda": 0.27,
+          "lambda_bps": 2700,
+          "lvr_per_year": 0.07225433526011561,
+          "fees_per_year": 0.008730849755819451,
+          "tracking_error": 0.12810957540115805,
+          "objective": 0.06557335621250072
+        },
+        {
+          "lambda": 0.28,
+          "lambda_bps": 2800,
+          "lvr_per_year": 0.07267441860465117,
+          "fees_per_year": 0.009054214561590543,
+          "tracking_error": 0.12431160854781882,
+          "objective": 0.06560930379812595
+        },
+        {
+          "lambda": 0.29,
+          "lambda_bps": 2900,
+          "lvr_per_year": 0.07309941520467836,
+          "fees_per_year": 0.009377579367361631,
+          "tracking_error": 0.12078461840590902,
+          "objective": 0.06565450051516483
+        },
+        {
+          "lambda": 0.3,
+          "lambda_bps": 3000,
+          "lvr_per_year": 0.07352941176470588,
+          "fees_per_year": 0.009700944173132723,
+          "tracking_error": 0.11750160425531378,
+          "objective": 0.06570860103183929
+        },
+        {
+          "lambda": 0.31,
+          "lambda_bps": 3100,
+          "lvr_per_year": 0.07396449704142012,
+          "fees_per_year": 0.010024308978903815,
+          "tracking_error": 0.11443905378231128,
+          "objective": 0.06577131788625067
+        },
+        {
+          "lambda": 0.32,
+          "lambda_bps": 3200,
+          "lvr_per_year": 0.0744047619047619,
+          "fees_per_year": 0.010347673784674905,
+          "tracking_error": 0.11157639865956176,
+          "objective": 0.06584241283623715
+        },
+        {
+          "lambda": 0.33,
+          "lambda_bps": 3300,
+          "lvr_per_year": 0.07485029940119761,
+          "fees_per_year": 0.010671038590445997,
+          "tracking_error": 0.10889556899250778,
+          "objective": 0.06592168979337858
+        },
+        {
+          "lambda": 0.34,
+          "lambda_bps": 3400,
+          "lvr_per_year": 0.07530120481927711,
+          "fees_per_year": 0.010994403396217088,
+          "tracking_error": 0.10638062628778445,
+          "objective": 0.06600898901571217
+        },
+        {
+          "lambda": 0.35,
+          "lambda_bps": 3500,
+          "lvr_per_year": 0.07575757575757576,
+          "fees_per_year": 0.011317768201988175,
+          "tracking_error": 0.10401745925144971,
+          "objective": 0.0661041823081674
+        },
+        {
+          "lambda": 0.36,
+          "lambda_bps": 3600,
+          "lvr_per_year": 0.07621951219512195,
+          "fees_per_year": 0.011641133007759269,
+          "tracking_error": 0.10179353021277031,
+          "objective": 0.06620716903554141
+        },
+        {
+          "lambda": 0.37,
+          "lambda_bps": 3700,
+          "lvr_per_year": 0.07668711656441718,
+          "fees_per_year": 0.011964497813530357,
+          "tracking_error": 0.09969766260796875,
+          "objective": 0.06631787279506414
+        },
+        {
+          "lambda": 0.38,
+          "lambda_bps": 3800,
+          "lvr_per_year": 0.07716049382716049,
+          "fees_per_year": 0.012287862619301449,
+          "tracking_error": 0.09771986197152115,
+          "objective": 0.06643623862781933
+        },
+        {
+          "lambda": 0.39,
+          "lambda_bps": 3900,
+          "lvr_per_year": 0.07763975155279504,
+          "fees_per_year": 0.01261122742507254,
+          "tracking_error": 0.09585116443089141,
+          "objective": 0.06656223067306796
+        },
+        {
+          "lambda": 0.4,
+          "lambda_bps": 4000,
+          "lvr_per_year": 0.078125,
+          "fees_per_year": 0.012934592230843632,
+          "tracking_error": 0.09408350790036187,
+          "objective": 0.06669583018872315
+        },
+        {
+          "lambda": 0.41,
+          "lambda_bps": 4100,
+          "lvr_per_year": 0.07861635220125786,
+          "fees_per_year": 0.01325795703661472,
+          "tracking_error": 0.09240962210598602,
+          "objective": 0.06683703387621598
+        },
+        {
+          "lambda": 0.42,
+          "lambda_bps": 4200,
+          "lvr_per_year": 0.0791139240506329,
+          "fees_per_year": 0.013581321842385813,
+          "tracking_error": 0.09082293430942578,
+          "objective": 0.06698585245976886
+        },
+        {
+          "lambda": 0.43,
+          "lambda_bps": 4300,
+          "lvr_per_year": 0.07961783439490445,
+          "fees_per_year": 0.013904686648156903,
+          "tracking_error": 0.08931748818024215,
+          "objective": 0.06714230947941091
+        },
+        {
+          "lambda": 0.44,
+          "lambda_bps": 4400,
+          "lvr_per_year": 0.08012820512820512,
+          "fees_per_year": 0.014228051453927993,
+          "tracking_error": 0.08788787372909167,
+          "objective": 0.06730644026448322
+        },
+        {
+          "lambda": 0.45,
+          "lambda_bps": 4500,
+          "lvr_per_year": 0.08064516129032258,
+          "fees_per_year": 0.014551416259699086,
+          "tracking_error": 0.08652916658467645,
+          "objective": 0.06747829106031611
+        },
+        {
+          "lambda": 0.46,
+          "lambda_bps": 4600,
+          "lvr_per_year": 0.08116883116883117,
+          "fees_per_year": 0.014874781065470178,
+          "tracking_error": 0.08523687519531345,
+          "objective": 0.06765791828553734
+        },
+        {
+          "lambda": 0.47,
+          "lambda_bps": 4700,
+          "lvr_per_year": 0.08169934640522876,
+          "fees_per_year": 0.015198145871241266,
+          "tracking_error": 0.08400689477702225,
+          "objective": 0.06784538790133618
+        },
+        {
+          "lambda": 0.48,
+          "lambda_bps": 4800,
+          "lvr_per_year": 0.08223684210526316,
+          "fees_per_year": 0.015521510677012358,
+          "tracking_error": 0.08283546702595009,
+          "objective": 0.06804077487715171
+        },
+        {
+          "lambda": 0.49,
+          "lambda_bps": 4900,
+          "lvr_per_year": 0.08278145695364239,
+          "fees_per_year": 0.015844875482783446,
+          "tracking_error": 0.08171914477295354,
+          "objective": 0.06824416273982388
+        },
+        {
+          "lambda": 0.5,
+          "lambda_bps": 5000,
+          "lvr_per_year": 0.08333333333333333,
+          "fees_per_year": 0.01616824028855454,
+          "tracking_error": 0.0806547608894188,
+          "objective": 0.0684556431953569
+        },
+        {
+          "lambda": 0.51,
+          "lambda_bps": 5100,
+          "lvr_per_year": 0.08389261744966443,
+          "fees_per_year": 0.01649160509432563,
+          "tracking_error": 0.07963940086155172,
+          "objective": 0.06867531581418533
+        },
+        {
+          "lambda": 0.52,
+          "lambda_bps": 5200,
+          "lvr_per_year": 0.08445945945945946,
+          "fees_per_year": 0.01681496990009672,
+          "tracking_error": 0.07867037853984377,
+          "objective": 0.06890328777227706
+        },
+        {
+          "lambda": 0.53,
+          "lambda_bps": 5300,
+          "lvr_per_year": 0.08503401360544217,
+          "fees_per_year": 0.01713833470586781,
+          "tracking_error": 0.07774521464473927,
+          "objective": 0.06913967364160897
+        },
+        {
+          "lambda": 0.54,
+          "lambda_bps": 5400,
+          "lvr_per_year": 0.08561643835616438,
+          "fees_per_year": 0.017461699511638902,
+          "tracking_error": 0.07686161767149179,
+          "objective": 0.06938459522455516
+        },
+        {
+          "lambda": 0.55,
+          "lambda_bps": 5500,
+          "lvr_per_year": 0.08620689655172414,
+          "fees_per_year": 0.017785064317409994,
+          "tracking_error": 0.07601746688904744,
+          "objective": 0.06963818142757172
+        },
+        {
+          "lambda": 0.56,
+          "lambda_bps": 5600,
+          "lvr_per_year": 0.08680555555555555,
+          "fees_per_year": 0.018108429123181086,
+          "tracking_error": 0.07521079717133082,
+          "objective": 0.0699005681702731
+        },
+        {
+          "lambda": 0.57,
+          "lambda_bps": 5700,
+          "lvr_per_year": 0.08741258741258741,
+          "fees_per_year": 0.018431793928952174,
+          "tracking_error": 0.07443978543599045,
+          "objective": 0.07017189832659836
+        },
+        {
+          "lambda": 0.58,
+          "lambda_bps": 5800,
+          "lvr_per_year": 0.08802816901408451,
+          "fees_per_year": 0.018755158734723262,
+          "tracking_error": 0.07370273849666456,
+          "objective": 0.07045232169527753
+        },
+        {
+          "lambda": 0.59,
+          "lambda_bps": 5900,
+          "lvr_per_year": 0.08865248226950354,
+          "fees_per_year": 0.019078523540494354,
+          "tracking_error": 0.072998082161114,
+          "objective": 0.0707419949972476
+        },
+        {
+          "lambda": 0.6,
+          "lambda_bps": 6000,
+          "lvr_per_year": 0.08928571428571429,
+          "fees_per_year": 0.019401888346265446,
+          "tracking_error": 0.07232435142992268,
+          "objective": 0.07104108189804403
+        },
+        {
+          "lambda": 0.61,
+          "lambda_bps": 6100,
+          "lvr_per_year": 0.08992805755395683,
+          "fees_per_year": 0.019725253152036538,
+          "tracking_error": 0.07168018166952793,
+          "objective": 0.07134975305351826
+        },
+        {
+          "lambda": 0.62,
+          "lambda_bps": 6200,
+          "lvr_per_year": 0.09057971014492755,
+          "fees_per_year": 0.02004861795780763,
+          "tracking_error": 0.07106430064964658,
+          "objective": 0.07166818617751523
+        },
+        {
+          "lambda": 0.63,
+          "lambda_bps": 6300,
+          "lvr_per_year": 0.09124087591240876,
+          "fees_per_year": 0.020371982763578718,
+          "tracking_error": 0.07047552134913981,
+          "objective": 0.07199656613039034
+        },
+        {
+          "lambda": 0.64,
+          "lambda_bps": 6400,
+          "lvr_per_year": 0.09191176470588236,
+          "fees_per_year": 0.02069534756934981,
+          "tracking_error": 0.06991273544637792,
+          "objective": 0.07233508502746282
+        },
+        {
+          "lambda": 0.65,
+          "lambda_bps": 6500,
+          "lvr_per_year": 0.09259259259259259,
+          "fees_per_year": 0.0210187123751209,
+          "tracking_error": 0.06937490742052238,
+          "objective": 0.07268394236669372
+        },
+        {
+          "lambda": 0.66,
+          "lambda_bps": 6600,
+          "lvr_per_year": 0.09328358208955224,
+          "fees_per_year": 0.021342077180891993,
+          "tracking_error": 0.06886106919908992,
+          "objective": 0.07304334517504822
+        },
+        {
+          "lambda": 0.67,
+          "lambda_bps": 6700,
+          "lvr_per_year": 0.09398496240601503,
+          "fees_per_year": 0.021665441986663085,
+          "tracking_error": 0.06837031529491172,
+          "objective": 0.07341350817315478
+        },
+        {
+          "lambda": 0.68,
+          "lambda_bps": 6800,
+          "lvr_per_year": 0.09469696969696971,
+          "fees_per_year": 0.021988806792434177,
+          "tracking_error": 0.06790179838232473,
+          "objective": 0.07379465395801443
+        },
+        {
+          "lambda": 0.69,
+          "lambda_bps": 6900,
+          "lvr_per_year": 0.09541984732824427,
+          "fees_per_year": 0.022312171598205262,
+          "tracking_error": 0.06745472526828221,
+          "objective": 0.07418701320363888
+        },
+        {
+          "lambda": 0.7,
+          "lambda_bps": 7000,
+          "lvr_per_year": 0.09615384615384615,
+          "fees_per_year": 0.02263553640397635,
+          "tracking_error": 0.06702835321916874,
+          "objective": 0.07459082487961646
+        },
+        {
+          "lambda": 0.71,
+          "lambda_bps": 7100,
+          "lvr_per_year": 0.09689922480620154,
+          "fees_per_year": 0.022958901209747442,
+          "tracking_error": 0.06662198660855996,
+          "objective": 0.07500633648771257
+        },
+        {
+          "lambda": 0.72,
+          "lambda_bps": 7200,
+          "lvr_per_year": 0.09765625,
+          "fees_per_year": 0.023282266015518537,
+          "tracking_error": 0.06623497385506541,
+          "objective": 0.07543380431671688
+        },
+        {
+          "lambda": 0.73,
+          "lambda_bps": 7300,
+          "lvr_per_year": 0.09842519685039369,
+          "fees_per_year": 0.02360563082128963,
+          "tracking_error": 0.06586670462281331,
+          "objective": 0.07587349371584781
+        },
+        {
+          "lambda": 0.74,
+          "lambda_bps": 7400,
+          "lvr_per_year": 0.0992063492063492,
+          "fees_per_year": 0.023928995627060714,
+          "tracking_error": 0.06551660726014102,
+          "objective": 0.07632567938712104
+        },
+        {
+          "lambda": 0.75,
+          "lambda_bps": 7500,
+          "lvr_per_year": 0.1,
+          "fees_per_year": 0.024252360432831806,
+          "tracking_error": 0.06518414645470162,
+          "objective": 0.07679064569718151
+        },
+        {
+          "lambda": 0.76,
+          "lambda_bps": 7600,
+          "lvr_per_year": 0.10080645161290323,
+          "fees_per_year": 0.024575725238602898,
+          "tracking_error": 0.06486882108553187,
+          "objective": 0.07726868700919128
+        },
+        {
+          "lambda": 0.77,
+          "lambda_bps": 7700,
+          "lvr_per_year": 0.1016260162601626,
+          "fees_per_year": 0.02489909004437399,
+          "tracking_error": 0.06457016225469028,
+          "objective": 0.07776010803545694
+        },
+        {
+          "lambda": 0.78,
+          "lambda_bps": 7800,
+          "lvr_per_year": 0.10245901639344263,
+          "fees_per_year": 0.02522245485014508,
+          "tracking_error": 0.06428773148290244,
+          "objective": 0.07826522421157246
+        },
+        {
+          "lambda": 0.79,
+          "lambda_bps": 7900,
+          "lvr_per_year": 0.10330578512396695,
+          "fees_per_year": 0.025545819655916176,
+          "tracking_error": 0.0640211190552719,
+          "objective": 0.07878436209294733
+        },
+        {
+          "lambda": 0.8,
+          "lambda_bps": 8000,
+          "lvr_per_year": 0.10416666666666667,
+          "fees_per_year": 0.025869184461687265,
+          "tracking_error": 0.0637699425045569,
+          "objective": 0.07931785977468603
+        },
+        {
+          "lambda": 0.81,
+          "lambda_bps": 8100,
+          "lvr_per_year": 0.10504201680672269,
+          "fees_per_year": 0.02619254926745836,
+          "tracking_error": 0.06353384522079832,
+          "objective": 0.07986606733588297
+        },
+        {
+          "lambda": 0.82,
+          "lambda_bps": 8200,
+          "lvr_per_year": 0.10593220338983049,
+          "fees_per_year": 0.02651591407322944,
+          "tracking_error": 0.06331249517722941,
+          "objective": 0.08042934730950087
+        },
+        {
+          "lambda": 0.83,
+          "lambda_bps": 8300,
+          "lvr_per_year": 0.10683760683760685,
+          "fees_per_year": 0.026839278879000533,
+          "tracking_error": 0.06310558376342439,
+          "objective": 0.08100807517910662
+        },
+        {
+          "lambda": 0.84,
+          "lambda_bps": 8400,
+          "lvr_per_year": 0.10775862068965517,
+          "fees_per_year": 0.027162643684771625,
+          "tracking_error": 0.06291282471756139,
+          "objective": 0.08160263990385191
+        },
+        {
+          "lambda": 0.85,
+          "lambda_bps": 8500,
+          "lvr_per_year": 0.10869565217391305,
+          "fees_per_year": 0.02748600849054271,
+          "tracking_error": 0.0627339531505012,
+          "objective": 0.0822134444732052
+        },
+        {
+          "lambda": 0.86,
+          "lambda_bps": 8600,
+          "lvr_per_year": 0.10964912280701754,
+          "fees_per_year": 0.027809373296313805,
+          "tracking_error": 0.06256872465512658,
+          "objective": 0.08284090649306541
+        },
+        {
+          "lambda": 0.87,
+          "lambda_bps": 8700,
+          "lvr_per_year": 0.11061946902654868,
+          "fees_per_year": 0.028132738102084894,
+          "tracking_error": 0.06241691449505865,
+          "objective": 0.08348545880502449
+        },
+        {
+          "lambda": 0.88,
+          "lambda_bps": 8800,
+          "lvr_per_year": 0.11160714285714285,
+          "fees_per_year": 0.028456102907855985,
+          "tracking_error": 0.0622783168674738,
+          "objective": 0.0841475501406848
+        },
+        {
+          "lambda": 0.89,
+          "lambda_bps": 8900,
+          "lvr_per_year": 0.11261261261261263,
+          "fees_per_year": 0.02877946771362708,
+          "tracking_error": 0.06215274423529694,
+          "objective": 0.08482764581309375
+        },
+        {
+          "lambda": 0.9,
+          "lambda_bps": 9000,
+          "lvr_per_year": 0.11363636363636363,
+          "fees_per_year": 0.029102832519398172,
+          "tracking_error": 0.06204002672454889,
+          "objective": 0.08552622844751746
+        },
+        {
+          "lambda": 0.91,
+          "lambda_bps": 9100,
+          "lvr_per_year": 0.11467889908256883,
+          "fees_per_year": 0.02942619732516926,
+          "tracking_error": 0.06194001158308534,
+          "objective": 0.08624379875395452
+        },
+        {
+          "lambda": 0.92,
+          "lambda_bps": 9200,
+          "lvr_per_year": 0.11574074074074073,
+          "fees_per_year": 0.029749562130940356,
+          "tracking_error": 0.061852562697385795,
+          "objective": 0.08698087634397624
+        },
+        {
+          "lambda": 0.93,
+          "lambda_bps": 9300,
+          "lvr_per_year": 0.11682242990654207,
+          "fees_per_year": 0.03007292693671144,
+          "tracking_error": 0.06177756016443952,
+          "objective": 0.0877380005946872
+        },
+        {
+          "lambda": 0.94,
+          "lambda_bps": 9400,
+          "lvr_per_year": 0.11792452830188678,
+          "fees_per_year": 0.030396291742482533,
+          "tracking_error": 0.06171489991613465,
+          "objective": 0.08851573156281613
+        },
+        {
+          "lambda": 0.95,
+          "lambda_bps": 9500,
+          "lvr_per_year": 0.11904761904761904,
+          "fees_per_year": 0.03071965654825362,
+          "tracking_error": 0.061664493393890824,
+          "objective": 0.08931465095218866
+        },
+        {
+          "lambda": 0.96,
+          "lambda_bps": 9600,
+          "lvr_per_year": 0.12019230769230768,
+          "fees_per_year": 0.031043021354024716,
+          "tracking_error": 0.06162626727158873,
+          "objective": 0.09013536313808847
+        },
+        {
+          "lambda": 0.97,
+          "lambda_bps": 9700,
+          "lvr_per_year": 0.12135922330097088,
+          "fees_per_year": 0.031366386159795805,
+          "tracking_error": 0.06160016322514424,
+          "objective": 0.09097849625229489
+        },
+        {
+          "lambda": 0.98,
+          "lambda_bps": 9800,
+          "lvr_per_year": 0.12254901960784313,
+          "fees_per_year": 0.03168975096556689,
+          "tracking_error": 0.06158613774735374,
+          "objective": 0.09184470333288727
+        },
+        {
+          "lambda": 0.99,
+          "lambda_bps": 9900,
+          "lvr_per_year": 0.12376237623762376,
+          "fees_per_year": 0.03201311577133799,
+          "tracking_error": 0.06158416200690332,
+          "objective": 0.09273466354323746
+        },
+        {
+          "lambda": 1.0,
+          "lambda_bps": 10000,
+          "lvr_per_year": 0.125,
+          "fees_per_year": 0.03233648057710908,
+          "tracking_error": 0.061594221750691396,
+          "objective": 0.09364908346496999
+        }
+      ]
+    },
+    {
+      "sigma": 1.2,
+      "lambda_star": 0.2,
+      "lambda_star_bps": 2000,
+      "rows": [
+        {
+          "lambda": 0.05,
+          "lambda_bps": 500,
+          "lvr_per_year": 0.09230769230769231,
+          "fees_per_year": 0.0019401888346265448,
+          "tracking_error": 0.8755507869220016,
+          "objective": 0.1043771191168363
+        },
+        {
+          "lambda": 0.06,
+          "lambda_bps": 600,
+          "lvr_per_year": 0.09278350515463918,
+          "fees_per_year": 0.0023282266015518535,
+          "tracking_error": 0.7336410951064248,
+          "objective": 0.10219420896858991
+        },
+        {
+          "lambda": 0.07,
+          "lambda_bps": 700,
+          "lvr_per_year": 0.09326424870466321,
+          "fees_per_year": 0.0027162643684771628,
+          "tracking_error": 0.6323522219216261,
+          "objective": 0.10066619987882763
+        },
+        {
+          "lambda": 0.08,
+          "lambda_bps": 800,
+          "lvr_per_year": 0.09375,
+          "fees_per_year": 0.0031043021354024715,
+          "tracking_error": 0.5564184928087054,
+          "objective": 0.09954890409520364
+        },
+        {
+          "lambda": 0.09,
+          "lambda_bps": 900,
+          "lvr_per_year": 0.09424083769633508,
+          "fees_per_year": 0.0034923399023277803,
+          "tracking_error": 0.49738413160475176,
+          "objective": 0.09870710009917993
+        },
+        {
+          "lambda": 0.1,
+          "lambda_bps": 1000,
+          "lvr_per_year": 0.09473684210526316,
+          "fees_per_year": 0.0038803776692530895,
+          "tracking_error": 0.4501807723967827,
+          "objective": 0.09805976969905075
+        },
+        {
+          "lambda": 0.11,
+          "lambda_bps": 1100,
+          "lvr_per_year": 0.09523809523809523,
+          "fees_per_year": 0.004268415436178398,
+          "tracking_error": 0.4115837056183704,
+          "objective": 0.09755539659536863
+        },
+        {
+          "lambda": 0.12,
+          "lambda_bps": 1200,
+          "lvr_per_year": 0.09574468085106383,
+          "fees_per_year": 0.004656453203103707,
+          "tracking_error": 0.3794428582165952,
+          "objective": 0.09715966140347769
+        },
+        {
+          "lambda": 0.13,
+          "lambda_bps": 1300,
+          "lvr_per_year": 0.0962566844919786,
+          "fees_per_year": 0.005044490970029016,
+          "tracking_error": 0.3522693924701325,
+          "objective": 0.09684882690208811
+        },
+        {
+          "lambda": 0.14,
+          "lambda_bps": 1400,
+          "lvr_per_year": 0.0967741935483871,
+          "fees_per_year": 0.0054325287369543255,
+          "tracking_error": 0.3289996195334618,
+          "objective": 0.09660596048160631
+        },
+        {
+          "lambda": 0.15,
+          "lambda_bps": 1500,
+          "lvr_per_year": 0.09729729729729729,
+          "fees_per_year": 0.005820566503879634,
+          "tracking_error": 0.3088533563251493,
+          "objective": 0.09641866777415536
+        },
+        {
+          "lambda": 0.16,
+          "lambda_bps": 1600,
+          "lvr_per_year": 0.09782608695652173,
+          "fees_per_year": 0.006208604270804943,
+          "tracking_error": 0.2912453804564636,
+          "objective": 0.09627767590256357
+        },
+        {
+          "lambda": 0.17,
+          "lambda_bps": 1700,
+          "lvr_per_year": 0.09836065573770492,
+          "fees_per_year": 0.006596642037730253,
+          "tracking_error": 0.27572811856320134,
+          "objective": 0.09617591649413498
+        },
+        {
+          "lambda": 0.18,
+          "lambda_bps": 1800,
+          "lvr_per_year": 0.0989010989010989,
+          "fees_per_year": 0.006984679804655561,
+          "tracking_error": 0.2619534263566018,
+          "objective": 0.0961079141811844
+        },
+        {
+          "lambda": 0.19,
+          "lambda_bps": 1900,
+          "lvr_per_year": 0.09944751381215469,
+          "fees_per_year": 0.007372717571580869,
+          "tracking_error": 0.24964643109909282,
+          "objective": 0.0960693681132491
+        },
+        {
+          "lambda": 0.2,
+          "lambda_bps": 2000,
+          "lvr_per_year": 0.09999999999999999,
+          "fees_per_year": 0.007760755338506179,
+          "tracking_error": 0.23858721782517758,
+          "objective": 0.09605685897830336
+        },
+        {
+          "lambda": 0.21,
+          "lambda_bps": 2100,
+          "lvr_per_year": 0.10055865921787709,
+          "fees_per_year": 0.008148793105431488,
+          "tracking_error": 0.22859774663421234,
+          "objective": 0.0960676397278814
+        },
+        {
+          "lambda": 0.22,
+          "lambda_bps": 2200,
+          "lvr_per_year": 0.10112359550561797,
+          "fees_per_year": 0.008536830872356797,
+          "tracking_error": 0.21953233762449686,
+          "objective": 0.0960994833897708
+        },
+        {
+          "lambda": 0.23,
+          "lambda_bps": 2300,
+          "lvr_per_year": 0.10169491525423728,
+          "fees_per_year": 0.008924868639282107,
+          "tracking_error": 0.2112706380992053,
+          "objective": 0.09615057060144973
+        },
+        {
+          "lambda": 0.24,
+          "lambda_bps": 2400,
+          "lvr_per_year": 0.10227272727272727,
+          "fees_per_year": 0.009312906406207414,
+          "tracking_error": 0.20371234816744307,
+          "objective": 0.09621940528166135
+        },
+        {
+          "lambda": 0.25,
+          "lambda_bps": 2500,
+          "lvr_per_year": 0.10285714285714286,
+          "fees_per_year": 0.009700944173132723,
+          "tracking_error": 0.1967732123572867,
+          "objective": 0.09630475056163092
+        },
+        {
+          "lambda": 0.26,
+          "lambda_bps": 2600,
+          "lvr_per_year": 0.10344827586206896,
+          "fees_per_year": 0.010088981940058032,
+          "tracking_error": 0.19038193630292566,
+          "objective": 0.09640557952069934
+        },
+        {
+          "lambda": 0.27,
+          "lambda_bps": 2700,
+          "lvr_per_year": 0.10404624277456648,
+          "fees_per_year": 0.010477019706983342,
+          "tracking_error": 0.18447778857766767,
+          "objective": 0.09652103688739772
+        },
+        {
+          "lambda": 0.28,
+          "lambda_bps": 2800,
+          "lvr_per_year": 0.10465116279069767,
+          "fees_per_year": 0.010865057473908651,
+          "tracking_error": 0.17900871630885912,
+          "objective": 0.09665040896408308
+        },
+        {
+          "lambda": 0.29,
+          "lambda_bps": 2900,
+          "lvr_per_year": 0.10526315789473684,
+          "fees_per_year": 0.011253095240833958,
+          "tracking_error": 0.17392985050450901,
+          "objective": 0.09679309979000417
+        },
+        {
+          "lambda": 0.3,
+          "lambda_bps": 3000,
+          "lvr_per_year": 0.10588235294117647,
+          "fees_per_year": 0.011641133007759269,
+          "tracking_error": 0.16920231012765183,
+          "objective": 0.09694861208740042
+        },
+        {
+          "lambda": 0.31,
+          "lambda_bps": 3100,
+          "lvr_per_year": 0.10650887573964497,
+          "fees_per_year": 0.012029170774684577,
+          "tracking_error": 0.16479223744652827,
+          "objective": 0.09711653191113788
+        },
+        {
+          "lambda": 0.32,
+          "lambda_bps": 3200,
+          "lvr_per_year": 0.10714285714285714,
+          "fees_per_year": 0.012417208541609886,
+          "tracking_error": 0.16067001406976894,
+          "objective": 0.09729651619250348
+        },
+        {
+          "lambda": 0.33,
+          "lambda_bps": 3300,
+          "lvr_per_year": 0.10778443113772455,
+          "fees_per_year": 0.012805246308535195,
+          "tracking_error": 0.1568096193492112,
+          "objective": 0.09748828256417218
+        },
+        {
+          "lambda": 0.34,
+          "lambda_bps": 3400,
+          "lvr_per_year": 0.10843373493975904,
+          "fees_per_year": 0.013193284075460505,
+          "tracking_error": 0.15318810185440962,
+          "objective": 0.0976916009977176
+        },
+        {
+          "lambda": 0.35,
+          "lambda_bps": 3500,
+          "lvr_per_year": 0.1090909090909091,
+          "fees_per_year": 0.013581321842385813,
+          "tracking_error": 0.1497851413220876,
+          "objective": 0.09790628689223824
+        },
+        {
+          "lambda": 0.36,
+          "lambda_bps": 3600,
+          "lvr_per_year": 0.1097560975609756,
+          "fees_per_year": 0.013969359609311121,
+          "tracking_error": 0.14658268350638926,
+          "objective": 0.09813219533304185
+        },
+        {
+          "lambda": 0.37,
+          "lambda_bps": 3700,
+          "lvr_per_year": 0.11042944785276074,
+          "fees_per_year": 0.014357397376236432,
+          "tracking_error": 0.14356463415547502,
+          "objective": 0.09836921630013964
+        },
+        {
+          "lambda": 0.38,
+          "lambda_bps": 3800,
+          "lvr_per_year": 0.1111111111111111,
+          "fees_per_year": 0.014745435143161739,
+          "tracking_error": 0.14071660123899046,
+          "objective": 0.0986172706526922
+        },
+        {
+          "lambda": 0.39,
+          "lambda_bps": 3900,
+          "lvr_per_year": 0.11180124223602485,
+          "fees_per_year": 0.015133472910087048,
+          "tracking_error": 0.13802567678048364,
+          "objective": 0.09887630675123527
+        },
+        {
+          "lambda": 0.4,
+          "lambda_bps": 4000,
+          "lvr_per_year": 0.11249999999999999,
+          "fees_per_year": 0.015521510677012358,
+          "tracking_error": 0.1354802513765211,
+          "objective": 0.0991462976071638
+        },
+        {
+          "lambda": 0.41,
+          "lambda_bps": 4100,
+          "lvr_per_year": 0.11320754716981131,
+          "fees_per_year": 0.015909548443937667,
+          "tracking_error": 0.13306985583261985,
+          "objective": 0.09942723847053854
+        },
+        {
+          "lambda": 0.42,
+          "lambda_bps": 4200,
+          "lvr_per_year": 0.11392405063291139,
+          "fees_per_year": 0.016297586210862976,
+          "tracking_error": 0.1307850254055731,
+          "objective": 0.09971914478423975
+        },
+        {
+          "lambda": 0.43,
+          "lambda_bps": 4300,
+          "lvr_per_year": 0.11464968152866241,
+          "fees_per_year": 0.016685623977788284,
+          "tracking_error": 0.1286171829795487,
+          "objective": 0.10002205044590934
+        },
+        {
+          "lambda": 0.44,
+          "lambda_bps": 4400,
+          "lvr_per_year": 0.11538461538461538,
+          "fees_per_year": 0.017073661744713593,
+          "tracking_error": 0.12655853816989196,
+          "objective": 0.10033600632979857
+        },
+        {
+          "lambda": 0.45,
+          "lambda_bps": 4500,
+          "lvr_per_year": 0.11612903225806451,
+          "fees_per_year": 0.017461699511638902,
+          "tracking_error": 0.12460199988193409,
+          "objective": 0.10066107902918299
+        },
+        {
+          "lambda": 0.46,
+          "lambda_bps": 4600,
+          "lvr_per_year": 0.11688311688311688,
+          "fees_per_year": 0.017849737278564214,
+          "tracking_error": 0.12274110028125135,
+          "objective": 0.1009973497868866
+        },
+        {
+          "lambda": 0.47,
+          "lambda_bps": 4700,
+          "lvr_per_year": 0.11764705882352941,
+          "fees_per_year": 0.018237775045489516,
+          "tracking_error": 0.12096992847891205,
+          "objective": 0.10134491358702201
+        },
+        {
+          "lambda": 0.48,
+          "lambda_bps": 4800,
+          "lvr_per_year": 0.11842105263157894,
+          "fees_per_year": 0.01862581281241483,
+          "tracking_error": 0.11928307251736812,
+          "objective": 0.10170387838558138
+        },
+        {
+          "lambda": 0.49,
+          "lambda_bps": 4900,
+          "lvr_per_year": 0.11920529801324503,
+          "fees_per_year": 0.019013850579340137,
+          "tracking_error": 0.11767556847305308,
+          "objective": 0.1020743644612144
+        },
+        {
+          "lambda": 0.5,
+          "lambda_bps": 5000,
+          "lvr_per_year": 0.12,
+          "fees_per_year": 0.019401888346265446,
+          "tracking_error": 0.11614285568076309,
+          "objective": 0.10245650387056704
+        },
+        {
+          "lambda": 0.51,
+          "lambda_bps": 5100,
+          "lvr_per_year": 0.12080536912751677,
+          "fees_per_year": 0.019789926113190755,
+          "tracking_error": 0.11468073724063449,
+          "objective": 0.10285043999506502
+        },
+        {
+          "lambda": 0.52,
+          "lambda_bps": 5200,
+          "lvr_per_year": 0.12162162162162161,
+          "fees_per_year": 0.020177963880116064,
+          "tracking_error": 0.11328534509737503,
+          "objective": 0.10325632716810217
+        },
+        {
+          "lambda": 0.53,
+          "lambda_bps": 5300,
+          "lvr_per_year": 0.12244897959183673,
+          "fees_per_year": 0.020566001647041372,
+          "tracking_error": 0.11195310908842457,
+          "objective": 0.10367433037332521
+        },
+        {
+          "lambda": 0.54,
+          "lambda_bps": 5400,
+          "lvr_per_year": 0.1232876712328767,
+          "fees_per_year": 0.020954039413966685,
+          "tracking_error": 0.11068072944694819,
+          "objective": 0.10410462500615278
+        },
+        {
+          "lambda": 0.55,
+          "lambda_bps": 5500,
+          "lvr_per_year": 0.12413793103448276,
+          "fees_per_year": 0.021342077180891993,
+          "tracking_error": 0.10946515232022833,
+          "objective": 0.10454739669188166
+        },
+        {
+          "lambda": 0.56,
+          "lambda_bps": 5600,
+          "lvr_per_year": 0.125,
+          "fees_per_year": 0.021730114947817302,
+          "tracking_error": 0.10830354792671636,
+          "objective": 0.10500284115475672
+        },
+        {
+          "lambda": 0.57,
+          "lambda_bps": 5700,
+          "lvr_per_year": 0.12587412587412586,
+          "fees_per_year": 0.022118152714742604,
+          "tracking_error": 0.10719329102782627,
+          "objective": 0.10547116413325017
+        },
+        {
+          "lambda": 0.58,
+          "lambda_bps": 5800,
+          "lvr_per_year": 0.1267605633802817,
+          "fees_per_year": 0.022506190481667916,
+          "tracking_error": 0.10613194343519694,
+          "objective": 0.10595258133753323
+        },
+        {
+          "lambda": 0.59,
+          "lambda_bps": 5900,
+          "lvr_per_year": 0.1276595744680851,
+          "fees_per_year": 0.02289422824859323,
+          "tracking_error": 0.10511723831200417,
+          "objective": 0.1064473184457552
+        },
+        {
+          "lambda": 0.6,
+          "lambda_bps": 6000,
+          "lvr_per_year": 0.1285714285714286,
+          "fees_per_year": 0.023282266015518537,
+          "tracking_error": 0.10414706605908865,
+          "objective": 0.10695561113628713
+        },
+        {
+          "lambda": 0.61,
+          "lambda_bps": 6100,
+          "lvr_per_year": 0.1294964028776978,
+          "fees_per_year": 0.023670303782443843,
+          "tracking_error": 0.10321946160412024,
+          "objective": 0.10747770515355505
+        },
+        {
+          "lambda": 0.62,
+          "lambda_bps": 6200,
+          "lvr_per_year": 0.13043478260869565,
+          "fees_per_year": 0.024058341549369155,
+          "tracking_error": 0.10233259293549109,
+          "objective": 0.10801385640549575
+        },
+        {
+          "lambda": 0.63,
+          "lambda_bps": 6300,
+          "lvr_per_year": 0.1313868613138686,
+          "fees_per_year": 0.02444637931629446,
+          "tracking_error": 0.10148475074276134,
+          "objective": 0.10856433109102095
+        },
+        {
+          "lambda": 0.64,
+          "lambda_bps": 6400,
+          "lvr_per_year": 0.1323529411764706,
+          "fees_per_year": 0.024834417083219772,
+          "tracking_error": 0.10067433904278422,
+          "objective": 0.1091294058561904
+        },
+        {
+          "lambda": 0.65,
+          "lambda_bps": 6500,
+          "lvr_per_year": 0.13333333333333333,
+          "fees_per_year": 0.02522245485014508,
+          "tracking_error": 0.09989986668555223,
+          "objective": 0.10970936797806798
+        },
+        {
+          "lambda": 0.66,
+          "lambda_bps": 6600,
+          "lvr_per_year": 0.13432835820895522,
+          "fees_per_year": 0.02561049261707039,
+          "tracking_error": 0.09915993964668945,
+          "objective": 0.1103045155754835
+        },
+        {
+          "lambda": 0.67,
+          "lambda_bps": 6700,
+          "lvr_per_year": 0.13533834586466165,
+          "fees_per_year": 0.025998530383995695,
+          "tracking_error": 0.09845325402467286,
+          "objective": 0.11091515784614206
+        },
+        {
+          "lambda": 0.68,
+          "lambda_bps": 6800,
+          "lvr_per_year": 0.13636363636363638,
+          "fees_per_year": 0.02638656815092101,
+          "tracking_error": 0.09777858967054762,
+          "objective": 0.111541615329725
+        },
+        {
+          "lambda": 0.69,
+          "lambda_bps": 6900,
+          "lvr_per_year": 0.13740458015267173,
+          "fees_per_year": 0.02677460591784632,
+          "tracking_error": 0.09713480438632638,
+          "objective": 0.11218422019680922
+        },
+        {
+          "lambda": 0.7,
+          "lambda_bps": 7000,
+          "lvr_per_year": 0.13846153846153844,
+          "fees_per_year": 0.027162643684771625,
+          "tracking_error": 0.09652082863560298,
+          "objective": 0.11284331656360201
+        },
+        {
+          "lambda": 0.71,
+          "lambda_bps": 7100,
+          "lvr_per_year": 0.13953488372093023,
+          "fees_per_year": 0.027550681451696934,
+          "tracking_error": 0.09593566071632634,
+          "objective": 0.11351926083264549
+        },
+        {
+          "lambda": 0.72,
+          "lambda_bps": 7200,
+          "lvr_per_year": 0.140625,
+          "fees_per_year": 0.027938719218622243,
+          "tracking_error": 0.0953783623512942,
+          "objective": 0.11421242205979676
+        },
+        {
+          "lambda": 0.73,
+          "lambda_bps": 7300,
+          "lvr_per_year": 0.14173228346456693,
+          "fees_per_year": 0.028326756985547548,
+          "tracking_error": 0.09484805465685117,
+          "objective": 0.11492318234793039
+        },
+        {
+          "lambda": 0.74,
+          "lambda_bps": 7400,
+          "lvr_per_year": 0.14285714285714285,
+          "fees_per_year": 0.028714794752472864,
+          "tracking_error": 0.09434391445460308,
+          "objective": 0.11565193726794887
+        },
+        {
+          "lambda": 0.75,
+          "lambda_bps": 7500,
+          "lvr_per_year": 0.144,
+          "fees_per_year": 0.029102832519398162,
+          "tracking_error": 0.09386517089477035,
+          "objective": 0.11639909630782098
+        },
+        {
+          "lambda": 0.76,
+          "lambda_bps": 7600,
+          "lvr_per_year": 0.14516129032258063,
+          "fees_per_year": 0.029490870286323478,
+          "tracking_error": 0.09341110236316588,
+          "objective": 0.11716508335050009
+        },
+        {
+          "lambda": 0.77,
+          "lambda_bps": 7700,
+          "lvr_per_year": 0.14634146341463414,
+          "fees_per_year": 0.029878908053248786,
+          "tracking_error": 0.092981033646754,
+          "objective": 0.11795033718170773
+        },
+        {
+          "lambda": 0.78,
+          "lambda_bps": 7800,
+          "lvr_per_year": 0.14754098360655737,
+          "fees_per_year": 0.030266945820174095,
+          "tracking_error": 0.09257433333537952,
+          "objective": 0.11875531202869916
+        },
+        {
+          "lambda": 0.79,
+          "lambda_bps": 7900,
+          "lvr_per_year": 0.1487603305785124,
+          "fees_per_year": 0.0306549835870994,
+          "tracking_error": 0.09219041143959154,
+          "objective": 0.11958047813126406
+        },
+        {
+          "lambda": 0.8,
+          "lambda_bps": 8000,
+          "lvr_per_year": 0.15,
+          "fees_per_year": 0.031043021354024716,
+          "tracking_error": 0.09182871720656197,
+          "objective": 0.12042632234635281
+        },
+        {
+          "lambda": 0.81,
+          "lambda_bps": 8100,
+          "lvr_per_year": 0.15126050420168066,
+          "fees_per_year": 0.031431059120950025,
+          "tracking_error": 0.09148873711794958,
+          "objective": 0.12129334878786147
+        },
+        {
+          "lambda": 0.82,
+          "lambda_bps": 8200,
+          "lvr_per_year": 0.15254237288135591,
+          "fees_per_year": 0.031819096887875334,
+          "tracking_error": 0.09116999305521033,
+          "objective": 0.12218207950325632
+        },
+        {
+          "lambda": 0.83,
+          "lambda_bps": 8300,
+          "lvr_per_year": 0.15384615384615385,
+          "fees_per_year": 0.032207134654800636,
+          "tracking_error": 0.0908720406193311,
+          "objective": 0.12309305518887366
+        },
+        {
+          "lambda": 0.84,
+          "lambda_bps": 8400,
+          "lvr_per_year": 0.15517241379310343,
+          "fees_per_year": 0.03259517242172595,
+          "tracking_error": 0.09059446759328844,
+          "objective": 0.12402683594589194
+        },
+        {
+          "lambda": 0.85,
+          "lambda_bps": 8500,
+          "lvr_per_year": 0.1565217391304348,
+          "fees_per_year": 0.03298321018865126,
+          "tracking_error": 0.09033689253672174,
+          "objective": 0.12498400207914571
+        },
+        {
+          "lambda": 0.86,
+          "lambda_bps": 8600,
+          "lvr_per_year": 0.15789473684210523,
+          "fees_per_year": 0.03337124795557657,
+          "tracking_error": 0.09009896350338227,
+          "objective": 0.12596515494112948
+        },
+        {
+          "lambda": 0.87,
+          "lambda_bps": 8700,
+          "lvr_per_year": 0.1592920353982301,
+          "fees_per_year": 0.033759285722501885,
+          "tracking_error": 0.08988035687288444,
+          "objective": 0.1269709178237356
+        },
+        {
+          "lambda": 0.88,
+          "lambda_bps": 8800,
+          "lvr_per_year": 0.1607142857142857,
+          "fees_per_year": 0.03414732348942719,
+          "tracking_error": 0.08968077628916227,
+          "objective": 0.12800193690047157
+        },
+        {
+          "lambda": 0.89,
+          "lambda_bps": 8900,
+          "lvr_per_year": 0.16216216216216217,
+          "fees_per_year": 0.034535361256352495,
+          "tracking_error": 0.08949995169882757,
+          "objective": 0.1290588822221255
+        },
+        {
+          "lambda": 0.9,
+          "lambda_bps": 9000,
+          "lvr_per_year": 0.1636363636363636,
+          "fees_per_year": 0.034923399023277804,
+          "tracking_error": 0.08933763848335038,
+          "objective": 0.13014244876908068
+        },
+        {
+          "lambda": 0.91,
+          "lambda_bps": 9100,
+          "lvr_per_year": 0.1651376146788991,
+          "fees_per_year": 0.03531143679020311,
+          "tracking_error": 0.08919361667964289,
+          "objective": 0.13125335756373513
+        },
+        {
+          "lambda": 0.92,
+          "lambda_bps": 9200,
+          "lvr_per_year": 0.16666666666666666,
+          "fees_per_year": 0.03569947455712843,
+          "tracking_error": 0.08906769028423556,
+          "objective": 0.13239235684675146
+        },
+        {
+          "lambda": 0.93,
+          "lambda_bps": 9300,
+          "lvr_per_year": 0.16822429906542058,
+          "fees_per_year": 0.03608751232405373,
+          "tracking_error": 0.08895968663679292,
+          "objective": 0.13356022332116033
+        },
+        {
+          "lambda": 0.94,
+          "lambda_bps": 9400,
+          "lvr_per_year": 0.16981132075471697,
+          "fees_per_year": 0.03647555009097903,
+          "tracking_error": 0.08886945587923391,
+          "objective": 0.13475776346865104
+        },
+        {
+          "lambda": 0.95,
+          "lambda_bps": 9500,
+          "lvr_per_year": 0.1714285714285714,
+          "fees_per_year": 0.03686358785790435,
+          "tracking_error": 0.08879687048720279,
+          "objective": 0.1359858149427325
+        },
+        {
+          "lambda": 0.96,
+          "lambda_bps": 9600,
+          "lvr_per_year": 0.17307692307692307,
+          "fees_per_year": 0.03725162562482966,
+          "tracking_error": 0.08874182487108777,
+          "objective": 0.13724524804381336
+        },
+        {
+          "lambda": 0.97,
+          "lambda_bps": 9700,
+          "lvr_per_year": 0.17475728155339804,
+          "fees_per_year": 0.03763966339175496,
+          "tracking_error": 0.08870423504420771,
+          "objective": 0.13853696728165563
+        },
+        {
+          "lambda": 0.98,
+          "lambda_bps": 9800,
+          "lvr_per_year": 0.1764705882352941,
+          "fees_per_year": 0.038027701158680274,
+          "tracking_error": 0.08868403835618936,
+          "objective": 0.13986191303109374
+        },
+        {
+          "lambda": 0.99,
+          "lambda_bps": 9900,
+          "lvr_per_year": 0.1782178217821782,
+          "fees_per_year": 0.03841573892560558,
+          "tracking_error": 0.0886811932899408,
+          "objective": 0.14122106328738307
+        },
+        {
+          "lambda": 1.0,
+          "lambda_bps": 10000,
+          "lvr_per_year": 0.18,
+          "fees_per_year": 0.03880377669253089,
+          "tracking_error": 0.0886956793209956,
+          "objective": 0.14261543552806297
+        }
+      ]
+    }
+  ]
+}

@@ -9,6 +9,12 @@ const root = path.join(process.cwd(), "..");
 const dep = JSON.parse(fs.readFileSync(path.join(root, "contracts", "deployments", "11155111.json"), "utf8"));
 const hookDep = JSON.parse(fs.readFileSync(path.join(root, "contracts", "deployments", "11155111-hook.json"), "utf8"));
 
+// runtime copies: the app must not read outside client/ (Vercel ships only the root directory)
+fs.mkdirSync(path.join(process.cwd(), "src", "data"), { recursive: true });
+fs.copyFileSync(path.join(root, "contracts", "deployments", "11155111.json"), path.join(process.cwd(), "src", "data", "deployment.11155111.json"));
+fs.copyFileSync(path.join(root, "research", "frontier.json"), path.join(process.cwd(), "src", "data", "frontier.json"));
+console.log("copied deployments and frontier into src/data");
+
 for (const name of ["TideParams", "TideApp", "TideHook", "TideRouter", "TideTaker"]) {
   const art = JSON.parse(fs.readFileSync(path.join(root, "contracts", "out", `${name}.sol`, `${name}.json`), "utf8"));
   fs.writeFileSync(path.join(process.cwd(), "src", "abi", "tide", `${name}.json`), JSON.stringify(art.abi));

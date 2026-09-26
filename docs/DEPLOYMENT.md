@@ -85,6 +85,10 @@ What a redeploy changes:
 
 ### 3.2 After a redeploy, in the client
 
+`pnpm sync:contracts` also copies `contracts/deployments/11155111.json` and `research/frontier.json` into
+`client/src/data/`, which the app imports at build time. The app never reads outside `client/` at runtime,
+so a host that ships only that directory (Vercel) has everything. Commit the copies.
+
 ```bash
 cd client
 pnpm sync:contracts        # rewrites ADDR in src/lib/chain.ts, copies ABIs from contracts/out
@@ -219,11 +223,13 @@ day, so `instrumentation.ts` skips the in-process scheduler when `VERCEL` is set
 1. **Import the repo** at vercel.com/new. Root directory `client`, framework Next.js, install command
    `pnpm install` (the lockfile is committed; Vercel reads `packageManager`). Leave build as `next build`.
 2. **Environment variables** (Production + Preview): every key from §1 except `MAINNET_RPC_URL`,
-   `ETHERSCAN_API_KEY` and `REINDEX_FROM_BLOCK`. Must-haves: `SEPOLIA_RPC_URL`, `LOGS_RPC_URL` (a node without
-   a `getLogs` range cap, publicnode works), `OWNER_ADDRESS`, `AGENT_PRIVATE_KEY`, `AGENT_ADDRESS`, the `ENS_*`
-   keys, `MONGODB_URI`, `AGENT_TICK_SECRET`, `CRON_SECRET` (any random string), `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`
-   if mobile wallets matter. `OWNER_PRIVATE_KEY` is not needed by the app, only by scripts; leave it out.
-   `next.config.ts` also reads `../.env`, which does not exist on Vercel, so nothing leaks from the repo.
+   `ETHERSCAN_API_KEY`, `REINDEX_FROM_BLOCK` and `OWNER_PRIVATE_KEY` (scripts only). Must-haves:
+   `SEPOLIA_RPC_URL` (without it every quote fails and routes answer 503 "SEPOLIA_RPC_URL is not set on this
+   host"), `LOGS_RPC_URL` (a node without a `getLogs` range cap, publicnode works), `OWNER_ADDRESS`,
+   `AGENT_PRIVATE_KEY`, `AGENT_ADDRESS`, the `ENS_*` keys, `MONGODB_URI`, `AGENT_TICK_SECRET`.
+   Optional: `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` for mobile wallets, `CRON_SECRET` if an external clock
+   uses the Bearer form. `next.config.ts` also reads `../.env`, which does not exist on Vercel, so nothing
+   leaks from the repo.
 3. **Deploy once** to learn the hostname (`<project>.vercel.app`, or add a custom domain first).
 4. **World client for that hostname**: register a second sandbox client (§5.1) with redirect
    `https://<host>/api/world/callback`, set `WORLD_CLIENT_ID`, `WORLD_CLIENT_SECRET`, `WORLD_REDIRECT_URI` and

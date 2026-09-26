@@ -69,7 +69,15 @@ export async function GET(req: Request) {
     quotes.sort((a, b) => q.exactIn === "1"
       ? (BigInt(a.amountOut) > BigInt(b.amountOut) ? -1 : BigInt(a.amountOut) < BigInt(b.amountOut) ? 1 : 0)
       : (BigInt(a.amountIn) < BigInt(b.amountIn) ? -1 : BigInt(a.amountIn) > BigInt(b.amountIn) ? 1 : 0));
-    if (!quotes.length) return NextResponse.json({ error: "No Tide LP could quote this order size" }, { status: 422 });
+    if (!quotes.length) {
+      const first = results.find((r) => r.status === "failure") as { error?: Error } | undefined;
+      const why = first?.error?.message?.split("\n")[0];
+      const rpcTrouble = why && !/revert|Tide|Aqua|insufficient|exceeds/i.test(why);
+      return NextResponse.json(
+        { error: rpcTrouble ? `Could not reach the chain: ${why}` : "No Tide LP could quote this order size", detail: why },
+        { status: rpcTrouble ? 503 : 422 },
+      );
+    }
 
     return NextResponse.json({ route: quotes[0], quotes, sourcesChecked: quotes.length });
   } catch (error) {

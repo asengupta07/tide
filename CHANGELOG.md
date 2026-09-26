@@ -6,6 +6,10 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
 ## Sep 27, 2026
 
 **Vercel-ready**
+- The app no longer reads `../contracts` or `../research` at runtime: `pnpm sync:contracts` copies the
+  deployments JSON and the frontier into `client/src/data/`, imported at build time. `publicClient()` throws
+  a clear error without `SEPOLIA_RPC_URL`; the best-quote route answers 503 with the RPC error instead of a
+  bare 422 when the chain is unreachable.
 - No long-lived process on Vercel and no 15-minute cron on Hobby, so the manager's clock is now traffic plus an
   external clock: `/api/agent/status` and `/api/strategies` run a check in the background when the last one
   (read from the log) is stale; `.github/workflows/manager-tick.yml` posts to `/api/agent/tick` every 15 min

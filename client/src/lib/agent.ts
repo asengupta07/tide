@@ -3,14 +3,13 @@
  * volatility, and, only after the strategy's owner completes a fresh World ID authentication, writes the
  * approved values to that strategy's ENS records (scoped role) and mirrors them to TideParams on Sepolia.
  */
-import fs from "node:fs";
-import path from "node:path";
 import { randomBytes } from "node:crypto";
 import type { Address, Hex } from "viem";
 
 import { publicClient, walletClient, readText, setTextCalldata, resolverAbi, canSetText } from "./ens/client";
 import { GOVERNED_KEYS } from "./ens/config";
 import { beginAuth, completeAuth, WorldAuthError, type AuthRequest } from "./world";
+import frontierJson from "@/data/frontier.json";
 import { insertProposal, getProposal, updateProposal, listProposals, hasPending, putAuthRequest, takeAuthRequest, getBound, setBound, appendLog, listLog, expireStale, type Proposal } from "./store";
 import { applyParams, readParams, readBounds, withinBounds, maxDeltaBps } from "./tide";
 import { getStrategy, listStrategies, type Strategy } from "./registry";
@@ -18,8 +17,9 @@ import { safeError } from "./auth";
 
 type Frontier = { kappa: number; fee: number; curves: { sigma: number; lambda_star: number; lambda_star_bps: number }[] };
 
+/** `src/data/frontier.json` is a copy of `research/frontier.json` kept by `pnpm sync:contracts`. */
 export function frontier(): Frontier {
-  return JSON.parse(fs.readFileSync(path.join(process.cwd(), "..", "research", "frontier.json"), "utf8"));
+  return frontierJson as Frontier;
 }
 
 /** lambda* for a realised volatility, linear interpolation between solved curves, rounded to 100 bps. */

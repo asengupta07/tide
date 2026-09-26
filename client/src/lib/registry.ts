@@ -2,8 +2,7 @@
  * Strategy registry: every Tide strategy created through the app. Persisted in client/data/strategies.json.
  * The demo strategy from the initial setup (data/ens.json) is migrated in on first read.
  */
-import fs from "node:fs";
-import path from "node:path";
+import deploymentJson from "@/data/deployment.11155111.json";
 import { col, clean } from "./db";
 import { getAddress, type Address, type Hex } from "viem";
 
@@ -20,7 +19,6 @@ export type Strategy = {
   txs: Record<string, Hex>;
 };
 
-const DEP_FILE = path.join(process.cwd(), "..", "contracts", "deployments", "11155111.json");
 
 export const SEPOLIA_WETH = getAddress("0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14");
 export const SEPOLIA_USDC = getAddress("0x16f95d91dba7da3aca778ec053df0ff6c6a8aa8e");
@@ -70,7 +68,7 @@ export async function saveEnsState(state: EnsState) {
 }
 
 export function deployment() {
-  const d = JSON.parse(fs.readFileSync(DEP_FILE, "utf8"));
+  const d = deploymentJson;
   return { aqua: getAddress(d.aqua) as Address, weth: getAddress(d.weth) as Address, tideParams: getAddress(d.tideParams) as Address, tideRouter: getAddress(d.tideRouter) as Address, tideApp: getAddress(d.tideApp) as Address };
 }
 

@@ -29,6 +29,7 @@ export { ethRegistryAbi, userRegistryAbi, resolverAbi, factoryAbi, universalReso
 const textResolverAbi = parseAbi(["function text(bytes32 node, string key) view returns (string)"]);
 
 export function publicClient(rpcUrl = process.env.SEPOLIA_RPC_URL): PublicClient {
+  if (!rpcUrl) throw new Error("SEPOLIA_RPC_URL is not set on this host");
   return createPublicClient({ chain: sepolia, transport: http(rpcUrl) });
 }
 
