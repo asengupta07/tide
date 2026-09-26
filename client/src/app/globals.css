@@ -145,6 +145,8 @@ body::after {
 
 /* ---- double bezel: glass plate in a machined tray ---- */
 .bezel {
+  display: flex;
+  flex-direction: column;
   background: rgba(255, 255, 255, 0.035);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1.5rem;
@@ -152,6 +154,7 @@ body::after {
   box-shadow: 0 30px 80px -40px rgba(0, 0, 0, 0.8);
 }
 .bezel > .core {
+  flex: 1 1 auto;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)), var(--panel);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: calc(1.5rem - 0.375rem);
