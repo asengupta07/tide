@@ -29,10 +29,10 @@ export default function Landing() {
           <div className="relative mx-auto grid min-h-[100dvh] max-w-7xl items-center gap-14 px-6 pb-20 pt-32 md:grid-cols-12 md:pt-24">
             <div className="md:col-span-7">
               <h1 className="rise max-w-[17ch] text-[2.75rem] font-semibold leading-[1.02] tracking-[-0.03em] md:text-6xl lg:text-7xl">
-                Show the arbitrageur half the vault.
+                Liquidity the bots can only half see.
               </h1>
               <p className="rise rise-1 mt-7 max-w-[40ch] text-lg leading-relaxed text-fg-2">
-                A partially-active AMM. Each block exposes λ of the inventory to the informed trade, quotes everyone else N times deeper, and only lets a bot touch the dial with a human&apos;s fresh approval.
+                An AMM that exposes a fraction of its inventory per block. Less lost to arbitrage, deeper prices for everyone else.
               </p>
               <div className="rise rise-2 mt-9 flex flex-wrap gap-3">
                 <Pill href="/app">Open dashboard</Pill>
