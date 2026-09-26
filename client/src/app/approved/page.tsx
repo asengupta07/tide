@@ -11,7 +11,7 @@ export default async function Approved({ searchParams }: { searchParams: Promise
   return (
     <>
       <Nav current="app" />
-      <main className="mx-auto w-full max-w-xl flex-1 px-6 pb-16 pt-32">
+      <main className="mx-auto w-full max-w-2xl flex-1 px-5 pb-16 pt-28 sm:px-7 sm:pt-32">
         <h1 className={`text-3xl font-semibold tracking-tight ${ok ? "text-accent" : "text-bad"}`}>{ok ? "Approved" : "Blocked"}</h1>
         {q.purpose === "bind" && !q.error && (
           <p className="mt-3 text-fg-2">Owner bound to the manager agent. Proposals can now be approved with a fresh World ID authentication.</p>

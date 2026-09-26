@@ -56,13 +56,13 @@ export function Nav({ current }: { current?: "landing" | "app" }) {
   const reduce = useReducedMotion();
   return (
     <>
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-40 flex justify-center px-4 pt-5">
-        <header className="pointer-events-auto flex h-14 w-full max-w-5xl items-center justify-between rounded-full border border-white/10 bg-bg/70 pl-5 pr-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_20px_60px_-30px_rgba(0,0,0,0.9)] backdrop-blur-2xl">
-          <Link href="/" className="flex items-center gap-2.5 text-sm font-semibold tracking-tight">
-            <Logo size={22} className="text-accent" />
-            Tide
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-40 flex justify-center px-[max(1rem,env(safe-area-inset-left))] pt-[max(1rem,env(safe-area-inset-top))]">
+        <header className="pointer-events-auto flex h-16 w-full max-w-6xl items-center justify-between rounded-full border border-white/10 bg-bg/70 pl-5 pr-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_20px_60px_-30px_rgba(0,0,0,0.9)] backdrop-blur-2xl sm:pl-6 sm:pr-3">
+          <Link href="/" className="flex items-center gap-2.5 text-[0.95rem] font-semibold tracking-tight">
+            <Logo size={26} className="text-accent" />
+            <span className="hidden min-[360px]:inline">Tide</span>
           </Link>
-          <nav className="hidden items-center gap-7 text-[13.5px] text-fg-2 md:flex">
+          <nav className="hidden items-center gap-6 text-sm text-fg-2 lg:flex">
             {LINKS.map(([l, h]) => (
               <a key={l} href={h} className="transition-colors duration-200 hover:text-fg">{l}</a>
             ))}
@@ -76,7 +76,7 @@ export function Nav({ current }: { current?: "landing" | "app" }) {
             <button
               aria-label={open ? "Close menu" : "Open menu"}
               onClick={() => setOpen((v) => !v)}
-              className="relative flex h-10 w-10 items-center justify-center rounded-full md:hidden"
+              className="relative flex h-11 w-11 items-center justify-center rounded-full lg:hidden"
             >
               <span className={`absolute h-px w-4 bg-fg transition-transform duration-300 ${open ? "rotate-45" : "-translate-y-1"}`} style={{ transitionTimingFunction: "var(--ease-out)" }} />
               <span className={`absolute h-px w-4 bg-fg transition-transform duration-300 ${open ? "-rotate-45" : "translate-y-1"}`} style={{ transitionTimingFunction: "var(--ease-out)" }} />
@@ -87,7 +87,7 @@ export function Nav({ current }: { current?: "landing" | "app" }) {
       <AnimatePresence>
         {open && (
           <motion.div
-            className="fixed inset-0 z-30 flex flex-col justify-center bg-bg/85 px-8 backdrop-blur-3xl md:hidden"
+            className="fixed inset-0 z-30 flex flex-col justify-center bg-bg/92 px-[max(2rem,env(safe-area-inset-left))] backdrop-blur-3xl lg:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

@@ -25,7 +25,7 @@ export default function Strategies() {
   return (
     <>
       <Nav current="app" />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 pb-20 pt-32">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-5 pb-20 pt-28 sm:px-7 sm:pt-32 lg:px-10">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
             <h1 className="text-4xl font-semibold tracking-tight">Strategies</h1>
@@ -34,7 +34,7 @@ export default function Strategies() {
           <Pill href="/app/new">New strategy</Pill>
         </div>
 
-        {rows === null && <div className="mt-12 grid gap-4 md:grid-cols-2">{[0, 1].map((i) => <div key={i} className="h-40 animate-pulse rounded-3xl bg-white/[0.03]" />)}</div>}
+        {rows === null && <div className="mt-12 grid gap-4 lg:grid-cols-2">{[0, 1].map((i) => <div key={i} className="h-40 animate-pulse rounded-2xl bg-white/[0.03]" />)}</div>}
 
         {rows && address && (
           <section className="mt-14">
@@ -62,14 +62,14 @@ export default function Strategies() {
 
 function Grid({ rows }: { rows: Row[] }) {
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid gap-4 lg:grid-cols-2">
       {rows.map((r) => (
         <Link key={r.name} href={`/app/${r.label}`} className="group block">
           <Bezel small>
             <div className="p-5 transition-colors duration-300 group-hover:bg-white/[0.02]">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="num text-lg text-fg">{r.name}</div>
+                  <div className="num break-words text-base text-fg sm:text-lg">{r.name}</div>
                   <div className="mt-1 text-xs text-fg-3">owner {short(r.owner)} · {r.agentEnabled ? "manager enabled" : "manual"}</div>
                 </div>
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.06] transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-px">

@@ -44,14 +44,47 @@
 html {
   color-scheme: dark;
   background: var(--bg);
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-sans);
+  line-height: 1.5;
+  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/*
+ * High-density laptop displays otherwise make the entire interface feel a
+ * step smaller than the same layout on a Windows machine at 125% scaling.
+ * Rem-based type, spacing and max-widths grow together; phone sizing stays
+ * untouched, and standard-density Windows displays retain the base scale.
+ */
+@media (min-width: 64rem) and (min-resolution: 1.5dppx) {
+  html { font-size: 17.5px; }
+}
+
+@media (min-width: 100rem) and (max-resolution: 1.49dppx) {
+  html { font-size: 17px; }
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+:where(a, button, input, summary):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
 ::selection {
@@ -230,6 +263,22 @@ body::after {
   height: 1.75rem;
 }
 
+@media (pointer: coarse) {
+  button,
+  input[type="checkbox"] {
+    min-height: 2.75rem;
+  }
+
+  .pill-sm {
+    height: 2.75rem;
+  }
+
+  .pill-sm .ico {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+}
+
 /* ---- entry: heavy fade-up with blur ---- */
 @keyframes rise {
   from {
@@ -257,9 +306,20 @@ body::after {
 .grid-lines > * + * {
   border-top: 1px solid var(--line);
 }
-@media (min-width: 768px) {
+@media (min-width: 48rem) {
   .grid-lines > * + * {
     border-top: 0;
     border-left: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 39.999rem) {
+  .bezel {
+    border-radius: 1rem;
+    padding: 0.25rem;
+  }
+
+  .bezel > .core {
+    border-radius: calc(1rem - 0.25rem);
   }
 }

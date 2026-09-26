@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
@@ -8,8 +8,14 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: "Tide",
-  icons: { icon: "/icon.svg" },
+  icons: { icon: "/icon.png", apple: "/icon.png" },
   description: "A partially-active AMM that shows the arbitrageur a fraction of the vault. 1inch Aqua and Uniswap v4, governed through ENSv2 and World ID.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
