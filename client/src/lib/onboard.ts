@@ -63,7 +63,7 @@ export async function createName(input: CreateInput): Promise<Strategy> {
     ["N", String(input.n)],
     ["delta", String(input.deltaBps)],
     ["strategyHash", orderHash],
-    ["venue", "aqua:sepolia"],
+    ["venue", "aqua"],
     ["description", input.description ?? `Tide strategy ${name}. Parameters governed by ${process.env.ENS_AGENT_LABEL ?? "manager"}.${PARENT} after owner approval.`],
   ];
   const init = encodeFunctionData({

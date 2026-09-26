@@ -20,7 +20,7 @@ export function WalletButton({ size = "sm" }: { size?: "sm" | "md" }) {
               </button>
             ) : chain.unsupported ? (
               <button onClick={openChainModal} className={`${cls} !border-bad/50 !text-bad`} type="button">
-                <span>Switch to Sepolia</span>
+                <span>Switch network</span>
                 <span className="ico"><CaretDown size={13} /></span>
               </button>
             ) : (

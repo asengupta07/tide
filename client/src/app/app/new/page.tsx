@@ -151,7 +151,7 @@ export default function NewStrategy() {
 
         {!isConnected && (
           <div className="mt-10 flex items-center gap-4 rounded-3xl border border-dashed border-white/10 p-6 text-sm text-fg-2">
-            Connect a Sepolia wallet to begin. <WalletButton size="md" />
+            Connect a wallet to begin. <WalletButton size="md" />
           </div>
         )}
 
@@ -178,10 +178,10 @@ export default function NewStrategy() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <Field label="WETH inventory" hint="wrapped from ETH if needed">
+                <Field label="WETH inventory" hint="wrapped from ETH if short">
                   <input value={weth} onChange={(e) => setWeth(e.target.value)} className="num w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 outline-none focus:border-accent" />
                 </Field>
-                <Field label="USDC inventory" hint="Sepolia test USDC, minted if needed">
+                <Field label="USDC inventory" hint="minted if short">
                   <input value={usdc} onChange={(e) => setUsdc(e.target.value)} className="num w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 outline-none focus:border-accent" />
                 </Field>
               </div>

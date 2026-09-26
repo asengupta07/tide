@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Hero island: the live active / passive split of the Sepolia strategy, read from /api/state. A real
+ * Hero island: the live active / passive split of the flagship strategy, read from /api/state. A real
  * component preview of the product, not a mock.
  */
 import { useEffect, useState } from "react";
@@ -39,7 +39,7 @@ export function LiveSplit() {
     <div className="bezel"><div className="core p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <div className="num text-sm text-fg">{s?.records?.name ?? "eth-usdc.tide.eth"}</div>
-        <div className="num text-xs text-fg-3">Sepolia · block {s?.block?.blockNumber ?? (err ? "offline" : "…")}</div>
+        <div className="num text-xs text-fg-3">block {s?.block?.blockNumber ?? (err ? "offline" : "…")}</div>
       </div>
       <div className="mt-4 grid grid-cols-3 gap-4">
         <div>

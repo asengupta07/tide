@@ -32,7 +32,7 @@ export default function Landing() {
                 Show the arbitrageur half the vault.
               </h1>
               <p className="rise rise-1 mt-7 max-w-[40ch] text-lg leading-relaxed text-fg-2">
-                Tide exposes a fraction of a maker&apos;s inventory per block and quotes everyone else on a deeper curve. On 1inch Aqua and Uniswap v4.
+                A partially-active AMM. Each block exposes λ of the inventory to the informed trade, quotes everyone else N times deeper, and only lets a bot touch the dial with a human&apos;s fresh approval.
               </p>
               <div className="rise rise-2 mt-9 flex flex-wrap gap-3">
                 <Pill href="/app">Open dashboard</Pill>
@@ -49,10 +49,10 @@ export default function Landing() {
         <section className="mx-auto max-w-7xl px-6 py-28 md:py-36">
           <Reveal>
             <p className="max-w-[26ch] text-3xl font-medium leading-[1.15] tracking-tight md:text-5xl">
-              Every block, the first trade against an AMM is at yesterday&apos;s price.
+              The first trade of every block is a robbery at yesterday&apos;s price.
             </p>
             <p className="mt-6 max-w-[52ch] text-lg leading-relaxed text-fg-2">
-              A constant-product pool loses about <span className="num text-fg">σ²/8</span> of its value per unit time to whoever knows today&apos;s. Tide does not tax that trade. It shrinks what the trade can see.
+              It costs a constant-product pool <span className="num text-fg">σ²/8</span> of its value per unit time. Fees tax it. Batching delays it. Tide is the first design that simply shows it less.
             </p>
           </Reveal>
         </section>
@@ -77,7 +77,7 @@ export default function Landing() {
           </Reveal>
           <Reveal delay={0.15}>
             <p className="mt-6 max-w-[64ch] text-sm leading-relaxed text-fg-3">
-              Same math on both venues: three SwapVM opcodes on a redeployed Aqua router, and a v4 hook. A test asserts identical fills for identical trades.
+              Same math, two venues: three SwapVM opcodes on 1inch Aqua and a Uniswap v4 hook, one shared library. One test, identical fills.
             </p>
           </Reveal>
         </section>
@@ -114,9 +114,9 @@ export default function Landing() {
               <Bezel>
                 <div className="grid-lines grid md:grid-cols-4">
                   {[
-                    [TextAa, "eth-usdc.tide.eth", "λ, N and δ are text records on an ENSv2 name on Sepolia. Anyone can read them. The contracts read them."],
-                    [Key, "manager.tide.eth", "The agent has its own name and a role that lets it edit exactly those three records. Nothing else on the name."],
-                    [Fingerprint, "World ID", "Before every write the agent asks the owner for a fresh authentication. Denied, expired or replayed means nothing is written."],
+                    [TextAa, "eth-usdc.tide.eth", "λ, N and δ are text records on an ENSv2 name. Anyone can read them. The contracts read them."],
+                    [Key, "manager.tide.eth", "The manager has its own name and an access-control role for exactly three keys. It cannot touch anything else."],
+                    [Fingerprint, "World ID", "Every write starts with a fresh World ID sign-in by the owner. Denied, expired or replayed means nothing is written."],
                     [Prohibit, "One call to revoke", "The owner removes the agent's role per record and drops it as manager on-chain. Inventory never moved."],
                   ].map(([Icon, t, b]) => {
                     const I = Icon as typeof TextAa;
@@ -137,8 +137,8 @@ export default function Landing() {
         {/* Live */}
         <section id="live" className="mx-auto max-w-7xl px-6 py-28 md:py-36">
           <Reveal>
-            <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">Live on Sepolia</h2>
-            <p className="mt-5 max-w-[58ch] text-lg leading-relaxed text-fg-2">Shipped through the official Aqua registry, filled by a resolver, swapped through the v4 hook, records written and read on-chain.</p>
+            <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">On-chain, now</h2>
+            <p className="mt-5 max-w-[58ch] text-lg leading-relaxed text-fg-2">Shipped through the official Aqua registry, filled by a resolver, swapped through the v4 hook. Every record written and read on-chain.</p>
           </Reveal>
           <Reveal delay={0.1} className="mt-12">
             <Bezel>
@@ -147,7 +147,7 @@ export default function Landing() {
                   ["TideRouter", "redeployed AquaSwapVMRouter with the three opcodes", ADDR.router],
                   ["TideHook", "Uniswap v4 hook, same math", ADDR.hook],
                   ["TideParams", "governed λ, N, δ; owner or manager only", ADDR.params],
-                  ["Aqua registry", "official 1inch, inventory stays in the wallet", ADDR.aqua],
+                  ["Aqua registry", "official 1inch, inventory never leaves the wallet", ADDR.aqua],
                 ].map(([n, d, a]) => (
                   <a key={a} href={scan(a)} className="group flex items-center justify-between gap-6 p-6 transition-colors duration-300 hover:bg-white/[0.03] md:p-7">
                     <div>
@@ -170,7 +170,7 @@ export default function Landing() {
 
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-10 text-sm text-fg-3">
-          <div>Tide, ETHGlobal Tokyo 2026. Built on arXiv 2602.09887 and 2605.19267.</div>
+          <div>Tide. Built on arXiv 2602.09887 and 2605.19267.</div>
           <div className="flex gap-6">
             <a className="transition-colors hover:text-fg" href="https://github.com/asengupta07/tide">GitHub</a>
             <a className="transition-colors hover:text-fg" href="/WHITEPAPER.pdf">Whitepaper</a>

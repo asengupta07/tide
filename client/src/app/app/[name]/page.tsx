@@ -141,7 +141,7 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
       {/* Plain-language settings */}
       <section className="mt-10">
         <h2 className="text-lg font-medium">How this strategy trades</h2>
-        <p className="mt-1 text-sm text-fg-3">Three settings, stored on your ENS name. Only you (or the manager, with your approval) can change them.</p>
+        <p className="mt-1 text-sm text-fg-3">Three settings, stored on your ENS name. Only you, or the manager with your approval, can change them.</p>
         <div className="mt-5 grid gap-4 md:grid-cols-3">
           <Setting big={`${lambda}%`} title="of your inventory is visible per block" body={`Arbitrage bots can only ever trade against ${lambda}% of your tokens in any block. The other ${100 - lambda}% is invisible to them until the next block.`} />
           <Setting big={`${s.records.N}×`} title="deeper prices for normal traders" body={`After the block's first trade, regular traders are quoted as if your pool were ${s.records.N} times larger, so they pay far less slippage.`} />
