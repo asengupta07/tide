@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import {
   useAccount,
@@ -24,6 +24,9 @@ import {
 
 import { Nav, Bezel, Status } from '@/components/ui';
 import { FrontierChart } from '@/components/FrontierChart';
+import { CandleChart } from '@/components/CandleChart';
+import { ImpactCurve } from '@/components/ImpactCurve';
+import { TradePanel } from '@/components/TradePanel';
 import { DitherField } from '@/components/shaders';
 
 type Mgr = {
@@ -48,6 +51,7 @@ type Snapshot = {
     orderHash: string;
     tokenA: string;
     tokenB: string;
+    salt: string;
   };
   agentEnabled: boolean;
   records: {
@@ -81,6 +85,8 @@ type Snapshot = {
   } | null;
   fills: {
     block: number;
+    at: number | null;
+    logIndex: number | null;
     tx: string;
     taker: string;
     tokenIn: string;
@@ -156,25 +162,33 @@ export default function Dashboard() {
   const [advanced, setAdvanced] = useState(false);
   const [mgr, setMgr] = useState<Mgr | null>(null);
   const [sigmaTouched, setSigmaTouched] = useState(false);
+  const sigmaTouchedRef = useRef(false); // the poll closes over the first render; a ref sees the click
   const [now, setNow] = useState<number | null>(null);
+  const [proposeErr, setProposeErr] = useState<string | null>(null);
+  const { signMessageAsync } = useSignMessage();
 
   const refresh = useCallback(async () => {
-    const [r, m] = await Promise.all([
-      fetch(`/api/state?strategy=${encodeURIComponent(name)}`, {
-        cache: 'no-store',
-      }),
-      fetch(`/api/agent/status`, { cache: 'no-store' })
-        .then((x) => x.json())
-        .catch(() => null),
-    ]);
-    setS(await r.json());
-    if (m) {
-      setMgr(m);
-      if (!sigmaTouched && m.sigma)
-        setSigma(Math.round(m.sigma * 20) / 20);
+    // a failed poll (server restarting, offline) keeps the last snapshot on screen
+    try {
+      const [r, m] = await Promise.all([
+        fetch(`/api/state?strategy=${encodeURIComponent(name)}`, {
+          cache: 'no-store',
+        }),
+        fetch(`/api/agent/status`, { cache: 'no-store' })
+          .then((x) => x.json())
+          .catch(() => null),
+      ]);
+      if (r.ok) setS(await r.json());
+      if (m) {
+        setMgr(m);
+        if (!sigmaTouchedRef.current && m.sigma)
+          setSigma(Math.round(m.sigma * 20) / 20);
+      }
+      setNow(Date.now());
+    } catch {
+      // next tick retries
     }
-    setNow(Date.now());
-  }, [name, sigmaTouched]);
+  }, [name]);
 
   useEffect(() => {
     const initial = window.setTimeout(() => void refresh(), 0);
@@ -229,11 +243,14 @@ export default function Dashboard() {
         ) : (
           <Body
             s={s}
+            refresh={refresh}
+            proposeErr={proposeErr}
             mgr={mgr}
             now={now}
             sigma={sigma}
             proposeErr={proposeErr}
             setSigma={(v) => {
+              sigmaTouchedRef.current = true;
               setSigmaTouched(true);
               setSigma(v);
             }}
@@ -266,8 +283,12 @@ function Body({
   justShipped,
   advanced,
   setAdvanced,
+  refresh,
+  proposeErr,
 }: {
   s: Snapshot;
+  refresh: () => Promise<void>;
+  proposeErr: string | null;
   mgr: Mgr | null;
   now: number | null;
   sigma: number;
@@ -437,6 +458,51 @@ function Body({
               your wallet the whole time; Aqua only pulls when a trade actually
               fills.
             </p>
+          </div>
+        </Bezel>
+      </section>
+
+      {/* Market: candles with fills, live trade, impact by size */}
+      <section className="mt-10">
+        <h2 className="text-lg font-medium">Market</h2>
+        <p className="mt-1 text-sm text-fg-3">
+          The price the strategy is trading around, every fill against it, and
+          what a fill would get right now.
+        </p>
+        <div className="mt-5 grid gap-4 lg:grid-cols-[1.6fr_1fr] [&>*]:min-w-0">
+          <Bezel small>
+            <div className="min-w-0 overflow-hidden p-5">
+              <CandleChart fills={s.fills} weth={WETH} />
+            </div>
+          </Bezel>
+          <Bezel small>
+            <TradePanel
+              strategy={s.strategy}
+              totals={{ weth: w.t, usdc: u.t }}
+              feeBps={feeBps}
+              onFilled={refresh}
+            />
+          </Bezel>
+        </div>
+        <Bezel small className="mt-4">
+          <div className="p-5">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <div className="text-sm font-medium">
+                Price impact by size, this block
+              </div>
+              <span className="text-xs text-fg-3">
+                from live reserves, fee excluded
+              </span>
+            </div>
+            <div className="mt-4">
+              <ImpactCurve
+                totalIn={w.t}
+                totalOut={u.t}
+                lambda={lambda / 100}
+                N={s.onchain?.N ?? s.records.N}
+                deltaBps={s.onchain?.delta ?? s.records.delta}
+              />
+            </div>
           </div>
         </Bezel>
       </section>
@@ -727,7 +793,7 @@ function Body({
                     : `${fmt(num(f.amountOut, 18), 4)} WETH`;
                   return (
                     <li
-                      key={f.tx}
+                      key={`${f.tx}-${f.logIndex}`}
                       className="flex flex-col items-start justify-between gap-1 px-5 py-3 text-sm sm:flex-row sm:items-center sm:gap-4"
                     >
                       <span>
@@ -892,13 +958,13 @@ function Guardrails({
     v.lambdaMin <= v.lambdaMax &&
     v.lambdaMax <= 10_000
   )
-    ? 'visibility range must sit between 1 and 10,000 bps, low before high'
+    ? 'visibility range must sit between 0 and 100 %, low before high'
     : !(v.maxStepBps > 0 && v.maxStepBps <= 10_000)
-      ? 'the largest move must be between 1 and 10,000 bps'
+      ? 'the largest move must be between 0 and 100 points'
       : !(Number.isInteger(v.nMax) && v.nMax >= 1 && v.nMax <= 64)
         ? 'deepest curve must be a whole number from 1 to 64'
         : !(v.cooldown >= 60)
-          ? 'at least 60 seconds between changes'
+          ? 'at least one minute between changes'
           : null;
   const save = async () => {
     if (problem || !pc) return;
@@ -912,11 +978,11 @@ function Guardrails({
         args: [
           orderHash as Hex,
           {
-            lambdaMin: Math.round(v.lambdaMin),
-            lambdaMax: Math.round(v.lambdaMax),
+            lambdaMin: v.lambdaMin,
+            lambdaMax: v.lambdaMax,
             nMax: v.nMax,
-            maxStepBps: Math.round(v.maxStepBps),
-            cooldown: Math.round(v.cooldown),
+            maxStepBps: v.maxStepBps,
+            cooldown: v.cooldown,
           },
         ],
       });
@@ -1015,7 +1081,7 @@ function Guardrails({
             <div className="flex items-end gap-2 sm:col-span-5">
               <button
                 onClick={save}
-                disabled={!!busy || !!problem}
+                disabled={busy !== null}
                 className="pill pill-primary pill-sm disabled:opacity-40"
               >
                 <span>
@@ -1184,7 +1250,10 @@ function BindButton({ owner }: { owner: string }) {
         ts: String(ts),
         sig,
       }).toString();
-      window.location.assign(url.toString());
+      const r = await fetch(url.toString());
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error);
+      window.location.assign(j.url);
     } catch (e) {
       setErr((e as Error).message.split('\n')[0]);
       setBusy(false);

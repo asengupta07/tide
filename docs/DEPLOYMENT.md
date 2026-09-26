@@ -58,7 +58,8 @@ forge script script/DeployHook.s.sol --tc DeployHook --rpc-url $SEPOLIA_RPC_URL 
 forge script script/DeployHook.s.sol --tc SwapHook   --rpc-url $SEPOLIA_RPC_URL --broadcast --private-key $OWNER_PRIVATE_KEY
 ```
 
-`Deploy` writes `deployments/11155111.json` (params, router, app); `DeployHook` writes
+`Deploy` writes `deployments/11155111.json` (params, router, app); `forge script script/DeployTaker.s.sol --tc DeployTaker ...`
+adds `tideTaker` to it (the wallet-facing taker the dashboard trades through); `DeployHook` writes
 `deployments/11155111-hook.json` (hook, pool id). Transaction hashes are in `broadcast/` (gitignored);
 copy the ones you cite into README / whitepaper / CHANGELOG.
 

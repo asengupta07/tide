@@ -131,25 +131,41 @@ export async function getLogsChunked<T extends Parameters<PublicClient["getLogs"
  */
 type SwapLog = Awaited<ReturnType<PublicClient["getLogs"]>>[number] & { args: { orderHash?: Hex; taker?: Address; tokenIn?: Address; tokenOut?: Address; amountIn?: bigint; amountOut?: bigint } };
 /** Router logs seen so far, extended incrementally on each call instead of rescanning from the deploy block. */
-const fillCache: { router?: string; upTo: bigint; logs: SwapLog[] } = { upTo: 0n, logs: [] };
+const fillCache: { router?: string; upTo: bigint; logs: SwapLog[]; scanning?: Promise<void> } = { upTo: 0n, logs: [] };
+const blockTime = new Map<bigint, number>();
 
 export async function fills(pc: PublicClient, orderHash: Hex, fromBlock?: bigint) {
   const dep = deployment();
   const logsClient = createPublicClient({ chain: sepolia, transport: http(process.env.LOGS_RPC_URL ?? "https://ethereum-sepolia-rpc.publicnode.com") });
   const latest = await logsClient.getBlockNumber();
   if (fillCache.router !== dep.tideRouter.toLowerCase()) Object.assign(fillCache, { router: dep.tideRouter.toLowerCase(), upTo: 0n, logs: [] });
+  // one scan at a time; concurrent callers wait for it instead of scanning the same range twice
+  if (fillCache.scanning) await fillCache.scanning;
   const start = fillCache.upTo ? fillCache.upTo + 1n : (fromBlock ?? deployBlock());
   if (start <= latest) {
-    const fresh = (await getLogsChunked(logsClient, { address: dep.tideRouter, event: swappedEvent }, start, latest)) as SwapLog[];
-    fillCache.logs.push(...fresh);
-    fillCache.upTo = latest;
+    fillCache.scanning = (async () => {
+      const fresh = (await getLogsChunked(logsClient, { address: dep.tideRouter, event: swappedEvent }, start, latest)) as SwapLog[];
+      const seen = new Set(fillCache.logs.map((l) => `${l.transactionHash}:${l.logIndex}`));
+      for (const l of fresh) if (!seen.has(`${l.transactionHash}:${l.logIndex}`)) fillCache.logs.push(l);
+      fillCache.upTo = latest;
+    })();
+    try {
+      await fillCache.scanning;
+    } finally {
+      fillCache.scanning = undefined;
+    }
   }
   void pc;
-  return fillCache.logs
-    .filter((l) => l.args.orderHash?.toLowerCase() === orderHash.toLowerCase())
+  const mine = fillCache.logs.filter((l) => l.args.orderHash?.toLowerCase() === orderHash.toLowerCase());
+  // block timestamps, cached, so the chart can place fills on the candles
+  const missing = [...new Set(mine.map((l) => l.blockNumber!).filter((b) => !blockTime.has(b)))];
+  await Promise.all(missing.slice(0, 60).map(async (b) => blockTime.set(b, Number((await logsClient.getBlock({ blockNumber: b })).timestamp))));
+  return mine
     .map((l) => ({
       block: Number(l.blockNumber),
+      at: blockTime.get(l.blockNumber!) ?? null,
       tx: l.transactionHash,
+      logIndex: l.logIndex,
       taker: l.args.taker,
       tokenIn: l.args.tokenIn,
       tokenOut: l.args.tokenOut,

@@ -9,7 +9,7 @@ const root = path.join(process.cwd(), "..");
 const dep = JSON.parse(fs.readFileSync(path.join(root, "contracts", "deployments", "11155111.json"), "utf8"));
 const hookDep = JSON.parse(fs.readFileSync(path.join(root, "contracts", "deployments", "11155111-hook.json"), "utf8"));
 
-for (const name of ["TideParams", "TideApp", "TideHook", "TideRouter"]) {
+for (const name of ["TideParams", "TideApp", "TideHook", "TideRouter", "TideTaker"]) {
   const art = JSON.parse(fs.readFileSync(path.join(root, "contracts", "out", `${name}.sol`, `${name}.json`), "utf8"));
   fs.writeFileSync(path.join(process.cwd(), "src", "abi", "tide", `${name}.json`), JSON.stringify(art.abi));
   console.log(`abi ${name}: ${art.abi.length} entries`);
@@ -24,6 +24,7 @@ const values: Record<string, string> = {
   tideRouter: dep.tideRouter,
   tideApp: dep.tideApp,
   tideHook: hookDep.tideHook,
+  ...(dep.tideTaker ? { tideTaker: dep.tideTaker } : {}),
   ...(process.env.AGENT_ADDRESS ? { agent: process.env.AGENT_ADDRESS } : {}),
 };
 for (const [k, v] of Object.entries(values)) {

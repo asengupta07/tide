@@ -56,7 +56,7 @@ async function main() {
       orderHash: strategyHash as Hex,
       tokenA,
       tokenB,
-      salt: prev?.salt ?? "",
+      salt: prev?.salt || (label === (process.env.ENS_STRATEGY_LABEL ?? "eth-usdc") ? "1" : ""), // salt is not on-chain; keep what we know
       createdAt: Number(block.timestamp) * 1000,
       txs: { ...(prev?.txs ?? {}), register: l.transactionHash! },
     });
