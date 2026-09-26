@@ -78,12 +78,12 @@ contract ForkDemo is Script {
 
         // ---- maker: params + ship, one tx each; nothing leaves the wallet ----
         (address tokenA, address tokenB) = USDC < WETH ? (USDC, WETH) : (WETH, USDC);
-        TideApp.Config memory cfg = TideApp.Config({ maker: MAKER, tokenA: tokenA, tokenB: tokenB, feeBps: 0, salt: 1 });
+        TideApp.Config memory cfg = TideApp.Config({ maker: MAKER, tokenA: tokenA, tokenB: tokenB, salt: 1 });
         ISwapVM.Order memory order = app.order(cfg);
         bytes32 orderHash = router.hash(order);
 
         vm.startBroadcast(MAKER);
-        params.init(orderHash, 5000, 4, 50, MANAGER);
+        params.init(orderHash, 5000, 4, 20, 30, MANAGER);
         IERC20(WETH).approve(AQUA, type(uint256).max);
         IERC20(USDC).approve(AQUA, type(uint256).max);
         address[] memory tokens = new address[](2);

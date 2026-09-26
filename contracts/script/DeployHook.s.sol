@@ -54,9 +54,11 @@ contract DeployHook is Script {
                 | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG
         );
         bytes memory ctorArgs = abi.encode(IPoolManager(POOL_MANAGER), params);
-        (address predicted, bytes32 salt) = HookMiner.find(CREATE2_DEPLOYER, flags, type(TideHook).creationCode, ctorArgs);
+        (address predicted, bytes32 salt) =
+            HookMiner.find(CREATE2_DEPLOYER, flags, type(TideHook).creationCode, ctorArgs);
 
-        (Currency c0, Currency c1) = USDC < WETH ? (Currency.wrap(USDC), Currency.wrap(WETH)) : (Currency.wrap(WETH), Currency.wrap(USDC));
+        (Currency c0, Currency c1) =
+            USDC < WETH ? (Currency.wrap(USDC), Currency.wrap(WETH)) : (Currency.wrap(WETH), Currency.wrap(USDC));
 
         vm.startBroadcast(owner);
         TideHook hook = new TideHook{ salt: salt }(IPoolManager(POOL_MANAGER), params);
@@ -66,7 +68,7 @@ contract DeployHook is Script {
         PoolId poolId = key.toId();
         // sqrtPrice is irrelevant for the custom curve; 1:1 keeps initialize happy
         IPoolManager(POOL_MANAGER).initialize(key, 79_228_162_514_264_337_593_543_950_336);
-        params.init(PoolId.unwrap(poolId), 5000, 4, 50, agent);
+        params.init(PoolId.unwrap(poolId), 5000, 4, 20, 30, agent);
 
         // liquidity: 0.2 WETH + 600 USDC through the hook
         uint256 wethAmt = 0.2e18;
@@ -76,7 +78,9 @@ contract DeployHook is Script {
         IERC20(WETH).approve(address(hook), type(uint256).max);
         IERC20(USDC).approve(address(hook), type(uint256).max);
         (uint256 a0, uint256 a1) = Currency.unwrap(c0) == WETH ? (wethAmt, usdcAmt) : (usdcAmt, wethAmt);
-        hook.addLiquidity(BaseCustomAccounting.AddLiquidityParams(a0, a1, 0, 0, type(uint256).max, -887_220, 887_220, 0));
+        hook.addLiquidity(
+            BaseCustomAccounting.AddLiquidityParams(a0, a1, 0, 0, type(uint256).max, -887_220, 887_220, 0)
+        );
         vm.stopBroadcast();
 
         console.log("TideHook", address(hook));
@@ -107,7 +111,8 @@ contract SwapHook is Script {
         address c0 = vm.parseJsonAddress(j, ".currency0");
         address c1 = vm.parseJsonAddress(j, ".currency1");
         address owner = vm.envAddress("OWNER_ADDRESS");
-        PoolKey memory key = PoolKey(Currency.wrap(c0), Currency.wrap(c1), LPFeeLibrary.DYNAMIC_FEE_FLAG, 60, IHooks(hook));
+        PoolKey memory key =
+            PoolKey(Currency.wrap(c0), Currency.wrap(c1), LPFeeLibrary.DYNAMIC_FEE_FLAG, 60, IHooks(hook));
         bool zeroForOne = c0 == WETH; // sell WETH
 
         uint256 amountIn = 0.01e18;
@@ -122,7 +127,9 @@ contract SwapHook is Script {
             SwapParams({
                 zeroForOne: zeroForOne,
                 amountSpecified: -int256(amountIn),
-                sqrtPriceLimitX96: zeroForOne ? 4_295_128_740 : 1_461_446_703_485_210_103_287_273_052_203_988_822_378_723_970_341
+                sqrtPriceLimitX96: zeroForOne
+                    ? 4_295_128_740
+                    : 1_461_446_703_485_210_103_287_273_052_203_988_822_378_723_970_341
             }),
             PoolSwapTest.TestSettings({ takeClaims: false, settleUsingBurn: false }),
             ""

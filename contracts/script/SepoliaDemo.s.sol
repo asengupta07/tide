@@ -42,14 +42,17 @@ contract SepoliaDemo is Script {
         string memory step = vm.envOr("SEPOLIA_STEP", string("ship"));
 
         (address tokenA, address tokenB) = USDC < WETH ? (USDC, WETH) : (WETH, USDC);
-        TideApp.Config memory cfg = TideApp.Config({ maker: owner, tokenA: tokenA, tokenB: tokenB, feeBps: 0, salt: 1 });
+        TideApp.Config memory cfg = TideApp.Config({ maker: owner, tokenA: tokenA, tokenB: tokenB, salt: 1 });
         ISwapVM.Order memory order = app.order(cfg);
         bytes32 orderHash = router.hash(order);
         console.log("orderHash");
         console.logBytes32(orderHash);
 
-        if (keccak256(bytes(step)) == keccak256("ship")) _ship(params, router, order, orderHash, owner, agent, tokenA, tokenB);
-        else _fill(router, order, orderHash, owner);
+        if (keccak256(bytes(step)) == keccak256("ship")) {
+            _ship(params, router, order, orderHash, owner, agent, tokenA, tokenB);
+        } else {
+            _fill(router, order, orderHash, owner);
+        }
     }
 
     function _ship(
@@ -72,7 +75,7 @@ contract SepoliaDemo is Script {
         if (IERC20(USDC).allowance(owner, AQUA) < usdcAmount) IERC20(USDC).approve(AQUA, type(uint256).max);
 
         TideParams.Params memory p = params.params(orderHash);
-        if (p.owner == address(0)) params.init(orderHash, 5000, 4, 50, agent);
+        if (p.owner == address(0)) params.init(orderHash, 5000, 4, 20, 30, agent);
 
         (uint248 bal,) = IAqua(AQUA).rawBalances(owner, address(router), orderHash, WETH);
         if (bal == 0) {
