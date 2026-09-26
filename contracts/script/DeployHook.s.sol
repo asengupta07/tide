@@ -3,8 +3,6 @@ pragma solidity 0.8.30;
 
 import { Script, console } from "forge-std/Script.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IAqua } from "@1inch/aqua/src/interfaces/IAqua.sol";
-
 import { Hooks } from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import { IHooks } from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import { IPoolManager } from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
@@ -28,6 +26,13 @@ interface IWETH {
 interface IMintable {
     function mint(address to, uint256 amount) external;
 }
+
+error InvalidHookMode(string mode);
+error InvalidHookToken(string token);
+error HookDeploymentMismatch(string field, address expected, address actual);
+error HookRouterNotDeployed(address router);
+error HookRouterAllowanceRequired(address token, address router, uint256 required, uint256 allowance);
+error HookBalanceRequired(address token, uint256 required, uint256 balance);
 
 /// @notice Sepolia: deploy TideHook at a mined address, initialise a WETH/USDC pool on the canonical
 ///         PoolManager, seed liquidity through the hook, and perform one swap through a PoolSwapTest router.
@@ -100,9 +105,65 @@ contract DeployHook is Script {
     }
 }
 
+/// @notice Deploy the test swap router once and persist it alongside the hook deployment. Keeping router
+///         deployment separate makes this script exactly one broadcast transaction, which is important for
+///         delegated accounts whose RPC rejects nonce-dependent transaction batches.
+///   forge script script/DeployHook.s.sol --tc DeployHookSwapRouter --rpc-url $SEPOLIA_RPC_URL --broadcast \
+///       --private-key $OWNER_PRIVATE_KEY
+contract DeployHookSwapRouter is Script {
+    address internal constant POOL_MANAGER = 0xE03A1074c86CFeDd5C142C4F04F1a1536e203543;
+
+    function run() external {
+        string memory path = "deployments/11155111-hook.json";
+        string memory j = vm.readFile(path);
+        address configuredManager = vm.parseJsonAddress(j, ".poolManager");
+        if (configuredManager != POOL_MANAGER) {
+            revert HookDeploymentMismatch("poolManager", POOL_MANAGER, configuredManager);
+        }
+
+        address owner = vm.envAddress("OWNER_ADDRESS");
+        vm.startBroadcast(owner);
+        PoolSwapTest router = new PoolSwapTest(IPoolManager(POOL_MANAGER));
+        vm.stopBroadcast();
+
+        vm.writeJson(vm.toString(address(router)), path, ".swapRouter");
+        console.log("swap router", address(router));
+    }
+}
+
+/// @notice Give the persistent swap router a one-time token allowance. HOOK_TOKEN must be `weth` or `usdc`.
+///         Run once for each token that the demo wallet will sell. Each invocation broadcasts one transaction.
+///   HOOK_TOKEN=weth forge script script/DeployHook.s.sol --tc ApproveHookSwapRouter \
+///       --rpc-url $SEPOLIA_RPC_URL --broadcast --private-key $OWNER_PRIVATE_KEY
+contract ApproveHookSwapRouter is Script {
+    address internal constant WETH = 0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14;
+    address internal constant USDC = 0x16f95D91DBa7dA3Aca778Ec053dF0FF6C6A8aA8e;
+
+    function run() external {
+        string memory j = vm.readFile("deployments/11155111-hook.json");
+        address router = vm.parseJsonAddress(j, ".swapRouter");
+        if (router.code.length == 0) revert HookRouterNotDeployed(router);
+
+        string memory tokenName = vm.envString("HOOK_TOKEN");
+        address token;
+        if (keccak256(bytes(tokenName)) == keccak256("weth")) token = WETH;
+        else if (keccak256(bytes(tokenName)) == keccak256("usdc")) token = USDC;
+        else revert InvalidHookToken(tokenName);
+
+        address owner = vm.envAddress("OWNER_ADDRESS");
+        vm.startBroadcast(owner);
+        IERC20(token).approve(router, type(uint256).max);
+        vm.stopBroadcast();
+
+        console.log("approved token", token);
+        console.log("swap router", router);
+    }
+}
+
 /// @notice Swaps through the Sepolia pool via a PoolSwapTest router. HOOK_MODE selects: `in` (default, sell
 ///         0.01 WETH), `out` (buy exactly 10 USDC with WETH), `reverse` (sell 20 USDC for WETH). Each prints
-///         the quote and the fill; they must match.
+///         the quote and the fill; they must match. The router must be deployed and approved first using the
+///         scripts above. This script intentionally broadcasts exactly one transaction.
 ///   HOOK_MODE=out forge script script/DeployHook.s.sol --tc SwapHook --rpc-url $SEPOLIA_RPC_URL --broadcast --private-key $OWNER_PRIVATE_KEY
 contract SwapHook is Script {
     address internal constant POOL_MANAGER = 0xE03A1074c86CFeDd5C142C4F04F1a1536e203543;
@@ -114,41 +175,59 @@ contract SwapHook is Script {
         address hook = vm.parseJsonAddress(j, ".tideHook");
         address c0 = vm.parseJsonAddress(j, ".currency0");
         address c1 = vm.parseJsonAddress(j, ".currency1");
+        address configuredManager = vm.parseJsonAddress(j, ".poolManager");
+        address routerAddress = vm.parseJsonAddress(j, ".swapRouter");
+        if (configuredManager != POOL_MANAGER) {
+            revert HookDeploymentMismatch("poolManager", POOL_MANAGER, configuredManager);
+        }
+        if (!((c0 == WETH && c1 == USDC) || (c0 == USDC && c1 == WETH))) {
+            revert HookDeploymentMismatch("currency pair", WETH, c0);
+        }
+        if (routerAddress.code.length == 0) revert HookRouterNotDeployed(routerAddress);
+
         address owner = vm.envAddress("OWNER_ADDRESS");
         string memory mode = vm.envOr("HOOK_MODE", string("in"));
+        bytes32 modeHash = keccak256(bytes(mode));
+        if (modeHash != keccak256("in") && modeHash != keccak256("out") && modeHash != keccak256("reverse")) {
+            revert InvalidHookMode(mode);
+        }
         PoolKey memory key =
             PoolKey(Currency.wrap(c0), Currency.wrap(c1), LPFeeLibrary.DYNAMIC_FEE_FLAG, 60, IHooks(hook));
-        bool sellWeth = keccak256(bytes(mode)) != keccak256("reverse");
+        bool sellWeth = modeHash != keccak256("reverse");
         bool zeroForOne = sellWeth ? c0 == WETH : c0 == USDC;
-        bool exactIn = keccak256(bytes(mode)) != keccak256("out");
+        bool exactIn = modeHash != keccak256("out");
         uint256 amount = !exactIn ? 10e6 : sellWeth ? 0.01e18 : 20e6;
         address tokenIn = sellWeth ? WETH : USDC;
         uint256 quoted = TideHook(payable(hook)).quote(zeroForOne, exactIn, amount);
         uint256 needIn = exactIn ? amount : quoted;
 
+        uint256 allowance = IERC20(tokenIn).allowance(owner, routerAddress);
+        if (allowance < needIn) {
+            revert HookRouterAllowanceRequired(tokenIn, routerAddress, needIn, allowance);
+        }
+        uint256 balance = IERC20(tokenIn).balanceOf(owner);
+        if (balance < needIn) revert HookBalanceRequired(tokenIn, needIn, balance);
+
         vm.startBroadcast(owner);
-        PoolSwapTest router = new PoolSwapTest(IPoolManager(POOL_MANAGER));
-        if (tokenIn == WETH && IERC20(WETH).balanceOf(owner) < needIn) IWETH(WETH).deposit{ value: needIn }();
-        if (tokenIn == USDC && IERC20(USDC).balanceOf(owner) < needIn) IMintable(USDC).mint(owner, needIn * 2);
-        IERC20(tokenIn).approve(address(router), needIn);
-        BalanceDelta d = router.swap(
-            key,
-            SwapParams({
-                zeroForOne: zeroForOne,
-                amountSpecified: exactIn ? -int256(amount) : int256(amount),
-                sqrtPriceLimitX96: zeroForOne
-                    ? 4_295_128_740
-                    : 1_461_446_703_485_210_103_287_273_052_203_988_822_378_723_970_341
-            }),
-            PoolSwapTest.TestSettings({ takeClaims: false, settleUsingBurn: false }),
-            ""
-        );
+        BalanceDelta d = PoolSwapTest(routerAddress)
+            .swap(
+                key,
+                SwapParams({
+                    zeroForOne: zeroForOne,
+                    amountSpecified: exactIn ? -int256(amount) : int256(amount),
+                    sqrtPriceLimitX96: zeroForOne
+                        ? 4_295_128_740
+                        : 1_461_446_703_485_210_103_287_273_052_203_988_822_378_723_970_341
+                }),
+                PoolSwapTest.TestSettings({ takeClaims: false, settleUsingBurn: false }),
+                ""
+            );
         vm.stopBroadcast();
         (int128 dIn, int128 dOut) = zeroForOne ? (d.amount0(), d.amount1()) : (d.amount1(), d.amount0());
         console.log("mode", mode);
         console.log("quoted   ", quoted);
         console.log("filled in", uint256(-int256(dIn)));
         console.log("filled out", uint256(int256(dOut)));
-        console.log("swap router", address(router));
+        console.log("swap router", routerAddress);
     }
 }
