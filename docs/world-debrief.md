@@ -11,9 +11,12 @@ action: it changes how much of the owner's inventory the AMM exposes each block.
 
 ## Flow (client/src/lib/world.ts, client/src/lib/agent.ts)
 
-1. **Bind** (`GET /api/world/bind`): the owner signs in once through the OIDC authorization-code flow
-   (PKCE, `scope=openid`). The backend validates the ID token and stores `(iss, sub)`; `sub` is pairwise
-   so it identifies the owner to this app only.
+1. **Bind** (`GET /api/world/bind?owner&ts&sig`): the owner's wallet first signs
+   `Tide: bind World ID to <owner> at <ts>` (EIP-191, ten-minute window); the backend verifies the
+   signature against `owner` before starting the OIDC authorization-code flow (PKCE, `scope=openid`),
+   otherwise anyone could bind their World ID to someone else's strategy. On callback it stores
+   `(iss, sub)` for that wallet; `sub` is pairwise so it identifies the owner to this app only. Any
+   number of owners bind this way; the client credentials belong to the app, not to a person.
 2. **Request** (`POST /api/agent/propose`): the agent reads the activeness frontier and creates a
    proposal. The backend starts a step-up request with `prompt=login` and `max_age=0` and hands the
    owner the authorization URL.

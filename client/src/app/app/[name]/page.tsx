@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { useAccount } from "wagmi";
-import { ArrowUpRight, ShieldCheck, Fingerprint, Sparkle, CaretDown } from "@phosphor-icons/react";
+import { useAccount, useSignMessage } from "wagmi";
+import { getAddress } from "viem";
+import { ArrowUpRight, ArrowRight, ShieldCheck, Fingerprint, Sparkle, CaretDown, CircleNotch } from "@phosphor-icons/react";
 
 import { Nav, Bezel, Status, Pill } from "@/components/ui";
 import { FrontierChart } from "@/components/FrontierChart";
@@ -195,7 +196,7 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
                 ) : isOwner ? (
                   <>
                     <p className="mt-2 text-sm text-fg-2">Bind once so the manager knows who is allowed to approve.</p>
-                    <div className="mt-4"><Pill href={`/api/world/bind?owner=${s.strategy.owner}`} size="sm" external>Bind World ID</Pill></div>
+                    <div className="mt-4"><BindButton owner={s.strategy.owner} /></div>
                   </>
                 ) : (
                   <p className="mt-2 text-sm text-fg-3">The owner has not bound a World ID yet.</p>
@@ -346,6 +347,35 @@ function humanReason(sigma: number, to: number, from: number) {
   if (to < from) return `Markets look volatile (about ${v}% a year). Showing less inventory per block cuts what bots can take from you, at the cost of your token mix drifting a bit more.`;
   if (to > from) return `Markets look calm (about ${v}% a year). Bots take little at this volatility, so showing more inventory earns more fees than it loses.`;
   return `At about ${v}% volatility the current setting is already the best trade-off.`;
+}
+
+/** Sign a short message with the connected wallet, then start the World ID bind with that proof. */
+function BindButton({ owner }: { owner: string }) {
+  const { signMessageAsync } = useSignMessage();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const go = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const ts = Date.now();
+      const sig = await signMessageAsync({ message: `Tide: bind World ID to ${getAddress(owner)} at ${ts}` });
+      window.location.href = `/api/world/bind?owner=${owner}&ts=${ts}&sig=${sig}`;
+    } catch (e) {
+      setErr((e as Error).message.split("\n")[0]);
+      setBusy(false);
+    }
+  };
+  return (
+    <div>
+      <button onClick={go} disabled={busy} className="pill pill-primary pill-sm disabled:opacity-40">
+        <span>{busy ? "Sign in your wallet…" : "Bind World ID"}</span>
+        <span className="ico">{busy ? <CircleNotch size={13} className="animate-spin" /> : <ArrowRight size={13} />}</span>
+      </button>
+      <p className="mt-2 text-xs text-fg-3">Your wallet signs one message first, so only you can bind a World ID to this strategy.</p>
+      {err && <p className="mt-1 text-xs text-bad">{err}</p>}
+    </div>
+  );
 }
 
 function Setting({ big, title, body }: { big: string; title: string; body: string }) {

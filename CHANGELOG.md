@@ -5,6 +5,12 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
 
 ## Sep 26, 2026 (evening)
 
+**Bind needs the wallet's signature**
+- `/api/world/bind` accepted any `?owner=`: anyone could bind their World ID to another owner's strategy
+  and approve its proposals. Now the owner's wallet signs `Tide: bind World ID to <owner> at <ts>`
+  (EIP-191, ten-minute window) and the route verifies it before starting OIDC. Dashboard button signs
+  through wagmi. One app client, many owners, each with their own pairwise `sub`.
+
 **World ID live path**
 - OIDC client `Tide manager` registered in the sandbox portal through the World ID MCP
   (`request_oidc_client_registration`, approved in the portal). `client_secret_post`, redirect

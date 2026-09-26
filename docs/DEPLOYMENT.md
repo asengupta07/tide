@@ -137,8 +137,12 @@ Current sandbox client: `Tide manager`, id `1f15d369-99c8-475a-94f8-c387dcb075aa
 
 ### 5.2 Test the flow
 
-- Bind: `GET /api/world/bind?owner=<owner wallet>` → sandbox → `/approved?purpose=bind`. Reuses an
-  existing sandbox browser session (no `prompt`).
+- Bind: the dashboard button signs `Tide: bind World ID to <owner> at <ts>` with the connected wallet and
+  opens `GET /api/world/bind?owner=<wallet>&ts=<ms>&sig=<0x…>` → sandbox → `/approved?purpose=bind`.
+  Reuses an existing sandbox browser session (no `prompt`). From a shell:
+  `TS=$(date +%s000); SIG=$(cast wallet sign --private-key $OWNER_PRIVATE_KEY "Tide: bind World ID to $OWNER_ADDRESS at $TS")`
+  then open `https://localhost:3000/api/world/bind?owner=$OWNER_ADDRESS&ts=$TS&sig=$SIG`. Unsigned or
+  stale requests get 401. Every strategy owner binds their own World ID; one app client serves all of them.
 - Step-up: `POST /api/agent/propose {"strategy":"eth-usdc.tide.eth","sigma":0.8}` → open `approvalUrl`
   → sandbox demands fresh proof (`prompt=login&max_age=0`) → `/approved?purpose=stepup` shows the ENS
   and `TideParams.set` tx hashes. The dashboard's "Approve with World ID" button does the same but only

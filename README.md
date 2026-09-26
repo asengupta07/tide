@@ -116,7 +116,7 @@ pnpm tsx --env-file=../.env scripts/ens-revoke.ts        # one EAC call per reco
 
 ### World ID for Agents
 
-- Official dev environment (`https://sandbox.auth.world.org`), discovery read at runtime. Bind → request → completion → validated result → protected action: `client/src/lib/world.ts` (`beginAuth` line 78 sets `prompt=login`, `max_age=0`; `completeAuth` line 109 verifies signature, `iss`, `aud`, `nonce`, `iat`, `auth_time`) and `client/src/lib/agent.ts` (`handleCallback` line 98, pairwise-subject match line 146).
+- Official dev environment (`https://sandbox.auth.world.org`), discovery read at runtime. One app client, any number of owners: each strategy owner binds their own World ID after proving the wallet with a signed message (`client/src/app/api/world/bind/route.ts`). Bind → request → completion → validated result → protected action: `client/src/lib/world.ts` (`beginAuth` line 78 sets `prompt=login`, `max_age=0`; `completeAuth` line 109 verifies signature, `iss`, `aud`, `nonce`, `iat`, `auth_time`) and `client/src/lib/agent.ts` (`handleCallback` line 98, pairwise-subject match line 146).
 - Denied / expired / cancelled / replayed / forged paths leave the records unchanged: `client/scripts/test-agent-flow.ts`.
 - Live run (Sepolia): client `Tide manager` registered through the World ID MCP; proposal `3509d7d32778` approved with a fresh proof, then ENS `setText` `0xfec2442d…bffdcb` and `TideParams.set` `0xe032df2b…3069a5` (λ 5000 → 3300, δ 20 → 15 bps).
 - Client secret only in the server module; never in the repo (`.env.example`).
