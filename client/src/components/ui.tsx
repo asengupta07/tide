@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 import { motion, useReducedMotion, AnimatePresence } from "motion/react";
 import { ArrowUpRight, ArrowRight } from "@phosphor-icons/react";
 import { WalletButton } from "./WalletButton";
+import { Logo } from "./Logo";
 
 /** Enter-on-scroll reveal: content appears in reading order as the page unfolds. */
 export function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
@@ -58,9 +59,7 @@ export function Nav({ current }: { current?: "landing" | "app" }) {
       <div className="pointer-events-none fixed inset-x-0 top-0 z-40 flex justify-center px-4 pt-5">
         <header className="pointer-events-auto flex h-14 w-full max-w-5xl items-center justify-between rounded-full border border-white/10 bg-bg/70 pl-5 pr-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_20px_60px_-30px_rgba(0,0,0,0.9)] backdrop-blur-2xl">
           <Link href="/" className="flex items-center gap-2.5 text-sm font-semibold tracking-tight">
-            <span className="relative inline-block h-2 w-2 rounded-full bg-accent" aria-hidden>
-              <span className="absolute inset-0 animate-ping rounded-full bg-accent/60" />
-            </span>
+            <Logo size={22} className="text-accent" />
             Tide
           </Link>
           <nav className="hidden items-center gap-7 text-[13.5px] text-fg-2 md:flex">
