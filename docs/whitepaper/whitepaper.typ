@@ -17,7 +17,7 @@
 
 #v(8pt)
 #block(inset: (x: 1.2cm))[
-  *Abstract.* Passive liquidity providers lose money to the first trade of every block: the pool's price is stale until someone trades, and an arbitrageur who knows the fresh price trades against the whole pool at the old one. Tide shows that arbitrageur only a fraction $lambda$ of the maker's inventory, quotes uninformed follow-on flow against an $N$-times deeper virtual curve backed by the idle remainder, and bounds how far that virtual curve can be pushed with a drift threshold $delta$. We prove that steady-state loss-versus-rebalancing falls to $1\/(2-lambda)$ of a plain constant-product pool (33% saved at $lambda = 0.5$, 43% at $lambda = 0.25$) and state the solvency invariant the buffer must satisfy; 10,000-path Monte-Carlo agrees with the closed form to three digits. The same 100-line math library prices both venues: three custom SwapVM opcodes on a redeployed Aqua router and a `beforeSwap` hook with hook-owned reserves, and a cross-venue test asserts identical fills. The three parameters live as ENSv2 text records on `eth-usdc.tide.eth`; a manager agent, `manager.tide.eth`, holds an Enhanced Access Control role for exactly those keys and may write only after the owner completes a fresh World ID authentication. Everything is live on Sepolia and reproducible on a mainnet fork.
+  *Abstract.* Passive liquidity providers lose money to the first trade of every block: the pool's price is stale until someone trades, and an arbitrageur who knows the fresh price trades against the whole pool at the old one. Tide shows that arbitrageur only a fraction $lambda$ of the maker's inventory, quotes uninformed follow-on flow against an $N$-times deeper virtual curve backed by the idle remainder, and bounds how far that virtual curve can be pushed with a drift threshold $delta$. We prove that steady-state loss-versus-rebalancing falls to $1\/(2-lambda)$ of a plain constant-product pool (33% saved at $lambda = 0.5$, 43% at $lambda = 0.25$) and state the solvency invariant the buffer must satisfy; 10,000-path Monte-Carlo agrees with the closed form to three digits. We also show that the virtual curve is a rebate paid by the LP: with no fee it is drained every block by a plain-then-virtual round trip that needs no price gap, and we prove and enforce on-chain the bound $(N-1) delta <= 2 f$ under which a flat fee $f$ makes that round trip, and any stale-anchor play, unprofitable. The same 100-line math library prices both venues: three custom SwapVM opcodes on a redeployed Aqua router and a `beforeSwap` hook with hook-owned reserves, and a cross-venue test asserts identical fills. The parameters live as ENSv2 text records on `eth-usdc.tide.eth`; a manager agent, `manager.tide.eth`, holds an Enhanced Access Control role for exactly $lambda$, $N$ and $delta$ and may write only after the owner completes a fresh World ID authentication. Everything is live on Sepolia and reproducible on a mainnet fork.
 ]
 
 = The problem in one figure
@@ -34,7 +34,7 @@ Loss-versus-rebalancing (LVR) is the cost of quoting a stale price. Milionis, Mo
 The price $P_t$ follows a geometric Brownian motion with volatility $sigma$; blocks have length $Delta$. A constant-product pool with reserves $(x, y)$ has value $E = x P + y$ and marginal price $P = y\/x$. Within a block the pool is stale; an arbitrageur trades it to the new price and keeps the difference. For a curve of value $V$ the expected per-block loss is, to first order in $Delta$,
 $ "LVR" = (sigma^2)/8 dot V dot Delta. $ <eq:lvr>
 
-Tide adds three parameters. $lambda in (0, 1]$ is the fraction of reserves exposed per block; $N >= 1$ is the virtual depth multiplier; $delta$ is the drift bound in basis points.
+Tide adds three governed parameters and a fee. $lambda in (0, 1]$ is the fraction of reserves exposed per block; $N >= 1$ is the virtual depth multiplier; $delta$ is the drift bound in basis points; $f$ is a flat fee on the input token, set by the owner, which Proposition 4 ties to $N$ and $delta$.
 
 = Mechanism
 
@@ -45,8 +45,9 @@ Per block, per strategy:
 3. *Later fills = virtual curve.* Every later fill in the block is priced on $(N x_a)(N y_a) = k$ over the current active reserves $(x_a, y_a)$. A trade of size $q$ sees slippage $approx q\/(N x_a)$ instead of $q\/x_a$.
 4. *Drift bound.* The reserves right after the first fill are the block's anchor. A later fill that would move the virtual price outside $[P_"anchor"(1-delta), P_"anchor"(1+delta)]$ is informed-sized and is re-priced on the active curve.
 5. *Solvency and top-up.* Any fill must be deliverable from `active + passive`; passive is read live (the maker's Aqua balance, or the hook's ERC-6909 claims). A fill that dips into passive triggers a re-split from the new totals: the buffer tops the active side up at the current marginal price, which creates no arbitrage.
+6. *Fee.* Every fill pays a flat fee $f$ on the input token. The curve and the drift guard see the net input; the taker pays gross; the fee stays in the passive buffer until the next re-split. The fee is read from `TideParams` together with $lambda, N, delta$, so the fee a fill pays is by construction the one Proposition 4 bounded $delta$ against.
 
-The SwapVM program is `[FeeFlatIn?] ACTIVE_SPLIT VIRTUAL_XYC BUFFER_GUARD Salt`. Instruction order is security-critical, so every Tide opcode parses the whole program and reverts unless the three opcodes appear once each in that order (`TideProgram.check`). The v4 hook runs the same five steps inside `beforeSwap` and returns a `BeforeSwapDelta` for the whole amount.
+The SwapVM program is `ACTIVE_SPLIT VIRTUAL_XYC BUFFER_GUARD Salt`. Instruction order is security-critical, so every Tide opcode parses the whole program and reverts unless the three opcodes appear once each in that order (`TideProgram.check`). The v4 hook runs the same six steps inside `beforeSwap` and returns a `BeforeSwapDelta` for the whole amount.
 
 #figure(
   table(
@@ -57,7 +58,7 @@ The SwapVM program is `[FeeFlatIn?] ACTIVE_SPLIT VIRTUAL_XYC BUFFER_GUARD Salt`.
     [`VIRTUAL_XYC`], [`0x52`], [swap curves], [`[address params]`],
     [`BUFFER_GUARD`], [`0x22`], [conditions and guards], [`[address params]`],
   ),
-  caption: [Reserved third-party slots claimed in 1inch's `OpcodeList.sol`; no 1inch opcode is overwritten. Each opcode reads $lambda, N, delta$ from `TideParams`, keyed by the Aqua order hash (or the v4 `PoolId`).]
+  caption: [Reserved third-party slots claimed in 1inch's `OpcodeList.sol`; no 1inch opcode is overwritten. Each opcode reads $lambda, N, delta, f$ from `TideParams`, keyed by the Aqua order hash (or the v4 `PoolId`).]
 )
 
 = Propositions
@@ -80,7 +81,21 @@ where fees on arbitrage flow are $f dot (lambda E\/4) dot EE|r| $ per block. LVR
 
 *Proposition 3 (virtual depth with a buffer, solvency invariant).* Quoting follow-on flow against $(N x_a)(N y_a) = k$ reduces slippage of a trade of size $q$ from $approx q\/x_a$ to $approx q\/(N x_a)$; at $N = 4$ a trade of 1% of active reserves gets 3.97 times less slippage (@tab:slip). The virtual curve can promise up to $N y_a$, which the pool does not hold. With the drift bound $delta$ measured against the block anchor, the most the virtual curve can be asked to deliver in one block before a re-split is
 $ y_max = N y_a (1 - sqrt(1-delta)), $
-so the strategy is solvent whenever $ y_a + B >= N y_a (1 - sqrt(1-delta)), $ with $B$ the passive buffer. For the defaults $N = 4$, $delta = 0.5%$ the right-hand side is $1.0%$ of $y_a$, far inside the active slice; the buffer only engages for aggressive settings, and `BUFFER_GUARD` reverts any fill beyond `active + passive` regardless. `TideMath.maxOutWithinDrift` computes $y_max$ and the test suite checks it is exactly the boundary of `driftExceedsRef`.
+so the strategy is solvent whenever $ y_a + B >= N y_a (1 - sqrt(1-delta)), $ with $B$ the passive buffer. For the deployed $N = 4$, $delta = 0.2%$ the right-hand side is $0.4%$ of $y_a$, far inside the active slice; under Proposition 4 the buffer can only engage for extreme settings (a 45% band needs a 67.5% fee), and `BUFFER_GUARD` reverts any fill beyond `active + passive` regardless. `TideMath.maxOutWithinDrift` computes $y_max$ and the test suite checks it is exactly the boundary of `driftExceedsRef`.
+
+*Proposition 4 (the virtual curve is a rebate; the fee-rebate bound).* A fill on the virtual curve moves the virtual price by some amount and the real active reserves by the same tokens, which on the real curve is $N$ times that price move. After a within-$delta$ fill the real active price sits up to $(N-1)delta$ from the virtual one, and the next block's first fill collects the gap. Hence every unit of execution improvement the virtual curve grants is a unit of the LP's inventory at the next re-split: inside the band the improvement over the active curve is at most $(N-1)delta\/2$ per unit traded.
+
+With $f = 0$ this is extractable at will. Let a taker be first in the block: on the active curve ($N = 1$) she sells $x$ to move the price by $delta' >= delta$, then on the virtual curve buys $x$ back up to the guard, $delta$ from the anchor. Her round trip is a sale on a shallow curve and a purchase on a deep one, and nets, to first order,
+$ (N-1) N delta^2 / 4 $
+of one side of the active reserves per block, with no price gap and no information; the real reserves are left $(N-1)delta$ mispriced for the next arbitrageur on top. Exact simulation with the contract formulas (`research/`, USD 2 M pool, $lambda = 0.5$, $N = 4$, $delta = 0.5%$) gives about USD 28 per block, some 830 times the LVR that $lambda$ saves in that block at $sigma = 60%$; at $delta = 0.05%$ still 8 times. Neither $lambda$, $N$ nor $delta$ bounds the sum over blocks.
+
+A flat fee $f$ on every input does. The round trip pays $f$ twice and gains at most the rebate; honest one-directional flow pays $f$ once. The rebate can never be farmed if it never exceeds the fee that pays for it:
+$ (N - 1) delta <= 2 f. $ <eq:feebound>
+`TideMath.checkParams` enforces @eq:feebound at `init`, at every `set` and at every `setFee`; the venues read $f$ from the same record, so a fill always pays the fee the bound was checked against. Under @eq:feebound the numerical search that found the USD 28 loop finds no profitable loop (the unprofitable region extends to $4f\/(N-1)$; the bound keeps a factor two), and the largest admissible one-directional honest flow leaves the LP whole after the following arbitrage. A test performs the round trip on the Aqua venue and asserts the attacker loses and the maker's inventory is worth no less at the old price.
+
+The bound also settles the ordering question for a stale anchor. A dust first fill anchors the block at the pool's current price, which arbitrageurs keep within $f$ of the market plus one block of drift, $sigma sqrt(Delta)$ (3.7 bp at $sigma = 60%$, 12 s). A follower on the virtual curve gains at most gap $- f - delta\/2$, so once $delta$ exceeds two one-block moves the stale anchor is worth nothing to anyone. The manager therefore keeps $delta$ in the box
+$ 3 sigma sqrt(Delta) <= delta <= (2 f)/(N-1), $
+lowering $N$ when the box is empty ($N = 1$ turns the virtual curve off). At $sigma = 60%$, $f = 30$ bp, $N = 4$: $11 "bp" <= delta <= 20 "bp"$; the deployed strategy uses $delta = 20$ bp. $square$
 
 = Simulation
 
@@ -122,7 +137,7 @@ so the strategy is solvent whenever $ y_a + B >= N y_a (1 - sqrt(1-delta)), $ wi
     [`contracts/src/aqua/instructions/*.sol`], [the three opcodes and the program-order check],
     [`contracts/src/aqua/TideOpcodes.sol`, `TideRouter.sol`], [`AquaOpcodes` + Tide dispatch; router = swap-vm `main` template, opcode set swapped],
     [`contracts/src/aqua/TideApp.sol`], [program and Aqua order builder; `ship()` is sent by the maker to the official Aqua registry],
-    [`contracts/src/TideParams.sol`], [governed $lambda, N, delta$; owner or manager; manager revocable],
+    [`contracts/src/TideParams.sol`], [governed $lambda, N, delta$ plus the fee; owner or manager, fee owner-only; @eq:feebound enforced at `init`, `set`, `setFee`],
     [`contracts/src/v4/TideHook.sol`], [`BaseCustomCurve` hook, hook-owned ERC-6909 reserves, pro-rata shares, JIT guard],
   ),
   caption: [Contract map.]
@@ -134,22 +149,22 @@ so the strategy is solvent whenever $ y_a + B >= N y_a (1 - sqrt(1-delta)), $ wi
     align: (left, right, right),
     [*Path*], [*gas*], [*Δ vs plain*],
     [plain `XYCSwap` fill on the same router (taker callback + Aqua push/pull included)], [83,226], [–],
-    [Tide fill, first of block (re-split, storage write)], [116,365], [+33,139],
-    [Tide fill, later in block (virtual curve + guard)], [116,636], [+33,410],
+    [Tide fill, first of block (re-split, fee, storage write)], [118,821], [+35,595],
+    [Tide fill, later in block (virtual curve + guard + fee)], [119,551], [+36,325],
     [Tide v4 hook swap via `PoolSwapTest`], [≈168,000], [n/a],
   ),
   caption: [Gas (Foundry, `test/BaselineGas.t.sol`). The Tide overhead is three `TideParams.get` calls, one Aqua balance read in the guard and the program scan; it could be halved by caching parameters per block.]
 )
 
-Tests: 43 (`forge test`): vector parity with Python, every opcode, two swaps in one block, next-block re-split, informed-sized follow-on re-pricing, exact-out beyond inventory reverts, buffer top-up re-split, quote/swap consistency in both directions and modes, reordered/missing/duplicate program reverts, governance (manager can set, stranger cannot, revoke blocks writes, new $lambda$ applies at the next re-split), hook JIT guards, and cross-venue parity.
+Tests: 46 (`forge test`): vector parity with Python, every opcode, two swaps in one block, next-block re-split, informed-sized follow-on re-pricing, exact-out beyond inventory reverts, buffer top-up re-split, fee netting and gross-up round trip, quote/swap consistency in both directions and modes, reordered/missing/duplicate program reverts, governance (manager can set, stranger cannot, revoke blocks writes, new $lambda$ applies at the next re-split, @eq:feebound rejects a $delta$ the fee cannot back, fee is owner-only), the plain-then-virtual round trip loses under the bound, hook JIT guards, and cross-venue parity.
 
-Live on Sepolia: router `0x9A58…85B3`, params `0xeDb9…8176`, hook `0x45Db…6A88`, strategy hash `0x86a1…f15d`; Aqua fill `0x4f39…cf97`, hook swap `0xef3a…2978`. A mainnet-fork script fills against the official Aqua registry with real WETH/USDC.
+Live on Sepolia: router `0xfDD5…0957`, params `0x4608…44FF`, hook `0xEcbF…AA88`, strategy hash `0xd09a…e4f8`; Aqua fill `0xcaea…7773` (0.02 WETH → 55.40 USDC, 30 bp fee kept by the maker), hook swap `0x8a06…7497` (quote equals fill). A mainnet-fork script fills against the official Aqua registry with real WETH/USDC.
 
 = Governance: the parameters are ENS records, the human is World ID
 
-The three parameters are text records on `eth-usdc.tide.eth` (ENSv2, Sepolia), served by a PermissionedResolver proxy that the strategy owns. `manager.tide.eth` is an ENSIP-26 agent name whose wallet holds `ROLE_SET_TEXT` on exactly three EAC resources, `keccak(lambda)`, `keccak(N)`, `keccak(delta)`, granted with `grantSetterRoles`; on-chain it is the `manager` of `TideParams`. It cannot set `strategyHash`, an address, the resolver, or unregister the name; a script demonstrates each revert. Revocation is one `revokeRoles` per key plus `setManager(0)`.
+$lambda$, $N$, $delta$ and the fee are text records on `eth-usdc.tide.eth` (ENSv2, Sepolia), served by a PermissionedResolver proxy that the strategy owns. `manager.tide.eth` is an ENSIP-26 agent name whose wallet holds `ROLE_SET_TEXT` on exactly three EAC resources, `keccak(lambda)`, `keccak(N)`, `keccak(delta)`, granted with `grantSetterRoles`; on-chain it is the `manager` of `TideParams`. It cannot set `strategyHash`, an address, the resolver, or unregister the name; a script demonstrates each revert. Revocation is one `revokeRoles` per key plus `setManager(0)`.
 
-The agent proposes $lambda^*$ from the frontier. The backend then starts an OpenID Connect step-up with the World ID for Agents dev environment: `prompt=login`, `max_age=0`. The ID token is validated server-side (JWKS/RS256, `iss`, `aud`, `nonce`, `iat` ≤ 120 s, `auth_time` not before the request) and its pairwise `sub` must equal the owner bound at setup. Only then does the agent call `setText` and `TideParams.set`. Denied, cancelled, timed-out, replayed and forged responses all leave the records unchanged; a harness drives each path and asserts it.
+The agent proposes $lambda^*$ from the frontier and $delta$ from the box of Proposition 4 (three one-block moves at the realised volatility, capped by the fee bound; the fee itself is owner-only). The backend then starts an OpenID Connect step-up with the World ID for Agents dev environment: `prompt=login`, `max_age=0`. The ID token is validated server-side (JWKS/RS256, `iss`, `aud`, `nonce`, `iat` ≤ 120 s, `auth_time` not before the request) and its pairwise `sub` must equal the owner bound at setup. Only then does the agent call `setText` and `TideParams.set`. Denied, cancelled, timed-out, replayed and forged responses all leave the records unchanged; a harness drives each path and asserts it.
 
 = Sponsor integration rationale
 
@@ -163,8 +178,9 @@ The agent proposes $lambda^*$ from the frontier. The backend then starts an Open
 
 = Limitations and future work
 
-- The "first fill of the block is the informed one" model is the PA-AMM assumption; a retail order that happens to be first pays the shallow curve. Priority-ordering heuristics or fee-based separation are future work.
-- Steady-state LVR saving is capped at 50% as $lambda arrow 0$; the drift cost grows correspondingly. The frontier makes the trade-off explicit but the fee term is a first-order model.
+- The "first fill of the block is the informed one" model is the PA-AMM assumption; a retail order that happens to be first pays the shallow curve. Proposition 4 removes the profit from taking that slot on purpose, not the cost of taking it by accident.
+- Steady-state LVR saving is capped at 50% as $lambda arrow 0$; the drift cost grows correspondingly. The frontier makes the trade-off explicit, but its fee term is first order and solved at $f = 1$ bp; at the deployed 30 bp the fee changes _when_ arbitrage happens (the gap must exceed $f$ first), which the LVR model does not capture. $lambda^*$ is the LVR-versus-tracking optimum, not a fee-calibrated one.
+- The $delta$ rule (three one-block moves) has a proven safe side and a heuristic target; the optimal band for a given flow mix is open.
 - Parameters are mirrored on the trading chain by the agent after ENS approval; a cross-chain read of the ENS record would remove that step.
 - Mainnet deployment, audit, fee optimisation (listed as open in @ko2026), and multi-pair rebalancing are out of scope.
 
@@ -178,10 +194,11 @@ The agent proposes $lambda^*$ from the frontier. The backend then starts an Open
   align: left,
   [*Requirement*], [*Where*],
   [1inch: official Aqua/SwapVM contracts, router redeployment], [`contracts/src/aqua/TideRouter.sol:21`, submodule `contracts/lib/swap-vm` (main), Aqua registry `0x1111113C…a90a`],
-  [1inch: custom opcodes, slots, order], [`contracts/src/aqua/instructions/TideProgram.sol:24-32`, `ActiveSplit.sol:53`, `VirtualXYCSwap.sol:48`, `BufferGuard.sol:54`, `TideOpcodes.sol:16`],
-  [1inch: onchain transfers in demo], [Sepolia tx `0x4f39d7cb…52cf97`; `contracts/script/fork-demo.sh`],
+  [1inch: custom opcodes, slots, order], [`contracts/src/aqua/instructions/TideProgram.sol:24-32`, `ActiveSplit.sol:59`, `VirtualXYCSwap.sol:48`, `BufferGuard.sol:54`, `TideOpcodes.sol:16`],
+  [1inch: onchain transfers in demo], [Sepolia tx `0xcaea1c64…457773`; `contracts/script/fork-demo.sh`],
+  [Fee-rebate bound (Prop. 4)], [`contracts/src/lib/TideMath.sol:115`, `contracts/src/TideParams.sol:43,67`, tests `contracts/test/aqua/TideAqua.t.sol:291,318`],
   [1inch: commit history], [small commits from Sep 25 evening, no squash],
-  [Uniswap: hook + lines], [`contracts/src/v4/TideHook.sol:92,142,197,203`],
+  [Uniswap: hook + lines], [`contracts/src/v4/TideHook.sol:109,146,151,205,211`],
   [Uniswap: FEEDBACK.md, form], [`FEEDBACK.md` (root)],
   [ENS: Sepolia ENSv2, central, no hard-coded values], [`client/scripts/ens-setup.ts`, `client/src/lib/ens/client.ts:52,75,80`, records on `eth-usdc.tide.eth`],
   [ENS: live demo, open source], [dashboard `client/`, records readable via Universal Resolver],

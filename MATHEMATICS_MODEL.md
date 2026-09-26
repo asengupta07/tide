@@ -62,6 +62,8 @@ Current parameter bounds:
 0 < lambda <= 100%
 1 <= N <= 64
 0 <= delta < 50%
+0 <= fee   < 100%   (flat fee on tokenIn, also in basis points; the owner sets it, both venues read it)
+(N - 1) * delta <= 2 * fee   (the fee-rebate bound, Section 8)
 ~~~
 
 ## 3. Ordinary constant-product pricing
@@ -275,6 +277,9 @@ Solidity performs an equivalent cross-multiplied integer comparison to avoid flo
 When drift exceeds delta, Tide discards the N quote and recalculates using current active reserves
 with N = 1. It is more accurate to say **the special quote is rejected**, not the entire trade.
 
+Delta bounds one fill. It does not, on its own, bound what a sequence of fills can take from Alice;
+Section 8 shows why and adds the fee that does.
+
 ### Simplified drift formula
 
 If the anchor equals the current pre-trade reserve ratio, drift simplifies to:
@@ -298,7 +303,113 @@ z_max = N*y * [1 - sqrt(1 - delta)]
 
 These are drift boundaries, not extra available tokens. The real-inventory check still applies.
 
-## 8. INR/JPY: two alternative second trades
+## 8. Fee: who pays for the deep curve, and the bound that keeps it honest
+
+Sections 6 and 7 describe a quote that is better than the active curve for later fills. Nothing is
+free, so the first question is who pays for that improvement. The answer decides whether the design
+works at all.
+
+### Where the improvement comes from
+
+A fill on the N-curve moves the **virtual** price by some amount. The **real** active reserves move by
+the same token amounts, and on the real curve that is N times the price move. After a within-delta fill
+on the N-curve the real active price therefore sits up to `(N - 1) * delta` away from the virtual
+price. Nobody trades the real active curve for the rest of the block, but at the next block the active
+slice is re-split from the totals and the block's first fill (an arbitrageur) takes that gap. Every unit
+of improvement the deep curve hands out inside a block is a unit of Alice's inventory at the next
+re-split. The deep curve is a **rebate**, paid by the LP.
+
+### The round trip (why zero fee cannot work)
+
+Start from the fresh split of Section 4, no fee, `N = 4`, `delta = 0.5%`:
+
+~~~text
+active = 300 INR and 500 JPY,   price 1.66667 JPY per INR
+~~~
+
+MalloryBot is first in the block and does two trades in the same block.
+
+Leg 1, first fill, N = 1. Mallory sells INR to push the active price down 1% (twice delta):
+
+~~~text
+sells 1.5113 INR, receives 2.5063 JPY
+active = 301.5113 INR and 497.4937 JPY,   anchor 1.65000 JPY per INR
+~~~
+
+Leg 2, later fill, N = 4. Mallory buys INR back with JPY on the deep curve, the largest amount the
+guard admits (virtual price may move delta = 0.5% above the anchor):
+
+~~~text
+sends 4.9687 JPY, receives 3.0039 INR
+active = 298.5075 INR and 502.4624 JPY
+~~~
+
+Mallory's net position is +1.4926 INR and -2.4624 JPY. At the untouched market price of 1.66667 that is
+
+~~~text
+1.4926 * 1.66667 - 2.4624 = +0.0251 JPY
+~~~
+
+profit, with no price gap and no information. The real active price is now 1.68325 JPY per INR, 0.99%
+above the market; the next block's first fill collects that as well. Nothing in lambda, N or delta
+stops this: delta only caps the size of one loop, and the loop can run every block.
+
+First order, one loop extracts about
+
+~~~text
+(N - 1) * N * delta^2 / 4     of one side of the active reserves, per block
+~~~
+
+Exact simulation with the contract formulas, USD 2,000,000 pool, `lambda = 0.5, N = 4,
+delta = 0.5%`: about USD 28 per block leaves the LP, roughly 830 times the LVR that lambda saves in
+that block at 60% volatility. At `delta = 0.05%` it is still 8 times.
+
+### The fee closes it
+
+Every fill pays a flat fee `f` on tokenIn (Section 16). Inside the drift band the deep curve improves
+the price by at most `(N - 1) * delta / 2` per unit traded relative to the active curve. Mallory pays
+`f` on both legs; an honest follower pays `f` once and the LP keeps it. So the rebate can never be
+farmed if it never exceeds the fee that pays for it:
+
+~~~text
+(N - 1) * delta <= 2 * f
+~~~
+
+This is enforced on-chain in `TideMath.checkParams`, at `init`, at every `set` and at every `setFee`.
+Under it, the numeric search that found the USD 28 loop finds no profitable loop at all (the round trip
+above with the 0.75% fee that `N = 4, delta = 0.5%` would need loses 0.0316 JPY), and one-directional
+honest flow of the largest admissible size leaves the LP whole after the next arbitrage.
+
+| Fee | N = 2 | N = 4 | N = 8 |
+| ---: | ---: | ---: | ---: |
+| 5 bp | delta <= 10 bp | 3 bp | 1 bp |
+| 30 bp | 60 bp | 20 bp | 8 bp |
+| 100 bp | 200 bp | 66 bp | 28 bp |
+
+The deployed strategy uses `fee = 30 bp, N = 4, delta = 20 bp`. The INR/JPY examples elsewhere in this
+document keep `N = 4, delta = 0.5%` for legible numbers; under the bound that pair needs a fee of at
+least 75 bp.
+
+### The other side: how small delta may be
+
+A dust first fill anchors the block at a stale price. Arbitrageurs keep the pool within `f` of the
+market plus one block of drift, `sigma * sqrt(dt)` (about 3.7 bp at 60% annual volatility and 12 s
+blocks). A follower on the deep curve gains at most `gap - f - delta / 2`, so once `delta` exceeds two
+one-block moves the stale anchor is worth nothing to anyone. The manager targets three:
+
+~~~text
+3 * sigma * sqrt(dt)  <=  delta  <=  2 * f / (N - 1)
+~~~
+
+At 60% volatility, `f = 30 bp`, `N = 4`: `11 bp <= delta <= 20 bp`. If the box is empty the manager
+lowers N until it is not (N = 1 turns the deep curve off).
+
+One consequence worth stating: under the bound the deep curve never delivers more than about
+`N * delta / 2` of the active slice per block (0.4% at the deployed values), so the passive buffer
+top-up of Section 12 is only reachable with extreme settings such as `delta = 45%, fee = 67.5%`. The
+solvency check stays as a hard invariant regardless.
+
+## 9. INR/JPY: two alternative second trades
 
 Return to the state immediately after ArbBot's first fill:
 
@@ -390,7 +501,7 @@ N tried to give the later fill smoother pricing.
 delta prevented a large later fill from receiving that pricing.
 ~~~
 
-## 9. ETH/USDC: comparing slippage
+## 10. ETH/USDC: comparing slippage
 
 Assume the post-first-fill active state and anchor are:
 
@@ -427,7 +538,7 @@ Tide accepts it.
 If MalloryBot instead sends 3,000 USDC, the candidate drift is approximately 4.82%. Tide discards the
 N = 4 price and uses the ordinary active curve.
 
-## 10. Exact-output trades
+## 11. Exact-output trades
 
 A trader may specify the desired output z and ask how much input q is required. Solving the virtual
 formula gives:
@@ -458,7 +569,7 @@ q = 0.1 * 4 * 30,000 / (4*10 - 0.1)
 Its candidate drift is approximately 0.4994%, just inside a 0.5% limit when the current ratio equals
 the anchor.
 
-## 11. Real inventory and the passive buffer
+## 12. Real inventory and the passive buffer
 
 Virtual reserves are numbers used for pricing. They are not real tokens.
 
@@ -503,7 +614,7 @@ above Alice's real total of 1,000. The buffer guard reverts.
 That is why N cannot create money: the price calculation may use large virtual numbers, but the final
 transfer is limited by Alice's real inventory.
 
-## 12. State changes across blocks
+## 13. State changes across blocks
 
 There is no automatic callback at the start of a block. The first quote or fill Tide observes performs
 a lazy re-split:
@@ -528,7 +639,7 @@ reserves as N times the **current active real balances**. The trade updates real
 input and output. The next quote constructs a fresh virtual curve from those updated balances while
 still comparing its candidate price with the fixed block anchor.
 
-## 13. Choosing lambda, N, and delta
+## 14. Choosing lambda, N, and delta
 
 No single parameter triple is correct for every pool.
 
@@ -564,20 +675,26 @@ an easier starting value to defend when lambda = 0.5.
 ### Delta: permission to use N
 
 - Small delta means only small, close-to-anchor later trades receive virtual pricing.
-- Large delta lets more trades use N but exposes Alice to more inventory and adverse-selection risk.
+- Large delta lets more trades use N, and hands out a larger rebate that the fee must cover.
 
-Delta = 0.5% is a conservative MVP value. It is useful in a demo because a small trade can show the
-accepted path and a large trade can show the fallback path.
+Delta is boxed on both sides (Section 8): at least about three one-block price moves, at most
+`2 * fee / (N - 1)`. The lower edge depends on volatility, so the manager re-proposes it with lambda.
 
-| Purpose | lambda | N | delta | Interpretation |
-| --- | ---: | ---: | ---: | --- |
-| Conservative start | 0.5 | 2 | 0.5% | Virtual depth is roughly the original total depth |
-| Clear hackathon demo | 0.5 | 4 | 0.5% | Strong slippage contrast, tightly guarded |
-| Ordinary AMM comparison | 1.0 | 1 | any | No partial activation or virtual-depth benefit |
+### Fee: what backs the deep curve
+
+The flat fee on tokenIn is set by the owner at `init`, changeable by the owner only, and read by both
+venues on every fill. It is not a free parameter: `(N - 1) * delta <= 2 * fee` must hold, and the
+contracts refuse any triple that breaks it.
+
+| Purpose | lambda | N | delta | fee | Interpretation |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Conservative start | 0.5 | 2 | 0.2% | 0.3% | Virtual depth is roughly the original total depth; wide room under the bound |
+| Deployed strategy | 0.5 | 4 | 0.2% | 0.3% | Strong slippage contrast; delta sits exactly at the bound |
+| Ordinary AMM comparison | 1.0 | 1 | any | any | No partial activation or virtual-depth benefit |
 
 These are test configurations, not claims that the values are economically optimal.
 
-## 14. LP-loss and manager-frontier model
+## 15. LP-loss and manager-frontier model
 
 The preceding swap formulas run on-chain. Tide also has a separate research model that helps the
 manager propose lambda. It does not currently optimize N or delta.
@@ -640,27 +757,43 @@ calibrates it so lambda = 0.5 is selected at 60% annualized volatility under its
 
 ### Current frontier limitation
 
-research/frontier.py assumes a 1 basis point fee. The current Tide v4 hook returns zero fee, and the
-deployed Aqua strategy is also configured with zero fee. The frontier is therefore a research and
-presentation model, not yet a production-optimal controller for the deployed fee setup. Those
-assumptions must be aligned before treating its lambda proposal as financially calibrated.
+research/frontier.py treats the fee as a first-order income term on arbitrage notional and is solved
+at 1 basis point, where that approximation holds. The deployed strategies charge 30 basis points. At
+that level the fee changes *when* arbitrage happens (the gap must exceed the fee before anyone trades),
+which the LVR model does not capture; plugging 30 bp into the current income term simply drives
+lambda* to the top of the grid. The frontier is therefore the LVR-versus-tracking optimum, a research
+and presentation model, not a fee-calibrated controller. The manager's second output, delta, does not
+depend on the frontier: it is three one-block moves capped by the fee bound (Section 8).
 
-## 15. Fees, rounding, and model boundaries
+## 16. Fees, rounding, and model boundaries
 
-The worked quotes omit fees because the current shared Tide swap paths charge zero. If a fee is added,
-the usual approach is to calculate input after fees and use that effective amount in the quote.
+The worked quotes above omit the fee for legibility. On-chain every fill pays a flat fee on tokenIn,
+read from TideParams by both venues (so the fee a fill pays is the one the parameter box was checked
+against):
 
-The current model does not by itself prove:
+~~~text
+exact input:   net = gross - ceil(gross * fee / 10,000)
+               the curve and the drift guard see net; the taker pays gross
+exact output:  the curve returns net; gross = net + ceil(net * fee / (10,000 - fee))
+~~~
 
-- which trader is informed;
-- that transaction ordering cannot be manipulated;
-- that a dust transaction cannot take the first-fill position before the real arbitrage trade;
-- that fixed N and delta values are optimal for every pair;
-- that modeled LVR savings survive fees, gas, latency, and adversarial ordering.
+The fee lands in the maker's Aqua balance (or the hook's claims) immediately but enters the active
+slice only at the next re-split: within the block only the net input is added to the active reserves.
+Rounding always favours the maker; grossing a net amount back up reproduces the original input to
+within one wei either way.
 
-These are simulation, mechanism-design, and adversarial-testing targets for the MVP.
+The model now proves, by construction, that the deep curve cannot be farmed by a round trip and that a
+stale first fill is worth nothing to a follower once delta exceeds two one-block moves (Section 8).
+It does not by itself prove:
 
-## 16. Formula reference
+- which trader is informed; a retail order that happens to be first still pays the active curve;
+- that fixed N and delta values are optimal for every pair; the manager's delta rule is a heuristic
+  with a proven safe side, not an optimum;
+- that modeled LVR savings survive gas, latency and the fee's effect on arbitrage timing (Section 15).
+
+These remain simulation and adversarial-testing targets.
+
+## 17. Formula reference
 
 ~~~text
 Active reserve:
@@ -695,19 +828,39 @@ Maximum output inside delta under that condition:
 
 Steady-state research LVR:
     LVR = (sigma^2 / 8) * E * dt / (2 - lambda)
+
+Fee on a gross input:
+    fee = ceil(gross * feeBps / BPS);   net = gross - fee
+
+Fee on a net input (exact output):
+    fee = ceil(net * feeBps / (BPS - feeBps));   gross = net + fee
+
+Deep-curve rebate per unit, inside the band:
+    <= (N - 1) * delta / 2
+
+Round-trip extraction without the bound, per block, first order:
+    (N - 1) * N * delta^2 / 4   of one side of the active reserves
+
+Fee-rebate bound (enforced in checkParams):
+    (N - 1) * delta <= 2 * fee
+
+Manager's delta box:
+    3 * sigma * sqrt(dt) <= delta <= 2 * fee / (N - 1)
 ~~~
 
-## 17. Implementation references
+## 18. Implementation references
 
 | Concern | Source |
 | --- | --- |
-| Shared formulas and bounds | [contracts/src/lib/TideMath.sol](contracts/src/lib/TideMath.sol) |
-| Aqua active split | [contracts/src/aqua/instructions/ActiveSplit.sol](contracts/src/aqua/instructions/ActiveSplit.sol) |
+| Shared formulas and bounds, fee-rebate bound | [contracts/src/lib/TideMath.sol](contracts/src/lib/TideMath.sol) |
+| Governed parameters and fee, bound enforced at init / set / setFee | [contracts/src/TideParams.sol](contracts/src/TideParams.sol) |
+| Aqua active split and fee | [contracts/src/aqua/instructions/ActiveSplit.sol](contracts/src/aqua/instructions/ActiveSplit.sol) |
 | Aqua virtual quote | [contracts/src/aqua/instructions/VirtualXYCSwap.sol](contracts/src/aqua/instructions/VirtualXYCSwap.sol) |
 | Aqua drift and solvency guard | [contracts/src/aqua/instructions/BufferGuard.sol](contracts/src/aqua/instructions/BufferGuard.sol) |
 | Uniswap v4 implementation | [contracts/src/v4/TideHook.sol](contracts/src/v4/TideHook.sol) |
 | Solidity math tests | [contracts/test/TideMath.t.sol](contracts/test/TideMath.t.sol) |
 | Cross-venue parity tests | [contracts/test/CrossVenue.t.sol](contracts/test/CrossVenue.t.sol) |
+| Round trip loses under the bound; bound rejects bad triples | [contracts/test/aqua/TideAqua.t.sol](contracts/test/aqua/TideAqua.t.sol) (`test_RoundTrip_ActiveThenVirtual_LosesMoneyUnderFeeBound`, `test_Params_FeeBound_RejectsDeltaTheFeeCannotBack`) |
 | Integer reference model | [research/tide_math.py](research/tide_math.py) |
 | Lambda frontier | [research/frontier.py](research/frontier.py) |
 | Monte Carlo LVR checks | [research/sim.py](research/sim.py) |

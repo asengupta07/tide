@@ -35,6 +35,12 @@ test asserts identical amounts on both venues.
 - **`BaseCustomAccounting` forces liquidity through the hook** (`modifyLiquidity` reverts). That is the
   correct design for a custom curve, but it means a passive LP cannot use the standard PositionManager
   flow. A recommended UI pattern for hook-owned liquidity would help adoption.
+- **`_getSwapFeeAmount` is informational.** `BaseCustomCurve` calls it after `_getUnspecifiedAmount`
+  and uses the value only for the `HookSwap` event; it does not net the fee out of the swap. A custom
+  curve that charges a fee has to apply it inside `_getUnspecifiedAmount` and then report the same
+  number from `_getSwapFeeAmount` (we keep it in a transient variable between the two calls). Either a
+  line in the docs, or letting `_getUnspecifiedAmount` return the fee alongside the amount, would save
+  the round trip through storage.
 - **Dynamic fee flag is required even for a zero-fee custom curve.** Initialising with a static fee still
   routes through fee logic that has no meaning when the hook returns the whole delta. A `NO_FEE`
   sentinel for full-delta hooks would be clearer than `DYNAMIC_FEE_FLAG` with `_getSwapFeeAmount = 0`.

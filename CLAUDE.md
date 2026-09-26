@@ -34,9 +34,15 @@ Done and live on Sepolia: TideMath + vectors, three opcodes on `TideRouter`, `Ti
 `TideHook`, cross-venue parity, mainnet-fork demo (`contracts/script/fork-demo.sh`), Sepolia ship + fill +
 hook swap, ENSv2 setup (registry, resolvers, subnames, records, scoped agent role, revoke script),
 World ID step-up backend with denied-path harness, dashboard, README, FEEDBACK.md, world-debrief,
-WHITEPAPER.pdf. Addresses in `README.md` and `contracts/deployments/`. Open: World client credentials
-(`WORLD_CLIENT_ID/SECRET` in `.env`) for the live approve path, team/socials in README, video, public
-deployment of `client/` for the ENS live-demo link.
+WHITEPAPER.pdf. Addresses in `README.md` and `contracts/deployments/`.
+
+Sep 26 model review: the deep curve was drainable with a zero fee (sell on the active curve, buy back on
+the N-curve inside δ, every block). Fixed by a flat fee on tokenIn stored in `TideParams` (read by both
+venues) and the invariant `(N − 1)·δ ≤ 2·fee` enforced at init/set/setFee; the manager now proposes δ
+too (three one-block moves, capped by the bound). Everything redeployed (new router, params, app, hook,
+strategy hash); `MATHEMATICS_MODEL.md` § 8 has the derivation and worked example. Open: World client
+credentials (`WORLD_CLIENT_ID/SECRET` in `.env`) for the live approve path, team/socials in README,
+video, public deployment of `client/` for the ENS live-demo link.
 
 ## Build order (from the dossier)
 
