@@ -28,8 +28,9 @@ manager. Authority sits where policy is chosen, not on every tick.
    (never in the browser). The ID token is verified against the JWKS (RS256), `iss`, `aud`, `nonce`,
    `iat` (max age 120 s) and `auth_time` (must not predate the step-up request: fresh authentication).
 4. **Validated result → protected action**: only if the verified `sub` equals the bound owner's does the
-   agent call `setText` and `TideParams.set`. Every other outcome marks the proposal `blocked` and writes
-   nothing.
+   agent write the ENS records; the on-chain `TideParams.set` for an out-of-guardrails change is the
+   owner's own transaction (the contract refuses the manager there), verified by the backend before the
+   proposal is marked applied. Every other outcome marks the proposal `blocked` and writes nothing.
 5. **Denied / expired / cancelled**: `error=access_denied` from the IdP, a timed-out approval window,
    a replayed `state`, or a forged code all take the blocked path. `client/scripts/test-agent-flow.ts`
    drives these four paths and asserts the ENS records are unchanged afterwards.

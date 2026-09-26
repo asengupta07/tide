@@ -17,18 +17,21 @@ contract BaselineGasTest is TideAquaBase {
         a[1] = BAL_B;
         vm.prank(maker);
         aqua.ship(address(router), abi.encode(plain), t, a);
+        // Measure taker.swap alone: input pre-minted, no quote inside the window.
+        tokenA.mint(address(taker), 100e18);
+        bytes memory td = _takerData(true, true);
         _swap(plain, 1e18, true, true);
         uint256 g0 = gasleft();
-        _swap(plain, 0.5e18, true, true);
+        taker.swap(plain, 0.5e18, td);
         uint256 plainGas = g0 - gasleft();
         (ISwapVM.Order memory tide,) = _ship();
         _swap(tide, 1e18, true, true);
         g0 = gasleft();
-        _swap(tide, 0.5e18, true, true);
+        taker.swap(tide, 0.5e18, td);
         uint256 tideSecond = g0 - gasleft();
         vm.roll(block.number + 1);
         g0 = gasleft();
-        _swap(tide, 0.5e18, true, true);
+        taker.swap(tide, 0.5e18, td);
         uint256 tideFirst = g0 - gasleft();
         emit log_named_uint("plain XYCSwap fill gas (incl. taker + aqua)", plainGas);
         emit log_named_uint("Tide fill gas, first of block (re-split)", tideFirst);

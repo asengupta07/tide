@@ -1,4 +1,5 @@
 # Tide — idea brief
+> **Note (Sep 27).** This is the original brief. Two things changed while building: a flat fee now backs the virtual curve with the bound (N − 1)·δ ≤ 2·fee, and the manager runs on its own inside owner-set guardrails, with the World ID step-up only for changes beyond them. `MATHEMATICS_MODEL.md` and the whitepaper describe the shipped design.
 
 Sep 25, 2026 · @Arnab
 

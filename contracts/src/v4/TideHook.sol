@@ -9,7 +9,7 @@ import { BaseCustomCurve } from "@openzeppelin/uniswap-hooks/src/base/BaseCustom
 import { IPoolManager } from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import { Currency } from "@uniswap/v4-core/src/types/Currency.sol";
 import { PoolKey } from "@uniswap/v4-core/src/types/PoolKey.sol";
-import { PoolId } from "@uniswap/v4-core/src/types/PoolId.sol";
+import { PoolId, PoolIdLibrary } from "@uniswap/v4-core/src/types/PoolId.sol";
 import { BalanceDelta } from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import { SwapParams } from "@uniswap/v4-core/src/types/PoolOperation.sol";
 
@@ -55,12 +55,34 @@ contract TideHook is BaseCustomCurve, ERC20 {
     }
 
     TideParams public immutable PARAMS;
+    /// @dev Owner of this pool's parameters, claimed when the pool is initialised.
+    address public immutable OWNER;
+    /// @dev Burned on the first deposit so a first depositor cannot inflate the share price.
+    uint256 internal constant MINIMUM_SHARES = 1000;
+    address internal constant DEAD = 0x000000000000000000000000000000000000dEaD;
 
     BlockState private _state;
     mapping(address => uint256) public lastAddBlock;
 
-    constructor(IPoolManager poolManager_, TideParams params) BaseHook(poolManager_) ERC20("Tide LP", "TIDE-LP") {
+    /// @param owner_ Who owns this pool's parameters. Explicit because CREATE2 deployments run the constructor
+    ///        from the deployer contract, not from the wallet that mined the address.
+    constructor(IPoolManager poolManager_, TideParams params, address owner_)
+        BaseHook(poolManager_)
+        ERC20("Tide LP", "TIDE-LP")
+    {
         PARAMS = params;
+        OWNER = owner_;
+    }
+
+    /// @dev Claim this pool's parameter key for the deployer with the default triple (lambda 50%, N 4, delta 20 bp,
+    ///      fee 30 bp, no manager) before anyone else can. The owner tunes them afterwards.
+    function _beforeInitialize(address sender, PoolKey calldata key, uint160 sqrtPriceX96)
+        internal
+        override
+        returns (bytes4)
+    {
+        PARAMS.initFor(PoolId.unwrap(PoolIdLibrary.toId(key)), OWNER, 5000, 4, 20, 30, address(0));
+        return super._beforeInitialize(sender, key, sqrtPriceX96);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -223,7 +245,8 @@ contract TideHook is BaseCustomCurve, ERC20 {
         if (supply == 0 || total0 == 0 || total1 == 0) {
             amount0 = params.amount0Desired;
             amount1 = params.amount1Desired;
-            shares = Math.sqrt(amount0 * amount1);
+            uint256 root = Math.sqrt(amount0 * amount1);
+            shares = root > MINIMUM_SHARES ? root - MINIMUM_SHARES : 0; // MINIMUM_SHARES go to DEAD in _mint
         } else {
             // Keep the reserve ratio: scale the desired amounts down to the binding side.
             uint256 amount1Optimal = params.amount0Desired * total1 / total0;
@@ -251,6 +274,7 @@ contract TideHook is BaseCustomCurve, ERC20 {
     }
 
     function _mint(AddLiquidityParams memory, BalanceDelta, BalanceDelta, uint256 shares) internal override {
+        if (totalSupply() == 0) _mint(DEAD, MINIMUM_SHARES);
         _mint(msg.sender, shares);
     }
 

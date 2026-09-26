@@ -1,17 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { useAccount, useSignMessage, useWriteContract } from "wagmi";
-import { getAddress, type Hex } from "viem";
+import { useAccount, useSignMessage, useWriteContract, usePublicClient } from "wagmi";
+import { type Hex } from "viem";
 import { ADDR, tideParamsAbi } from "@/lib/chain";
+import { ownerMessage } from "@/lib/auth";
 import { ArrowUpRight, ArrowRight, ShieldCheck, Fingerprint, Sparkle, CaretDown, CircleNotch, Fire } from "@phosphor-icons/react";
 
 import { Nav, Bezel, Status, Pill } from "@/components/ui";
 import { FrontierChart } from "@/components/FrontierChart";
 import { DitherField } from "@/components/shaders";
 
-type Mgr = { sigma: number | null; measuredAt: number | null; ethPrice: number | null; lambdaStar: number | null; lastTick?: number; nextTick?: number; lastResult?: string; tickMinutes: number; minMoveBps: number };
+type Mgr = { sigma: number | null; measuredAt: number | null; ethPrice: number | null; lambdaStar: number | null; lastTick?: number; nextTick?: number; lastResult?: string; tickMinutes: number; minMoveBps: number; approvalSeconds?: number };
 
 type Snapshot = {
   strategy: { label: string; name: string; owner: string; resolver: string; orderHash: string; tokenA: string; tokenB: string };
@@ -21,11 +22,12 @@ type Snapshot = {
   bounds: { lambdaMin: number; lambdaMax: number; nMax: number; maxStepBps: number; cooldown: number; lastManagerSet: number } | null;
   block: { blockNumber: number; active: { weth: string; usdc: string }; total: { weth: string; usdc: string } } | null;
   fills: { block: number; tx: string; taker: string; tokenIn: string; tokenOut: string; amountIn: string; amountOut: string }[];
-  proposals: { id: string; status: string; from: { lambda: number; N: number; delta: number }; to: { lambda: number; N: number; delta: number }; reason: string; sigma: number; approvalUrl?: string; blockedReason?: string; txs?: { ens?: string; params?: string }; createdAt: number; auto?: boolean; outside?: string }[];
+  proposals: { id: string; status: string; from: { lambda: number; N: number; delta: number }; to: { lambda: number; N: number; delta: number }; reason: string; sigma: number; approvalUrl?: string; blockedReason?: string; txs?: { ens?: string; params?: string }; createdAt: number; auto?: boolean; outside?: string; needsApproval?: boolean }[];
   log: { at: number; level: string; msg: string }[];
   deployment: { tideParams: string; tideRouter: string; tideApp: string; aqua: string; weth: string };
   agent: string;
   bound: { subject: string; issuer: string; boundAt: number } | null;
+  stale?: boolean;
   error?: string;
 };
 
@@ -57,6 +59,7 @@ export default function Dashboard() {
   const [advanced, setAdvanced] = useState(false);
   const [mgr, setMgr] = useState<Mgr | null>(null);
   const [sigmaTouched, setSigmaTouched] = useState(false);
+  const sigmaTouchedRef = useRef(false); // the poll closes over the first render; a ref sees the click
 
   const refresh = async () => {
     const [r, m] = await Promise.all([
@@ -66,7 +69,7 @@ export default function Dashboard() {
     setS(await r.json());
     if (m) {
       setMgr(m);
-      if (!sigmaTouched && m.sigma) setSigma(Math.round(m.sigma * 20) / 20);
+      if (!sigmaTouchedRef.current && m.sigma) setSigma(Math.round(m.sigma * 20) / 20);
     }
   };
   useEffect(() => {
@@ -76,13 +79,21 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name]);
 
+  const { signMessageAsync } = useSignMessage();
+  const [proposeErr, setProposeErr] = useState<string | null>(null);
   const propose = async () => {
+    if (!s) return;
     setBusy(true);
+    setProposeErr(null);
     try {
-      const r = await fetch("/api/agent/propose", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ strategy: name, sigma }) });
+      const ts = Date.now();
+      const sig = await signMessageAsync({ message: ownerMessage(`ask the manager on ${s.strategy.name}`, ts) });
+      const r = await fetch("/api/agent/propose", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ strategy: name, sigma, ts, sig }) });
       const p = await r.json();
-      if (!r.ok) alert(p.error);
+      if (!r.ok) setProposeErr(p.error);
       await refresh();
+    } catch (e) {
+      setProposeErr((e as Error).message.split("\n")[0]);
     } finally {
       setBusy(false);
     }
@@ -97,17 +108,17 @@ export default function Dashboard() {
         ) : s.error ? (
           <div className="rounded-3xl border border-bad/30 p-6 text-bad">{s.error}</div>
         ) : (
-          <Body s={s} mgr={mgr} sigma={sigma} setSigma={(v) => { setSigmaTouched(true); setSigma(v); }} propose={propose} busy={busy} isOwner={!!address && address.toLowerCase() === s.strategy.owner.toLowerCase()} justShipped={q.get("new") === "1"} advanced={advanced} setAdvanced={setAdvanced} />
+          <Body s={s} mgr={mgr} sigma={sigma} proposeErr={proposeErr} setSigma={(v) => { sigmaTouchedRef.current = true; setSigmaTouched(true); setSigma(v); }} propose={propose} busy={busy} isOwner={!!address && address.toLowerCase() === s.strategy.owner.toLowerCase()} justShipped={q.get("new") === "1"} advanced={advanced} setAdvanced={setAdvanced} />
         )}
       </main>
     </>
   );
 }
 
-function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, advanced, setAdvanced }: { s: Snapshot; mgr: Mgr | null; sigma: number; setSigma: (n: number) => void; propose: () => void; busy: boolean; isOwner: boolean; justShipped: boolean; advanced: boolean; setAdvanced: (b: boolean) => void }) {
+function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, advanced, setAdvanced, proposeErr }: { s: Snapshot; mgr: Mgr | null; sigma: number; proposeErr: string | null; setSigma: (n: number) => void; propose: () => void; busy: boolean; isOwner: boolean; justShipped: boolean; advanced: boolean; setAdvanced: (b: boolean) => void }) {
   const lambda = s.records.lambda / 100;
   const delta = s.records.delta / 100;
-  const feeBps = s.onchain?.fee ?? s.records.fee ?? 0;
+  const feeBps = s.onchain?.fee ?? s.records.fee ?? 30;
   const rebate = ((s.records.N - 1) * s.records.delta) / 2; // bps, the deep curve's best price improvement
   const w = { a: num(s.block?.active.weth, 18), t: num(s.block?.total.weth, 18) };
   const u = { a: num(s.block?.active.usdc, 6), t: num(s.block?.total.usdc, 6) };
@@ -130,8 +141,13 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
         </div>
         <div className="flex items-center gap-2 text-sm">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-fg-2">
-            <ShieldCheck size={15} className="text-accent" /> Inventory in your wallet
+            <ShieldCheck size={15} className="text-accent" /> {isOwner ? "Inventory in your wallet" : "Inventory stays in the owner's wallet"}
           </span>
+          {s.stale && (
+            <span className="inline-flex items-center gap-2 rounded-full border border-warn/40 px-3 py-1.5 text-warn" title="The last read from the chain failed; showing the previous snapshot.">
+              Showing cached data
+            </span>
+          )}
           {s.agentEnabled && (
             <span className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-fg-2">
               <Sparkle size={15} className="text-accent" /> Manager on
@@ -150,14 +166,15 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
       {/* Plain-language settings */}
       <section className="mt-10">
         <h2 className="text-lg font-medium">How this strategy trades</h2>
-        <p className="mt-1 text-sm text-fg-3">Four settings, stored on your ENS name. The first three can be changed by you, or by the manager with your approval. Only you can change the fee.</p>
+        <p className="mt-1 text-sm text-fg-3">{isOwner ? "Four settings, stored on your ENS name and mirrored on-chain. The manager may move the first three inside your guardrails; only you can change the fee." : "Four settings, stored on the owner's ENS name and mirrored on-chain."}</p>
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Setting big={`${lambda}%`} title="of your inventory is visible per block" body={`Arbitrage bots can only ever trade against ${lambda}% of your tokens in any block. The other ${100 - lambda}% is invisible to them until the next block.`} />
           <Setting big={`${s.records.N}×`} title="deeper prices for normal traders" body={`After the block's first trade, regular traders are quoted as if your pool were ${s.records.N} times larger, so they pay far less slippage.`} />
           <Setting big={`${delta}%`} title="band for the deep price" body={`The deep curve only serves trades that keep the price within ${delta}% of where the block's first trade left it. Anything bigger is quoted on the normal curve.`} />
           <Setting big={`${feeBps / 100}%`} title="fee on every trade" body={`Paid by the trader, kept in your inventory. It also backs the deep curve: the most that curve can improve a price, ${rebate / 100}% here, never exceeds the fee, so nobody can farm it.`} />
         </div>
-        {syncing && <div className="mt-3 text-xs text-warn">A parameter change is still being applied on-chain.</div>}
+        {!s.onchain && <div className="mt-3 text-xs text-warn">This strategy has no on-chain parameters on the current contracts; the values above are its ENS records only.</div>}
+        {syncing && s.onchain && <div className="mt-3 text-xs text-warn">The ENS records ({s.records.lambda / 100}% / {s.records.N}× / {s.records.delta / 100}%) and the on-chain values ({s.onchain.lambda / 100}% / {s.onchain.N}× / {s.onchain.delta / 100}%) differ. Trades use the on-chain values; an approved change is waiting for the owner's wallet.</div>}
       </section>
 
       {/* Inventory this block */}
@@ -182,8 +199,8 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
         <h2 className="text-lg font-medium">Manager</h2>
         <p className="mt-1 max-w-[70ch] text-sm text-fg-3">
           {s.agentEnabled
-            ? "A bot watches volatility and adjusts how much of your inventory to show. Inside the guardrails you set below it acts on its own. Outside them it needs you: a fresh World ID sign-in, then your wallet."
-            : "The manager is not enabled on this strategy. You change settings yourself."}
+            ? (isOwner ? "The manager watches volatility and adjusts how much of your inventory each block sees. Inside the guardrails below it acts on its own. Outside them it needs you: a fresh World ID sign-in, then your wallet." : "The manager watches volatility and adjusts how much of the inventory each block sees. Inside the owner's guardrails it acts on its own. Outside them the owner has to sign in with World ID and apply with the wallet.")
+            : isOwner ? "The manager is not enabled on this strategy. You change settings yourself." : "The manager is not enabled on this strategy."}
         </p>
 
         {s.agentEnabled && (
@@ -295,17 +312,17 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
                     <p className="mt-2 text-sm text-fg-2">{humanReason(p.sigma, p.to.lambda, p.from.lambda)}{p.to.delta !== p.from.delta && ` The deep-curve band moves to ${p.to.delta / 100}%: about three one-block price moves at this volatility, so a stale first trade gives nobody an edge, and no more than the fee can back.`}</p>
                     <div className="mt-2 text-xs text-fg-3">{p.auto && p.status === "applied" ? "Applied by the manager, inside your guardrails" : STATUS_TEXT[p.status] ?? p.status}{p.outside && p.status !== "applied" ? ` (${p.outside})` : ""} · {ago(p.createdAt)}</div>
                     {p.status === "approved" && !p.txs?.params && isOwner && <ApplyButton p={p} orderHash={s.strategy.orderHash} />}
-                    {p.status === "pending" && p.approvalUrl && isOwner && (
+                    {p.status === "pending" && p.needsApproval && isOwner && (
                       <div className="mt-4 flex flex-wrap items-center gap-3">
-                        <Pill href={p.approvalUrl} size="sm" external>Approve with World ID</Pill>
-                        <span className="text-xs text-fg-3">or just ignore it: it expires on its own and nothing changes.</span>
+                        <ApproveButton id={p.id} />
+                        <span className="text-xs text-fg-3">or ignore it: it expires {Math.max(0, Math.ceil((p.createdAt + (mgr?.approvalSeconds ?? 180) * 1000 - Date.now()) / 60000))} min from now and nothing changes.</span>
                       </div>
                     )}
                     {p.blockedReason && <div className="mt-2 text-xs text-bad">{p.blockedReason.replace(/^[a-z_]+: /, "")}</div>}
                     {p.txs && (
                       <div className="mt-2 flex gap-4 text-xs">
-                        <a className="text-accent" href={tx(p.txs.ens)}>ENS record ↗</a>
-                        <a className="text-accent" href={tx(p.txs.params)}>on-chain setting ↗</a>
+                        {p.txs.ens && <a className="text-accent" href={tx(p.txs.ens)}>ENS record ↗</a>}
+                        {p.txs.params && <a className="text-accent" href={tx(p.txs.params)}>on-chain setting ↗</a>}
                       </div>
                     )}
                   </div>
@@ -333,7 +350,7 @@ function Body({ s, mgr, sigma, setSigma, propose, busy, isOwner, justShipped, ad
                   return (
                     <li key={f.tx} className="flex flex-col items-start justify-between gap-1 px-5 py-3 text-sm sm:flex-row sm:items-center sm:gap-4">
                       <span>
-                        A trader sold <span className="num">{a}</span> and received <span className="num">{b}</span> from you
+                        A trader sold <span className="num">{a}</span> and received <span className="num">{b}</span> {isOwner ? "from you" : "from the strategy"}
                       </span>
                       <a className="num shrink-0 text-xs text-accent" href={tx(f.tx)}>block {f.block} ↗</a>
                     </li>
@@ -395,39 +412,59 @@ function humanReason(sigma: number, to: number, from: number) {
 }
 
 /** The owner's guardrails for the manager: what it may change on its own. Owner edits them with the wallet. */
+/** Number field for the guardrails editor. Declared at module level so React keeps the input mounted while typing. */
+function Num({ label, value, onChange, step = 1, min, max, unit }: { label: string; value: number; onChange: (v: number) => void; step?: number; min?: number; max?: number; unit: string }) {
+  return (
+    <label className="block text-xs text-fg-3">
+      {label}
+      <span className="mt-1 flex items-center gap-2">
+        <input type="number" step={step} min={min} max={max} value={value} onChange={(e) => onChange(Number(e.target.value))} className="num w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-fg outline-none focus:border-accent" />
+        <span className="shrink-0 text-fg-3">{unit}</span>
+      </span>
+    </label>
+  );
+}
+
+/** The owner's guardrails for the manager: what it may change on its own. Edited in percent and minutes, stored in bps and seconds. */
 function Guardrails({ b, orderHash, isOwner }: { b: NonNullable<Snapshot["bounds"]>; orderHash: string; isOwner: boolean }) {
   const { writeContractAsync } = useWriteContract();
+  const pc = usePublicClient();
   const [edit, setEdit] = useState(false);
-  const [v, setV] = useState({ lambdaMin: b.lambdaMin, lambdaMax: b.lambdaMax, nMax: b.nMax, maxStepBps: b.maxStepBps, cooldown: b.cooldown });
-  const [busy, setBusy] = useState(false);
+  const [v, setV] = useState({ min: b.lambdaMin / 100, max: b.lambdaMax / 100, step: b.maxStepBps / 100, nMax: b.nMax, minutes: b.cooldown / 60 });
+  const [busy, setBusy] = useState<"wallet" | "mining" | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [tx, setTx] = useState<string | null>(null);
+  const problem =
+    !(v.min > 0 && v.min <= v.max && v.max <= 100) ? "visibility range must sit between 0 and 100 %, low before high"
+    : !(v.step > 0 && v.step <= 100) ? "the largest move must be between 0 and 100 points"
+    : !(Number.isInteger(v.nMax) && v.nMax >= 1 && v.nMax <= 64) ? "deepest curve must be a whole number from 1 to 64"
+    : !(v.minutes >= 1) ? "at least one minute between changes"
+    : null;
   const save = async () => {
-    setBusy(true);
+    if (problem || !pc) return;
     setErr(null);
     try {
-      const h = await writeContractAsync({ address: ADDR.tideParams, abi: tideParamsAbi, functionName: "setBounds", args: [orderHash as Hex, { lambdaMin: v.lambdaMin, lambdaMax: v.lambdaMax, nMax: v.nMax, maxStepBps: v.maxStepBps, cooldown: v.cooldown }] });
+      setBusy("wallet");
+      const h = await writeContractAsync({ address: ADDR.tideParams, abi: tideParamsAbi, functionName: "setBounds", args: [orderHash as Hex, { lambdaMin: Math.round(v.min * 100), lambdaMax: Math.round(v.max * 100), nMax: v.nMax, maxStepBps: Math.round(v.step * 100), cooldown: Math.round(v.minutes * 60) }] });
+      setBusy("mining");
+      const rc = await pc.waitForTransactionReceipt({ hash: h });
+      if (rc.status !== "success") throw new Error("the transaction reverted");
       setTx(h);
       setEdit(false);
+      window.location.reload();
     } catch (e) {
       setErr((e as Error).message.split("\n")[0]);
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
-  const Num = ({ k, label, step = 1 }: { k: keyof typeof v; label: string; step?: number }) => (
-    <label className="block text-xs text-fg-3">
-      {label}
-      <input type="number" step={step} value={v[k]} onChange={(e) => setV({ ...v, [k]: Number(e.target.value) })} className="num mt-1 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-fg outline-none focus:border-accent" />
-    </label>
-  );
   return (
     <Bezel small className="mt-4">
       <div className="p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="text-sm font-medium">Guardrails for the manager</div>
-            <p className="mt-1 text-xs text-fg-3">What it may change on its own. Anything beyond this needs your fresh World ID sign-in and your wallet. Stored on-chain; the contract refuses the manager outside them.</p>
+            <p className="mt-1 text-xs text-fg-3">{isOwner ? "What it may change on its own. Anything beyond this needs your fresh World ID sign-in and your wallet. Stored on-chain; the contract refuses the manager outside them." : "What the manager may change on its own. Anything beyond this needs the owner. Stored on-chain."}</p>
           </div>
           {isOwner && !edit && <button onClick={() => setEdit(true)} className="pill pill-ghost pill-sm"><span>Edit</span><span className="ico"><ArrowRight size={13} /></span></button>}
         </div>
@@ -440,21 +477,50 @@ function Guardrails({ b, orderHash, isOwner }: { b: NonNullable<Snapshot["bounds
           </dl>
         ) : (
           <div className="mt-4 grid gap-3 sm:grid-cols-5">
-            <Num k="lambdaMin" label="min visibility, bps" />
-            <Num k="lambdaMax" label="max visibility, bps" />
-            <Num k="maxStepBps" label="max move, bps" />
-            <Num k="nMax" label="deepest curve, N" />
-            <Num k="cooldown" label="between changes, s" />
-            <div className="flex items-end gap-2 sm:col-span-5">
-              <button onClick={save} disabled={busy} className="pill pill-primary pill-sm disabled:opacity-40"><span>{busy ? "Confirm in your wallet…" : "Save guardrails"}</span><span className="ico">{busy ? <CircleNotch size={13} className="animate-spin" /> : <ArrowRight size={13} />}</span></button>
+            <Num label="Lowest visibility" unit="%" step={1} min={1} max={100} value={v.min} onChange={(x) => setV({ ...v, min: x })} />
+            <Num label="Highest visibility" unit="%" step={1} min={1} max={100} value={v.max} onChange={(x) => setV({ ...v, max: x })} />
+            <Num label="Largest move per change" unit="points" step={1} min={1} max={100} value={v.step} onChange={(x) => setV({ ...v, step: x })} />
+            <Num label="Deepest curve" unit="×" step={1} min={1} max={64} value={v.nMax} onChange={(x) => setV({ ...v, nMax: x })} />
+            <Num label="Between changes" unit="min" step={1} min={1} value={v.minutes} onChange={(x) => setV({ ...v, minutes: x })} />
+            <div className="flex flex-wrap items-center gap-3 sm:col-span-5">
+              <button onClick={save} disabled={!!busy || !!problem} className="pill pill-primary pill-sm disabled:opacity-40"><span>{busy === "wallet" ? "Confirm in your wallet…" : busy === "mining" ? "Waiting for the block…" : "Save guardrails"}</span><span className="ico">{busy ? <CircleNotch size={13} className="animate-spin" /> : <ArrowRight size={13} />}</span></button>
               <button onClick={() => setEdit(false)} className="text-xs text-fg-3">Cancel</button>
+              {problem && <span className="text-xs text-warn">{problem}</span>}
             </div>
           </div>
         )}
-        {tx && <p className="mt-3 text-xs text-fg-3">Saved: <a className="text-accent" href={`https://sepolia.etherscan.io/tx/${tx}`}>{tx.slice(0, 18)}…</a>. Shows here after the next refresh.</p>}
+        {tx && <p className="mt-3 text-xs text-fg-3">Saved: <a className="text-accent" href={`https://sepolia.etherscan.io/tx/${tx}`}>{tx.slice(0, 18)}…</a></p>}
         {err && <p className="mt-2 text-xs text-bad">{err}</p>}
       </div>
     </Bezel>
+  );
+}
+
+/** Owner fetches the World approval link for a pending proposal with a wallet signature, then goes there. */
+function ApproveButton({ id }: { id: string }) {
+  const { signMessageAsync } = useSignMessage();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const go = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const ts = Date.now();
+      const sig = await signMessageAsync({ message: ownerMessage(`approve proposal ${id}`, ts) });
+      const r = await fetch(`/api/agent/approval?id=${id}&ts=${ts}&sig=${sig}`);
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error);
+      window.location.href = j.url;
+    } catch (e) {
+      setErr((e as Error).message.split("\n")[0]);
+      setBusy(false);
+    }
+  };
+  return (
+    <div>
+      <button onClick={go} disabled={busy} className="pill pill-primary pill-sm disabled:opacity-40"><span>{busy ? "Sign in your wallet…" : "Approve with World ID"}</span><span className="ico">{busy ? <CircleNotch size={13} className="animate-spin" /> : <ArrowRight size={13} />}</span></button>
+      {err && <p className="mt-1 text-xs text-bad">{err}</p>}
+    </div>
   );
 }
 
@@ -462,12 +528,14 @@ function Guardrails({ b, orderHash, isOwner }: { b: NonNullable<Snapshot["bounds
 function ApplyButton({ p, orderHash }: { p: Snapshot["proposals"][number]; orderHash: string }) {
   const { writeContractAsync } = useWriteContract();
   const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState<"wallet" | "mining">("wallet");
   const [err, setErr] = useState<string | null>(null);
   const go = async () => {
     setBusy(true);
     setErr(null);
     try {
       const h = await writeContractAsync({ address: ADDR.tideParams, abi: tideParamsAbi, functionName: "set", args: [orderHash as Hex, p.to.lambda, p.to.N, p.to.delta] });
+      setPhase("mining");
       const r = await fetch("/api/agent/applied", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: p.id, tx: h }) });
       if (!r.ok) throw new Error((await r.json()).error);
       window.location.reload();
@@ -478,7 +546,7 @@ function ApplyButton({ p, orderHash }: { p: Snapshot["proposals"][number]; order
   };
   return (
     <div className="mt-3">
-      <button onClick={go} disabled={busy} className="pill pill-primary pill-sm disabled:opacity-40"><span>{busy ? "Confirm in your wallet…" : "Apply on-chain"}</span><span className="ico">{busy ? <CircleNotch size={13} className="animate-spin" /> : <ArrowRight size={13} />}</span></button>
+      <button onClick={go} disabled={busy} className="pill pill-primary pill-sm disabled:opacity-40"><span>{busy ? (phase === "wallet" ? "Confirm in your wallet…" : "Waiting for the block…") : "Apply on-chain"}</span><span className="ico">{busy ? <CircleNotch size={13} className="animate-spin" /> : <ArrowRight size={13} />}</span></button>
       {err && <p className="mt-1 text-xs text-bad">{err}</p>}
     </div>
   );
@@ -494,8 +562,11 @@ function BindButton({ owner }: { owner: string }) {
     setErr(null);
     try {
       const ts = Date.now();
-      const sig = await signMessageAsync({ message: `Tide: bind World ID to ${getAddress(owner)} at ${ts}` });
-      window.location.href = `/api/world/bind?owner=${owner}&ts=${ts}&sig=${sig}`;
+      const sig = await signMessageAsync({ message: ownerMessage(`bind World ID to ${owner.toLowerCase()}`, ts) });
+      const r = await fetch(`/api/world/bind?owner=${owner}&ts=${ts}&sig=${sig}`);
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error);
+      window.location.href = j.url;
     } catch (e) {
       setErr((e as Error).message.split("\n")[0]);
       setBusy(false);

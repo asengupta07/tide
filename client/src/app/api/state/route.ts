@@ -19,7 +19,9 @@ export async function GET(req: Request) {
       blockState(pc, st.orderHash, st.owner, { tokenA: st.tokenA, tokenB: st.tokenB }).catch(() => null),
       fills(pc, st.orderHash).catch(() => []),
     ]);
-    const payload = { ...s, block, fills: swaps, deployment: deployment(), agent: process.env.AGENT_ADDRESS, stale: false };
+    // approvalUrl carries the OIDC state; only the owner may fetch it (signed, /api/agent/approval)
+    const proposals = s.proposals.map(({ approvalUrl: _u, authState: _a, ...p }) => ({ ...p, needsApproval: !!_u && p.status === "pending" }));
+    const payload = { ...s, proposals, block, fills: swaps, deployment: deployment(), agent: process.env.AGENT_ADDRESS, stale: false };
     cache.set(name, payload);
     return NextResponse.json(payload);
   } catch (e) {

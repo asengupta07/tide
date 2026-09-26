@@ -14,6 +14,7 @@ import { TideProgram } from "../../src/aqua/instructions/TideProgram.sol";
 import { ActiveSplit } from "../../src/aqua/instructions/ActiveSplit.sol";
 import { BufferGuard } from "../../src/aqua/instructions/BufferGuard.sol";
 import { TideParams } from "../../src/TideParams.sol";
+import { TideApp } from "../../src/aqua/TideApp.sol";
 
 contract TideAquaTest is TideAquaBase {
     // ---------------------------------------------------------------------------------------------
@@ -259,7 +260,6 @@ contract TideAquaTest is TideAquaBase {
         amounts[0] = BAL_A;
         amounts[1] = BAL_B;
         vm.startPrank(maker);
-        params.init(orderHash, LAMBDA, N, DELTA, FEE, manager);
         aqua.ship(address(router), abi.encode(order), tokens, amounts);
         vm.stopPrank();
         ISwapVM view_ = router.asView();
@@ -296,13 +296,18 @@ contract TideAquaTest is TideAquaBase {
         assertEq(b.lambdaMax, 9000);
         assertEq(b.cooldown, 3600);
 
-        (bool ok, string memory why) = params.withinBounds(orderHash, 3500, 4);
+        (bool ok, string memory why) = params.withinBounds(orderHash, 3500, 4, 20);
+        assertTrue(ok, why);
+        (ok, why) = params.withinBounds(orderHash, 3500, 4, 21); // (4 - 1) * 21 > 2 * 30
+        assertFalse(ok);
+        assertEq(why, "delta exceeds what the fee backs");
+        (ok, why) = params.withinBounds(orderHash, 3500, 4, 20);
         assertTrue(ok, why);
         vm.prank(manager);
         params.set(orderHash, 3500, 4, 20); // 5000 -> 3500, step 1500: inside
 
         // cooldown: a second manager write in the same hour is refused
-        (ok, why) = params.withinBounds(orderHash, 3000, 4);
+        (ok, why) = params.withinBounds(orderHash, 3000, 4, 20);
         assertFalse(ok);
         assertEq(why, "cooldown");
         vm.prank(manager);
@@ -336,11 +341,36 @@ contract TideAquaTest is TideAquaBase {
         params.setBounds(orderHash, TideParams.Bounds(500, 9500, 16, 5000, 0));
         vm.prank(maker);
         vm.expectRevert(abi.encodeWithSelector(TideParams.InvalidBounds.selector, "lambda", 12_000));
-        params.setBounds(orderHash, TideParams.Bounds(500, 12_000, 16, 5000, 0));
+        params.setBounds(orderHash, TideParams.Bounds(500, 12_000, 16, 5000, 1));
         vm.prank(maker);
+        vm.expectRevert(abi.encodeWithSelector(TideParams.InvalidBounds.selector, "nMax", 65));
+        params.setBounds(orderHash, TideParams.Bounds(500, 9500, 65, 5000, 1));
+        vm.prank(maker);
+        vm.expectRevert(abi.encodeWithSelector(TideParams.InvalidBounds.selector, "maxStep", 0));
+        params.setBounds(orderHash, TideParams.Bounds(500, 9500, 16, 0, 1));
+        vm.prank(maker);
+        vm.expectRevert(abi.encodeWithSelector(TideParams.InvalidBounds.selector, "cooldown", 0));
         params.setBounds(orderHash, TideParams.Bounds(500, 9500, 16, 5000, 0));
+        vm.prank(maker);
+        params.setBounds(orderHash, TideParams.Bounds(500, 9500, 16, 5000, 1));
+        vm.warp(block.timestamp + 1);
         vm.prank(manager);
         params.set(orderHash, 5000, 16, 4); // 900 -> 5000 within the new step and range, no cooldown
+    }
+
+    function test_Params_KeysCannotBeSquatted() public {
+        TideApp.Config memory cfg = _config(77);
+        bytes32 orderHash = app.orderHash(cfg);
+        // a stranger cannot claim the maker's order hash, neither directly nor through the app
+        vm.prank(vm.addr(0x9999));
+        vm.expectRevert(abi.encodeWithSelector(TideParams.NotVenue.selector, vm.addr(0x9999)));
+        params.initFor(orderHash, vm.addr(0x9999), LAMBDA, N, DELTA, FEE, address(0));
+        vm.prank(vm.addr(0x9999));
+        vm.expectRevert(abi.encodeWithSelector(TideApp.NotMaker.selector, vm.addr(0x9999), maker));
+        app.init(cfg, LAMBDA, N, DELTA, FEE, address(0));
+        vm.prank(maker);
+        assertEq(app.init(cfg, LAMBDA, N, DELTA, FEE, manager), orderHash);
+        assertEq(params.params(orderHash).owner, maker);
     }
 
     function test_Params_FeeBound_RejectsDeltaTheFeeCannotBack() public {

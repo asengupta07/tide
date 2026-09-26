@@ -1,3 +1,5 @@
+> Planning notes from Sep 25, kept for history. They predate the fee bound, the guardrails and MongoDB; the shipped design is in `MATHEMATICS_MODEL.md`, `docs/DEPLOYMENT.md` and the whitepaper.
+
 # Tide × ENSv2
 
 ## Simple role

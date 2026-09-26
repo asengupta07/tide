@@ -53,7 +53,7 @@ contract DeployHook is Script {
             Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
                 | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG
         );
-        bytes memory ctorArgs = abi.encode(IPoolManager(POOL_MANAGER), params);
+        bytes memory ctorArgs = abi.encode(IPoolManager(POOL_MANAGER), params, owner);
         (address predicted, bytes32 salt) =
             HookMiner.find(CREATE2_DEPLOYER, flags, type(TideHook).creationCode, ctorArgs);
 
@@ -61,14 +61,15 @@ contract DeployHook is Script {
             USDC < WETH ? (Currency.wrap(USDC), Currency.wrap(WETH)) : (Currency.wrap(WETH), Currency.wrap(USDC));
 
         vm.startBroadcast(owner);
-        TideHook hook = new TideHook{ salt: salt }(IPoolManager(POOL_MANAGER), params);
+        TideHook hook = new TideHook{ salt: salt }(IPoolManager(POOL_MANAGER), params, owner);
         require(address(hook) == predicted, "hook address mismatch");
+        params.setHook(address(hook)); // the hook claims its PoolId at initialize
 
         PoolKey memory key = PoolKey(c0, c1, LPFeeLibrary.DYNAMIC_FEE_FLAG, 60, IHooks(address(hook)));
         PoolId poolId = key.toId();
         // sqrtPrice is irrelevant for the custom curve; 1:1 keeps initialize happy
         IPoolManager(POOL_MANAGER).initialize(key, 79_228_162_514_264_337_593_543_950_336);
-        params.init(PoolId.unwrap(poolId), 5000, 4, 20, 30, agent);
+        params.setManager(PoolId.unwrap(poolId), agent);
 
         // liquidity: 0.2 WETH + 600 USDC through the hook
         uint256 wethAmt = 0.2e18;

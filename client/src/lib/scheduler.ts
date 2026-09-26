@@ -2,12 +2,16 @@
  * The manager's clock. Every AGENT_TICK_MINUTES (default 15) it measures realised volatility, reads the
  * frontier, and for each strategy where it is delegated, the owner is bound, and nothing is pending, it
  * proposes a change when lambda* differs from the current lambda by at least AGENT_MIN_MOVE_BPS (default
- * 500). Proposals still go through the owner's fresh World ID approval; the clock never writes.
+ * 500). Inside the owner's guardrails the change is applied at once; outside them a proposal waits for
+ * the owner's fresh World ID approval and wallet.
  */
 import { listStrategies } from "./registry";
 import { getBound, hasPending, appendLog } from "./store";
 import { agentEnabled, currentRecords, deltaStar, lambdaStar, propose, strategyFee } from "./agent";
 import { realisedVolatility } from "./volatility";
+import { withinBounds } from "./tide";
+import { publicClient } from "./ens/client";
+import { safeError } from "./auth";
 
 type TickInfo = { lastTick?: number; nextTick?: number; sigma?: number; measuredAt?: number; lastResult?: string; running: boolean };
 const g = globalThis as unknown as { __tideTick?: TickInfo; __tideTimer?: NodeJS.Timeout };
@@ -31,11 +35,8 @@ export async function tick(reason = "schedule"): Promise<string> {
     info.measuredAt = vol.measuredAt;
     const target = lambdaStar(vol.sigma);
     for (const s of await listStrategies()) {
+      try {
       if (!(await agentEnabled(s).catch(() => false))) continue;
-      if (!(await getBound(s.owner))) {
-        out.push(`${s.label}: owner not bound`);
-        continue;
-      }
       if (await hasPending(s.name)) {
         out.push(`${s.label}: proposal pending`);
         continue;
@@ -49,15 +50,22 @@ export async function tick(reason = "schedule"): Promise<string> {
         out.push(`${s.label}: lambda ${rec.lambda} within ${minMoveBps()} bps of lambda* ${target}, delta ${rec.delta} near delta* ${ds.delta}`);
         continue;
       }
+      if (!(await getBound(s.owner)) && !(await withinBounds(publicClient(), s.orderHash, target, ds.N, ds.delta)).ok) {
+        out.push(`${s.label}: change is outside the guardrails and the owner has not bound a World ID, nothing to do`);
+        continue;
+      }
       const p = await propose(s.name, vol.sigma);
       out.push(`${s.label}: ${p.auto ? "applied" : "proposed, needs the owner"} lambda ${p.from.lambda} -> ${p.to.lambda}, delta ${p.from.delta} -> ${p.to.delta}`);
+      } catch (e) {
+        out.push(`${s.label}: ${safeError(e)}`); // one strategy's failure must not stop the others
+      }
     }
     const summary = `σ ${(vol.sigma * 100).toFixed(0)}%, λ* ${target}: ${out.join("; ") || "no strategies"}`;
     await appendLog("info", `manager check (${reason}): ${summary}`);
     info.lastResult = summary;
     return summary;
   } catch (e) {
-    const msg = `manager check failed: ${(e as Error).message}`;
+    const msg = `manager check failed: ${safeError(e)}`;
     await appendLog("warn", msg);
     info.lastResult = msg;
     return msg;

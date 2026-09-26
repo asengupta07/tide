@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Hex } from "viem";
 import { markApplied } from "@/lib/agent";
+import { safeError } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,6 @@ export async function POST(req: Request) {
     await markApplied(b.id, b.tx as Hex);
     return NextResponse.json({ ok: true });
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 });
+    return NextResponse.json({ error: safeError(e) }, { status: 400 });
   }
 }

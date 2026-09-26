@@ -65,7 +65,7 @@ export async function createName(input: CreateInput): Promise<Strategy> {
     ["fee", String(input.feeBps)],
     ["strategyHash", orderHash],
     ["venue", "aqua"],
-    ["description", input.description ?? `Tide strategy ${name}. Parameters governed by ${process.env.ENS_AGENT_LABEL ?? "manager"}.${PARENT} after owner approval.`],
+    ["description", input.description ?? `Tide strategy ${name}. Parameters moved by ${process.env.ENS_AGENT_LABEL ?? "manager"}.${PARENT} inside the owner's guardrails, by the owner beyond them.`],
   ];
   const init = encodeFunctionData({
     abi: resolverAbi,

@@ -33,8 +33,9 @@ library ActiveSplit {
     using InstructionArgs for bytes;
     using InstructionBuilder for MemoryPtr;
 
-    event TideResplit(bytes32 indexed orderHash, uint64 blockNumber, uint256 activeA, uint256 activeB);
-    event TideTopUp(bytes32 indexed orderHash, uint256 activeA, uint256 activeB);
+    /// @dev Amounts are in the fill's direction: the active reserve of tokenIn, then of tokenOut.
+    event TideResplit(bytes32 indexed orderHash, uint64 blockNumber, uint256 activeIn, uint256 activeOut);
+    event TideTopUp(bytes32 indexed orderHash, uint256 activeIn, uint256 activeOut);
 
     Opcode constant opcode = TideProgram.ACTIVE_SPLIT;
 

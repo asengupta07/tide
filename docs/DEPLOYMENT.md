@@ -18,6 +18,7 @@ rediscovering the traps. Keep this current when the process changes; log what ch
 | `PUBLIC_APP_URL` | ENS agent records (`agent-endpoint*`) | rewrite records with `pnpm ens:setup` after changing it |
 | `AGENT_TICK_MINUTES`, `AGENT_MIN_MOVE_BPS` | autopilot | defaults 15 and 500 |
 | `MONGODB_URI` | everything off-chain | database name in the path; collections below. Needs a server restart to pick up |
+| `AGENT_TICK_SECRET` | `POST /api/agent/tick` | operator secret in the `x-tide-secret` header; without it the manual tick is refused |
 
 Foundry scripts read `OWNER_ADDRESS`/`AGENT_ADDRESS` with `vm.envAddress`, which needs **exported**
 variables. `source .env` alone is not enough in a script; use `set -a; source .env; set +a`.
@@ -71,6 +72,10 @@ What a redeploy changes:
   twice: `cast send $AQUA "dock(address,bytes32,address[])" $OLD_ROUTER $OLD_ORDER_HASH "[$WETH,$USDC]"`.
 - **Hook.** New hook address = new `PoolId`; `DeployHook` initialises the pool, inits params for the new
   id and seeds 0.2 WETH + 600 USDC.
+- **Claiming keys.** `Deploy` calls `params.setApp(app)`, `DeployHook` calls `params.setHook(hook)` before
+  `initialize`; the hook claims its PoolId for the deployer wallet (`OWNER` constructor argument, needed
+  because CREATE2 runs the constructor from the deployer contract). Makers claim order hashes through
+  `TideApp.init(cfg, ...)`; a direct `TideParams.initFor` from anyone else reverts with `NotVenue`.
 - **Parameter box.** `init` reverts unless `(N − 1)·δ ≤ 2·fee`. Scripts use λ 5000, N 4, δ 20, fee 30.
   A δ of 45 % (buffer top-up demo) needs a 67.5 % fee; see `MATHEMATICS_MODEL.md` § 8.
 - **Guardrails.** `init` sets defaults for the manager (λ 1000 to 9000, step ≤ 2500 bps, N ≤ 8, cooldown
@@ -86,15 +91,14 @@ pnpm sync:contracts        # rewrites ADDR in src/lib/chain.ts, copies ABIs from
 
 Then by hand:
 
-1. `client/data/strategies.json`: set `orderHash` of `eth-usdc` to the new hash printed by `ship`
-   (`TideApp.orderHash`), drop stale test strategies.
-2. `pnpm ens:setup`: rewrites `strategyHash`, `delta`, `fee` records if stale (idempotent; env
-   `TIDE_LAMBDA_BPS / TIDE_N / TIDE_DELTA_BPS / TIDE_FEE_BPS` override the defaults 5000/4/20/30).
-3. `README.md` deployments table and sponsor sections, `docs/whitepaper/whitepaper.typ` (addresses,
+1. `pnpm ens:setup`: rewrites `strategyHash`, `delta`, `fee` records if stale (idempotent; env
+   `TIDE_LAMBDA_BPS / TIDE_N / TIDE_DELTA_BPS / TIDE_FEE_BPS` override the defaults 5000/4/20/30), then
+   `pnpm reindex` so the `strategies` collection picks up the new hash.
+2. `README.md` deployments table and sponsor sections, `docs/whitepaper/whitepaper.typ` (addresses,
    tx hashes, gas, test count) then `typst compile --root . docs/whitepaper/whitepaper.typ WHITEPAPER.pdf
    && cp WHITEPAPER.pdf client/public/`, `CLAUDE.md` status, `CHANGELOG.md`.
    `grep -rn <old address prefix> --include='*.md' --include='*.typ' --include='*.ts*'` finds stragglers.
-4. Open the dashboard and check the fee card, the split and the fill list come from the new router.
+3. Open the dashboard and check the fee card, the split and the fill list come from the new router.
 
 The landing page's "On-chain, now" table reads `ADDR` from `chain.ts`, so it follows the sync.
 
@@ -183,8 +187,8 @@ Current sandbox client: `Tide manager`, id `1f15d369-99c8-475a-94f8-c387dcb075aa
 
 ## 6. Public deployment checklist
 
-1. Host the Next app (Node runtime; `client/data/*.json` is file-based state, so pick a host with a
-   persistent disk or accept that state resets on deploy). Set every `.env` var from §1 as secrets.
+1. Host the Next app (Node runtime) with a reachable MongoDB (`MONGODB_URI`). Set every `.env` var from §1
+   as secrets, including `AGENT_TICK_SECRET`.
 2. Register a **second** World client for the public hostname (§5.1) and set `WORLD_CLIENT_ID`,
    `WORLD_CLIENT_SECRET`, `WORLD_REDIRECT_URI=https://<host>/api/world/callback` there. The owner binds
    again on that host (different sector, different `sub`).

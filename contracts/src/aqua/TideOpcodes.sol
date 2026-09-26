@@ -10,8 +10,8 @@ import { BufferGuard } from "./instructions/BufferGuard.sol";
 
 /// @title TideOpcodes
 /// @notice The official 1inch `AquaOpcodes` set extended with the three Tide instructions. No 1inch
-///         opcode is overwritten: Tide claims the reserved third-party slots 0x92, 0x52 and 0x22 in the
-///         balances, curves and guards banks of `OpcodeList.sol`.
+///         opcode is overwritten: Tide takes the unallocated slots 0x92, 0x52 and 0x22 in the balances,
+///         curves and guards banks of `OpcodeList.sol` (the 0xf0 bank stays reserved for 1inch).
 contract TideOpcodes is AquaOpcodes {
     function _runOpcode(Context memory ctx, uint256 opcode, bytes calldata args) internal virtual override {
         if (opcode == ActiveSplit.opcode.asU8()) ActiveSplit.exec(ctx, args);

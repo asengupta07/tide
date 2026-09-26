@@ -47,7 +47,10 @@ contract Bench is DemoResolver {
         }
     }
 
-    function _fill(ISwapVM.Order calldata order, Leg memory leg) internal returns (uint256 amountIn, uint256 amountOut) {
+    function _fill(ISwapVM.Order calldata order, Leg memory leg)
+        internal
+        returns (uint256 amountIn, uint256 amountOut)
+    {
         if (leg.amountIn == 0) return (0, 0);
         (amountIn, amountOut,) = ISwapVM(ROUTER).swap(order, leg.amountIn, _td(leg.aToB));
     }
@@ -117,6 +120,7 @@ contract SideBySide is Script {
         TideRouter router = new TideRouter(AQUA, WETH, MAKER);
         TideApp app = new TideApp(IAqua(AQUA), address(router), params);
         Bench bench = new Bench(IAqua(AQUA), address(router));
+        params.setApp(address(app));
         vm.stopBroadcast();
 
         require(IERC20(WETH).balanceOf(MAKER) >= 2 * INV_WETH, "run script/side-by-side.sh to fund the maker");
@@ -124,12 +128,13 @@ contract SideBySide is Script {
 
         (address tokenA, address tokenB) = USDC < WETH ? (USDC, WETH) : (WETH, USDC);
         ISwapVM.Order memory plain = _plainOrder(tokenA, tokenB);
-        ISwapVM.Order memory tide = app.order(TideApp.Config({ maker: MAKER, tokenA: tokenA, tokenB: tokenB, salt: 2 }));
+        TideApp.Config memory tideCfg = TideApp.Config({ maker: MAKER, tokenA: tokenA, tokenB: tokenB, salt: 2 });
+        ISwapVM.Order memory tide = app.order(tideCfg);
         bytes32 plainHash = router.hash(plain);
         bytes32 tideHash = router.hash(tide);
 
         vm.startBroadcast(MAKER);
-        params.init(tideHash, LAMBDA, N, DELTA, FEE, MANAGER);
+        app.init(tideCfg, LAMBDA, N, DELTA, FEE, MANAGER);
         IERC20(WETH).approve(AQUA, type(uint256).max);
         IERC20(USDC).approve(AQUA, type(uint256).max);
         _ship(router, plain, tokenA, tokenB);

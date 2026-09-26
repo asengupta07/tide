@@ -50,6 +50,7 @@ abstract contract TideAquaBase is Test {
         router = new TideRouter(address(aqua), address(0), address(this));
         params = new TideParams(IAqua(address(aqua)));
         app = new TideApp(IAqua(address(aqua)), address(router), params);
+        params.setApp(address(app));
 
         tokenA = new TokenMock("Wrapped Ether", "WETH");
         tokenB = new TokenMock("USD Coin", "USDC");
@@ -96,7 +97,7 @@ abstract contract TideAquaBase is Test {
         amounts[1] = BAL_B;
 
         vm.startPrank(maker);
-        params.init(orderHash, lambdaBps, n, deltaBps, feeBps, manager);
+        app.init(cfg, lambdaBps, n, deltaBps, feeBps, manager);
         bytes32 strategyHash = aqua.ship(address(router), abi.encode(order), tokens, amounts);
         vm.stopPrank();
         assertEq(strategyHash, orderHash, "strategy hash == order hash");

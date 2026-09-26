@@ -47,7 +47,7 @@ export default function Landing() {
               The first trade of every block is a robbery at yesterday&apos;s price.
             </p>
             <p className="mt-6 max-w-[52ch] text-lg leading-relaxed text-fg-2">
-              It costs a constant-product pool <span className="num text-fg">σ²/8</span> of its value per unit time. Fees tax it. Batching delays it. Tide is the first design that simply shows it less.
+              It costs a constant-product pool <span className="num text-fg">σ²/8</span> of its value per unit time. Fees tax it. Batching delays it. Tide shows it less.
             </p>
           </Reveal>
         </section>
@@ -90,7 +90,7 @@ export default function Landing() {
             <div className="grid gap-10 sm:grid-cols-3 lg:col-span-5 lg:grid-cols-1 lg:gap-12 lg:pl-6">
               <Reveal><Stat value="33%" label="less arbitrage loss at λ = 0.5" sub="43% at λ = 0.25. Closed form 1/(2 − λ); a 10,000-path simulation agrees to three digits." /></Reveal>
               <Reveal delay={0.08}><Stat value="3.97×" label="less slippage for follow-on trades at N = 4" sub="Trade of 1% of active reserves." /></Reveal>
-              <Reveal delay={0.16}><Stat value="+33k" label="gas per fill over a plain constant-product fill" sub="Three parameter reads and one guard. Cacheable per block." /></Reveal>
+              <Reveal delay={0.16}><Stat value="+20k" label="gas per fill over a plain constant-product fill" sub="One parameter read per opcode, the block state and the guard. Swap-only, measured in Foundry." /></Reveal>
             </div>
           </div>
         </section>
@@ -103,16 +103,16 @@ export default function Landing() {
           <div className="absolute inset-0 bg-[linear-gradient(180deg,var(--bg)_0%,rgba(11,15,20,0.55)_35%,rgba(11,15,20,0.55)_65%,var(--bg)_100%)]" />
           <div className="relative mx-auto max-w-7xl px-5 py-24 sm:px-7 md:py-32 lg:px-10 lg:py-36">
             <Reveal>
-              <h2 className="max-w-[22ch] text-3xl font-semibold tracking-tight md:text-5xl">The knobs are ENS records. The hand on them is a human.</h2>
+              <h2 className="max-w-[22ch] text-3xl font-semibold tracking-tight md:text-5xl">The knobs are ENS records. The guardrails are the owner's.</h2>
             </Reveal>
             <Reveal delay={0.1} className="mt-14">
               <Bezel>
                 <div className="grid-lines grid lg:grid-cols-4">
                   {[
-                    [TextAa, "eth-usdc.tide.eth", "λ, N and δ are text records on an ENSv2 name. Anyone can read them. The contracts read them."],
-                    [Key, "manager.tide.eth", "The manager has its own name and an access-control role for exactly three keys. It cannot touch anything else."],
+                    [TextAa, "eth-usdc.tide.eth", "λ, N, δ and the fee are text records on an ENSv2 name, mirrored on-chain in TideParams. Anyone can read them; the venues trade on the mirror."],
+                    [Key, "manager.tide.eth", "The manager has its own name and a resolver role for exactly three records. Inside the owner's on-chain guardrails it acts alone."],
                     [Fingerprint, "World ID", "Inside the owner's guardrails the manager acts alone. Outside them nothing moves without a fresh World ID sign-in by the owner, then the owner's wallet."],
-                    [Prohibit, "One call to revoke", "The owner removes the agent's role per record and drops it as manager on-chain. Inventory never moved."],
+                    [Prohibit, "Revocable", "The owner removes the manager's role per record and drops it on-chain. Inventory never moved."],
                   ].map(([Icon, t, b]) => {
                     const I = Icon as typeof TextAa;
                     return (

@@ -4,6 +4,7 @@ import { getAddress } from "viem";
 import { createName, labelAvailable } from "@/lib/onboard";
 import { addStrategy, validLabel, SEPOLIA_WETH, SEPOLIA_USDC } from "@/lib/registry";
 import { appendLog } from "@/lib/store";
+import { requireOwner, OwnerAuthError, safeError } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,8 @@ const Body = z.object({
   feeBps: z.number().int().min(0).max(9999),
   salt: z.string().regex(/^\d+$/),
   description: z.string().max(280).optional(),
+  ts: z.number(),
+  sig: z.string(),
 });
 
 /** Name a strategy: resolver + subname registered to the caller's wallet. Signed by the tide.eth registrar key. */
@@ -24,6 +27,8 @@ export async function POST(req: Request) {
     const b = Body.parse(await req.json());
     const label = b.label.toLowerCase();
     if (!validLabel(label)) return NextResponse.json({ error: "invalid label" }, { status: 400 });
+    // the registrar key pays for the resolver and the registration, so the wallet that gets the name must ask
+    await requireOwner(b.owner, `name ${label} for ${b.owner.toLowerCase()}`, b.ts, b.sig);
     if (!(await labelAvailable(label))) return NextResponse.json({ error: "label taken" }, { status: 409 });
     const [tokenA, tokenB] = SEPOLIA_WETH.toLowerCase() < SEPOLIA_USDC.toLowerCase() ? [SEPOLIA_WETH, SEPOLIA_USDC] : [SEPOLIA_USDC, SEPOLIA_WETH];
     if ((b.n - 1) * b.deltaBps > 2 * b.feeBps) return NextResponse.json({ error: "delta exceeds what the fee backs: (N - 1) * delta must be <= 2 * fee" }, { status: 400 });
@@ -32,6 +37,6 @@ export async function POST(req: Request) {
     await appendLog("info", `named ${strat.name} for ${strat.owner.slice(0, 10)}…, resolver ${strat.resolver}`, undefined, strat.name);
     return NextResponse.json(strat);
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 });
+    return NextResponse.json({ error: safeError(e) }, { status: e instanceof OwnerAuthError ? 401 : 400 });
   }
 }

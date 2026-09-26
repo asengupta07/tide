@@ -46,16 +46,13 @@ export async function readBounds(pc: PublicClient, key: Hex): Promise<Bounds> {
 }
 
 /** Would a manager write to (lambda, N) pass the guardrails right now? Same check the contract makes. */
-export async function withinBounds(pc: PublicClient, key: Hex, lambda: number, N: number): Promise<{ ok: boolean; why: string }> {
+export async function withinBounds(pc: PublicClient, key: Hex, lambda: number, N: number, delta: number): Promise<{ ok: boolean; why: string }> {
   const dep = deployment();
-  const [ok, why] = (await pc.readContract({ address: dep.tideParams, abi: tideParamsAbi, functionName: "withinBounds", args: [key, lambda, N] })) as [boolean, string];
+  const [ok, why] = (await pc.readContract({ address: dep.tideParams, abi: tideParamsAbi, functionName: "withinBounds", args: [key, lambda, N, delta] })) as [boolean, string];
   return { ok, why };
 }
 
-/** Largest delta the fee backs at depth N: (N - 1) * delta <= 2 * fee (TideMath.checkParams). */
-export function maxDeltaBps(N: number, feeBps: number) {
-  return N <= 1 ? 4999 : Math.floor((2 * feeBps) / (N - 1));
-}
+export { maxDeltaBps } from "./bounds";
 
 /** Apply approved values on-chain as the manager agent. Reverts if the agent was revoked. */
 export async function applyParams(agentKey: string, key: Hex, lambda: number, N: number, delta: number) {
@@ -95,16 +92,18 @@ const swappedEvent = parseAbiItem(
   "event Swapped(bytes32 orderHash, address maker, address taker, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut)",
 );
 
-/** Router deployment block on Sepolia (from contracts/broadcast/Deploy.s.sol/11155111/run-latest.json). */
+/** Router deployment block: written to deployments/11155111.json by Deploy.s.sol; broadcast file as fallback. */
 function deployBlock(): bigint {
   try {
+    const d = JSON.parse(fs.readFileSync(path.join(process.cwd(), "..", "contracts", "deployments", "11155111.json"), "utf8"));
+    if (d.deployBlock) return BigInt(d.deployBlock);
+  } catch {}
+  try {
     const p = path.join(process.cwd(), "..", "contracts", "broadcast", "Deploy.s.sol", "11155111", "run-latest.json");
-    const j = JSON.parse(fs.readFileSync(p, "utf8"));
-    const b = j.receipts?.[0]?.blockNumber;
-    return b ? BigInt(b) : 0n;
-  } catch {
-    return 0n;
-  }
+    const b = JSON.parse(fs.readFileSync(p, "utf8")).receipts?.[0]?.blockNumber;
+    if (b) return BigInt(b);
+  } catch {}
+  throw new Error("router deploy block unknown: add deployBlock to contracts/deployments/11155111.json");
 }
 
 /** Public nodes cap eth_getLogs ranges (publicnode: 50,000 blocks); scan in chunks. */
@@ -130,14 +129,23 @@ export async function getLogsChunked<T extends Parameters<PublicClient["getLogs"
  * Fill history. Alchemy's free tier caps eth_getLogs at 10 blocks, so logs are read through
  * LOGS_RPC_URL (a public Sepolia node by default), in 45,000-block chunks.
  */
+type SwapLog = Awaited<ReturnType<PublicClient["getLogs"]>>[number] & { args: { orderHash?: Hex; taker?: Address; tokenIn?: Address; tokenOut?: Address; amountIn?: bigint; amountOut?: bigint } };
+/** Router logs seen so far, extended incrementally on each call instead of rescanning from the deploy block. */
+const fillCache: { router?: string; upTo: bigint; logs: SwapLog[] } = { upTo: 0n, logs: [] };
+
 export async function fills(pc: PublicClient, orderHash: Hex, fromBlock?: bigint) {
   const dep = deployment();
   const logsClient = createPublicClient({ chain: sepolia, transport: http(process.env.LOGS_RPC_URL ?? "https://ethereum-sepolia-rpc.publicnode.com") });
   const latest = await logsClient.getBlockNumber();
-  const start = fromBlock ?? deployBlock();
-  const logs = (await getLogsChunked(logsClient, { address: dep.tideRouter, event: swappedEvent }, start, latest)) as Awaited<ReturnType<typeof logsClient.getLogs<typeof swappedEvent>>>;
+  if (fillCache.router !== dep.tideRouter.toLowerCase()) Object.assign(fillCache, { router: dep.tideRouter.toLowerCase(), upTo: 0n, logs: [] });
+  const start = fillCache.upTo ? fillCache.upTo + 1n : (fromBlock ?? deployBlock());
+  if (start <= latest) {
+    const fresh = (await getLogsChunked(logsClient, { address: dep.tideRouter, event: swappedEvent }, start, latest)) as SwapLog[];
+    fillCache.logs.push(...fresh);
+    fillCache.upTo = latest;
+  }
   void pc;
-  return logs
+  return fillCache.logs
     .filter((l) => l.args.orderHash?.toLowerCase() === orderHash.toLowerCase())
     .map((l) => ({
       block: Number(l.blockNumber),

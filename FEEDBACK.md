@@ -58,7 +58,7 @@ test asserts identical amounts on both venues.
 
 ## Pointers
 
-- Hook: `contracts/src/v4/TideHook.sol` (`_getUnspecifiedAmount`, `_computeWithAmounts`, JIT guard in
+- Hook: `contracts/src/v4/TideHook.sol` (`_getUnspecifiedAmount`, `_compute`, JIT guard in
   `addLiquidity` / `removeLiquidity`)
 - Shared math: `contracts/src/lib/TideMath.sol`
 - Tests: `contracts/test/v4/TideHook.t.sol`, `contracts/test/CrossVenue.t.sol`

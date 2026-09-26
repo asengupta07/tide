@@ -29,24 +29,16 @@ library (`contracts/src/lib/TideMath.sol`); both venues import it.
 - World: official dev environment (sandbox.auth.world.org); server-side token validation; denied/expired path must leave state unchanged; write `docs/world-debrief.md` as we go
 - Curvegrid: README has one-sentence summary, team + socials, setup and test instructions
 
-## Status (Sep 26, 2026)
+## Status (Sep 27, 2026)
 
-Done and live on Sepolia: TideMath + vectors, three opcodes on `TideRouter`, `TideApp`, `TideParams`,
-`TideHook`, cross-venue parity, mainnet-fork demo (`contracts/script/fork-demo.sh`), Sepolia ship + fill +
-hook swap, ENSv2 setup (registry, resolvers, subnames, records, scoped agent role, revoke script),
-World ID step-up backend with denied-path harness, dashboard, README, FEEDBACK.md, world-debrief,
-WHITEPAPER.pdf. Addresses in `README.md` and `contracts/deployments/`.
-
-Sep 26 model review: the deep curve was drainable with a zero fee (sell on the active curve, buy back on
-the N-curve inside δ, every block). Fixed by a flat fee on tokenIn stored in `TideParams` (read by both
-venues) and the invariant `(N − 1)·δ ≤ 2·fee` enforced at init/set/setFee; the manager now proposes δ
-too (three one-block moves, capped by the bound). Everything redeployed (new router, params, app, hook,
-strategy hash); `MATHEMATICS_MODEL.md` § 8 has the derivation and worked example. Guardrails (Sep 26 evening): owner-set bounds
-in `TideParams` bind the manager; autopilot applies inside them with no human; outside them the World
-step-up, then the owner's wallet applies. World client `Tide manager`
-registered via the World ID MCP (sandbox needs an HTTPS callback: `pnpm dev` (HTTPS by default), see README); live
-approve path proven (proposal 3509d7d32778, ENS + TideParams txs in README). Open: team/socials in README,
-video, public deployment of `client/` for the ENS live-demo link (new hostname = new World client + re-bind).
+Live on Sepolia (addresses in `README.md`, `contracts/deployments/`): TideMath, three opcodes on `TideRouter`,
+`TideApp` (claims order hashes for their makers), `TideParams` (λ, N, δ, fee, owner guardrails; keys claimed
+only through the venues), `TideHook` (claims its PoolId at initialize, dead shares), cross-venue parity, fork
+demos (`fork-demo.sh`, `side-by-side.sh`), ENSv2 setup, World ID step-up, MongoDB-backed dashboard and agent.
+Mechanism: fee-rebate bound `(N − 1)·δ ≤ 2·fee` (MATHEMATICS_MODEL § 8); autopilot inside guardrails, World
+step-up plus the owner's wallet outside them. Backend actions that spend gas or move exposure are owner-signed
+(`client/src/lib/auth.ts`); the tick endpoint needs `AGENT_TICK_SECRET`. Open: team/socials in README, video,
+public deployment of `client/` (new hostname = new World client + re-bind; needs a persistent MongoDB).
 
 ## Build order (from the dossier)
 

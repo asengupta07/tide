@@ -70,6 +70,7 @@ export async function discover(): Promise<Discovery> {
   const res = await fetch(`${issuer}/.well-known/openid-configuration`, { cache: "no-store" });
   if (!res.ok) throw new WorldAuthError("discovery", `discovery failed: ${res.status}`);
   const value = (await res.json()) as Discovery;
+  if (value.issuer !== issuer) throw new WorldAuthError("discovery", `discovery issuer ${value.issuer} is not the configured ${issuer}`);
   discoveryCache = { at: Date.now(), value };
   return value;
 }
@@ -149,8 +150,9 @@ export async function completeAuth(req: AuthRequest, code: string): Promise<Veri
 
   const now = Math.floor(Date.now() / 1000);
   const iat = Number(payload.iat ?? 0);
-  const authTime = Number(payload.auth_time ?? iat);
   if (now - iat > maxTokenAge) throw new WorldAuthError("stale", `token issued ${now - iat}s ago, max ${maxTokenAge}s`);
+  if (req.purpose === "stepup" && typeof payload.auth_time !== "number") throw new WorldAuthError("no_auth_time", "step-up token carries no auth_time");
+  const authTime = Number(payload.auth_time ?? iat);
   if (req.purpose === "stepup" && authTime + 30 < req.requestedAt) {
     throw new WorldAuthError("not_fresh", `auth_time ${authTime} predates the step-up request ${req.requestedAt}`);
   }

@@ -13,7 +13,7 @@ import { TideParams } from "../TideParams.sol";
 
 /// @title TideApp
 /// @notice Builds Tide SwapVM programs and orders, so a maker ships a strategy in two calls:
-///         `TideParams.init(orderHash, ...)` then `Aqua.ship(router, abi.encode(order), ...)`. The flat fee
+///         `TideApp.init(cfg, ...)` then `Aqua.ship(router, abi.encode(order), ...)`. The flat fee
 ///         is not an instruction argument: `ACTIVE_SPLIT` reads it from `TideParams`, so the fee a fill pays
 ///         is the one the parameter box was checked against.
 ///
@@ -31,12 +31,22 @@ contract TideApp {
     address public immutable ROUTER;
     TideParams public immutable PARAMS;
 
-    event TidePrepared(bytes32 indexed orderHash, address indexed maker, uint32 lambdaBps, uint32 n, uint32 deltaBps);
-
     constructor(IAqua aqua, address router, TideParams params) {
         AQUA = aqua;
         ROUTER = router;
         PARAMS = params;
+    }
+
+    error NotMaker(address caller, address maker);
+
+    /// @notice Claim the strategy's parameters. Only the order's maker may, so nobody can squat an order hash.
+    function init(Config memory cfg, uint32 lambdaBps, uint32 n, uint32 deltaBps, uint32 feeBps, address manager)
+        external
+        returns (bytes32 hash)
+    {
+        require(msg.sender == cfg.maker, NotMaker(msg.sender, cfg.maker));
+        hash = orderHash(cfg);
+        PARAMS.initFor(hash, msg.sender, lambdaBps, n, deltaBps, feeBps, manager);
     }
 
     /// @notice Canonical Tide program: ACTIVE_SPLIT VIRTUAL_XYC BUFFER_GUARD Salt.

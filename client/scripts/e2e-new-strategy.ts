@@ -43,7 +43,10 @@ async function main() {
   const usdc = parseUnits("60", 6);
 
   // 1. name (backend, registrar key)
-  const r = await fetch(`${base}/api/strategy/create`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ label, owner: me, lambdaBps: lambda, n, deltaBps: delta, feeBps: fee, salt }) });
+  const [tokenA, tokenB]: [Address, Address] = ADDR.weth.toLowerCase() < ADDR.usdc.toLowerCase() ? [ADDR.weth, ADDR.usdc] : [ADDR.usdc, ADDR.weth];
+  const ts = Date.now();
+  const sig = await user.signMessage({ account: user.account, message: `Tide: name ${label} for ${me.toLowerCase()} at ${ts}` });
+  const r = await fetch(`${base}/api/strategy/create`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ label, owner: me, lambdaBps: lambda, n, deltaBps: delta, feeBps: fee, salt, ts, sig }) });
   const strat = await r.json();
   if (!r.ok) throw new Error(strat.error);
   console.log(`named ${strat.name}, resolver ${strat.resolver}, orderHash ${strat.orderHash}`);
@@ -56,10 +59,9 @@ async function main() {
   await wait(await user.writeContract({ address: ADDR.usdc, abi: erc20Abi, functionName: "approve", args: [ADDR.aqua, 2n ** 256n - 1n] }), "approve usdc");
 
   // 3. params
-  await wait(await user.writeContract({ address: ADDR.tideParams, abi: tideParamsAbi, functionName: "init", args: [strat.orderHash, lambda, n, delta, fee, ADDR.agent] }), "params.init");
+  await wait(await user.writeContract({ address: ADDR.tideApp, abi: tideAppAbi, functionName: "init", args: [{ maker: me, tokenA, tokenB, salt: BigInt(salt) }, lambda, n, delta, fee, ADDR.agent], chain: user.chain, account: user.account }), "app.init");
 
   // 4. ship
-  const [tokenA, tokenB]: [Address, Address] = ADDR.weth.toLowerCase() < ADDR.usdc.toLowerCase() ? [ADDR.weth, ADDR.usdc] : [ADDR.usdc, ADDR.weth];
   const order = (await pc.readContract({ address: ADDR.tideApp, abi: tideAppAbi, functionName: "order", args: [{ maker: me, tokenA, tokenB, salt: BigInt(salt) }] })) as { maker: Address; traits: bigint; data: Hex };
   const encoded = encodeAbiParameters(ORDER_TUPLE, [{ maker: order.maker, traits: order.traits, data: order.data }]);
   const amounts = tokenA === ADDR.weth ? [weth, usdc] : [usdc, weth];

@@ -46,8 +46,9 @@ contract CrossVenueTest is TideAquaBase {
                     | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG
             ) ^ (0x71de << 144)
         );
-        deployCodeTo("TideHook.sol:TideHook", abi.encode(poolManager, params), flags);
+        deployCodeTo("TideHook.sol:TideHook", abi.encode(poolManager, params, address(this)), flags);
         hook = TideHook(payable(flags));
+        params.setHook(address(hook));
         key = PoolKey(
             Currency.wrap(address(tokenA)),
             Currency.wrap(address(tokenB)),
@@ -56,7 +57,7 @@ contract CrossVenueTest is TideAquaBase {
             IHooks(hook)
         );
         poolManager.initialize(key, 79_228_162_514_264_337_593_543_950_336);
-        params.init(PoolId.unwrap(key.toId()), LAMBDA, N, DELTA, FEE, manager);
+        params.setManager(PoolId.unwrap(key.toId()), manager); // claimed by the hook at initialize
 
         tokenA.mint(address(this), 1e30);
         tokenB.mint(address(this), 1e30);

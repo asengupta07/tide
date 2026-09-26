@@ -49,7 +49,7 @@ contract SepoliaDemo is Script {
         console.logBytes32(orderHash);
 
         if (keccak256(bytes(step)) == keccak256("ship")) {
-            _ship(params, router, order, orderHash, owner, agent, tokenA, tokenB);
+            _ship(params, app, cfg, router, order, orderHash, owner, agent, tokenA, tokenB);
         } else {
             _fill(router, order, orderHash, owner);
         }
@@ -57,6 +57,8 @@ contract SepoliaDemo is Script {
 
     function _ship(
         TideParams params,
+        TideApp app,
+        TideApp.Config memory cfg,
         TideRouter router,
         ISwapVM.Order memory order,
         bytes32 orderHash,
@@ -75,7 +77,7 @@ contract SepoliaDemo is Script {
         if (IERC20(USDC).allowance(owner, AQUA) < usdcAmount) IERC20(USDC).approve(AQUA, type(uint256).max);
 
         TideParams.Params memory p = params.params(orderHash);
-        if (p.owner == address(0)) params.init(orderHash, 5000, 4, 20, 30, agent);
+        if (p.owner == address(0)) app.init(cfg, 5000, 4, 20, 30, agent);
 
         (uint248 bal,) = IAqua(AQUA).rawBalances(owner, address(router), orderHash, WETH);
         if (bal == 0) {

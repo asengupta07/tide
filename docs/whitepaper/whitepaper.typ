@@ -22,7 +22,7 @@
 #v(10pt)
 #block(inset: (x: 1.1cm))[
   #set text(size: 9.8pt)
-  *Abstract.* A constant-product pool quotes a stale price until someone trades, and the first trader of each block is usually an arbitrageur who takes the whole pool at that price. Tide exposes only a fraction $lambda$ of a maker's inventory to that trade, quotes the block's later trades against a curve $N$ times deeper than the exposed slice, and bounds how far that deeper curve can be pushed by a drift threshold $delta$. We derive the steady-state loss-versus-rebalancing of the design, $1\/(2-lambda)$ of a plain pool, and confirm it by simulation to three digits. We then show that the deeper curve is a rebate paid by the maker: with no fee it can be drained every block by a round trip that needs no price information, and neither $lambda$, $N$ nor $delta$ bounds the loss. A flat fee $f$ does, provided $(N-1)delta <= 2f$; the contracts enforce this inequality on every parameter change. The same arithmetic library prices two venues, a 1inch Aqua SwapVM program and a Uniswap v4 hook, and a cross-venue test asserts identical fills. Parameters are ENS text records; a manager agent may change them only after the owner completes a fresh World ID authentication.
+  *Abstract.* A constant-product pool quotes a stale price until someone trades, and the first trader of each block is usually an arbitrageur who takes the whole pool at that price. Tide exposes only a fraction $lambda$ of a maker's inventory to that trade, quotes the block's later trades against a curve $N$ times deeper than the exposed slice, and bounds how far that deeper curve can be pushed by a drift threshold $delta$. We derive the steady-state loss-versus-rebalancing of the design, $1\/(2-lambda)$ of a plain pool, and confirm it by simulation to three digits. We then show that the deeper curve is a rebate paid by the maker: with no fee it can be drained every block by a round trip that needs no price information, and neither $lambda$, $N$ nor $delta$ bounds the loss. A flat fee $f$ does, provided $(N-1)delta <= 2f$; the contracts enforce this inequality on every parameter change. The same arithmetic library prices two venues, a 1inch Aqua SwapVM program and a Uniswap v4 hook, and a cross-venue test asserts identical fills. Parameters are ENS text records mirrored on-chain; a manager agent moves them on its own inside guardrails the owner set, and beyond them only after the owner completes a fresh World ID authentication.
 ]
 
 = Introduction
@@ -125,11 +125,11 @@ where the fee term is first order in $f$ and $kappa$ prices tracking error. LVR 
 
 One Solidity library, `TideMath`, holds the split, the $N$-scaled quotes, the drift test, the solvency bound, the fee arithmetic and the parameter box @eq:feebound. It is checked against an integer Python reference on 24 vectors, and both venues import it.
 
-*1inch Aqua.* Tide is a SwapVM program of three custom opcodes in reserved third-party slots, `ACTIVE_SPLIT` (0x92), `VIRTUAL_XYC` (0x52) and `BUFFER_GUARD` (0x22), dispatched by a router that is the swap-vm template with the opcode set extended. Instruction order is security-critical; every Tide opcode scans the program and reverts unless the three appear once each in that order. The maker's inventory never leaves the wallet: Aqua records balances at `ship` and pulls only at fill time, which is the natural home for a design in which the pool does not hold what the virtual curve promises.
+*1inch Aqua.* Tide is a SwapVM program of three custom opcodes in unallocated slots, `ACTIVE_SPLIT` (0x92), `VIRTUAL_XYC` (0x52) and `BUFFER_GUARD` (0x22), dispatched by a router that is the swap-vm template with the opcode set extended. Instruction order is security-critical; every Tide opcode scans the program and reverts unless the three appear once each in that order. The maker's inventory never leaves the wallet: Aqua records balances at `ship` and pulls only at fill time, which is the natural home for a design in which the pool does not hold what the virtual curve promises.
 
 *Uniswap v4.* The same steps run inside `beforeSwap` of a `BaseCustomCurve` hook that returns a `BeforeSwapDelta` for the whole amount, holds its reserves as ERC-6909 claims, mints pro-rata shares and refuses liquidity changes in any block that already saw a swap. A cross-venue test runs one trade sequence on both venues and asserts identical amounts.
 
-*Parameters.* `TideParams` stores $lambda$, $N$, $delta$ and $f$ per strategy, keyed by the Aqua order hash or the v4 pool id, together with owner-set guardrails for the manager: a $lambda$ range, the largest $lambda$ move per write, the largest $N$ and a cooldown between writes. The owner's writes are unbounded; a manager write outside the guardrails reverts; every write is checked against @eq:feebound.
+*Parameters.* `TideParams` stores $lambda$, $N$, $delta$ and $f$ per strategy, keyed by the Aqua order hash or the v4 pool id, together with owner-set guardrails for the manager: a $lambda$ range, the largest $lambda$ move per write, the largest $N$ and a cooldown between writes. Keys are claimed through the venues only (the app checks the caller is the order's maker; the hook claims its pool id for its owner at initialisation), so nobody can squat a predictable key. The owner's writes are unbounded; a manager write outside the guardrails reverts; every write is checked against @eq:feebound.
 
 #figure(
   table(
@@ -137,17 +137,16 @@ One Solidity library, `TideMath`, holds the split, the $N$-scaled quotes, the dr
     align: (left, right, right),
     stroke: (x, y) => if y == 0 { (bottom: 0.6pt) } else { none },
     [*Path*], [*gas*], [*vs. plain*],
-    [plain constant-product fill on the same router, transfers included], [83,226], [–],
-    [Tide fill, first of block (re-split, fee, state write)], [118,821], [+35,595],
-    [Tide fill, later in block (virtual curve, guard, fee)], [119,551], [+36,325],
-    [Tide v4 hook swap through a test router], [≈168,000], [n/a],
+    [plain constant-product fill on the same router, swap only], [57,402], [–],
+    [Tide fill, first of block (re-split, fee, state write)], [77,234], [+19,832],
+    [Tide fill, later in block (virtual curve, guard, fee)], [76,241], [+18,839],
   ),
-  caption: [Gas measured in Foundry. The overhead is three parameter reads, one balance read and the program scan; caching parameters per block would roughly halve it.],
+  caption: [Gas measured in Foundry, `taker.swap` alone with the input pre-minted. The overhead is one parameter read per opcode, the block state, one balance read and the program scan.],
 )
 
-The suite has 47 tests: vector parity, every opcode, two swaps in one block, the lazy re-split, re-pricing of an informed-sized follow-on trade, exact-output beyond inventory, buffer top-up, fee netting, quote-equals-fill in both directions and modes, program-order reverts, governance and guardrails, the round trip of Proposition 3, hook liquidity guards and cross-venue parity.
+The suite has 48 tests: vector parity, every opcode, two swaps in one block, the lazy re-split, re-pricing of an informed-sized follow-on trade, exact-output beyond inventory, buffer top-up, fee netting, quote-equals-fill in both directions and modes, program-order reverts, governance and guardrails, the round trip of Proposition 3, hook liquidity guards and cross-venue parity.
 
-The reference deployment is on Sepolia (router `0xbc95…390a`, parameters `0x2Cfc…558C`, hook `0xeC07…6A88`) with a WETH/USDC strategy at $lambda = 0.5$, $N = 4$, $delta = 20$ bp, $f = 30$ bp, one filled Aqua order and one hook swap in which the quote equalled the fill. A fork script reproduces the flow against the mainnet Aqua registry with real WETH and USDC.
+The reference deployment is on Sepolia (router `0x4D11…7776`, parameters `0x3DC8…9C58`, hook `0xD0AE…Ea88`) with a WETH/USDC strategy shipped at $lambda = 0.5$, $N = 4$, $delta = 20$ bp, $f = 30$ bp (the manager has since moved $lambda$ and $delta$ with volatility), one filled Aqua order and one hook swap in which the quote equalled the fill. A fork script reproduces the flow against the mainnet Aqua registry with real WETH and USDC.
 
 = Governance
 

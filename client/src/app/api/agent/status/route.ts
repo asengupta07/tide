@@ -15,5 +15,6 @@ export async function GET() {
     lambdaStar: vol ? lambdaStar(vol.sigma) : null,
     tickMinutes: tickMinutes(),
     minMoveBps: minMoveBps(),
+    approvalSeconds: Number(process.env.WORLD_APPROVAL_TIMEOUT_SECONDS ?? "180"),
   });
 }

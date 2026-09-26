@@ -23,11 +23,11 @@ export default async function Approved({ searchParams }: { searchParams: Promise
             </div>
             <div className="font-medium">{p.strategy}</div>
             <div className="num text-fg-2">
-              λ {p.from.lambda} → {p.to.lambda} · N {p.from.N} → {p.to.N} · δ {p.from.delta} → {p.to.delta}
+              visibility {p.from.lambda / 100}% → {p.to.lambda / 100}% · depth {p.from.N}× → {p.to.N}× · band {p.from.delta / 100}% → {p.to.delta / 100}%
             </div>
             {p.blockedReason && <div className="text-bad">{p.blockedReason}</div>}
             {p.status === "approved" && !p.txs?.params && (
-              <div className="text-fg-2">Records written. This change is outside your guardrails{p.outside ? ` (${p.outside})` : ""}, so the manager cannot apply it: press "Apply on-chain" on the dashboard with your wallet.</div>
+              <div className="text-fg-2">The records are written. This change is outside your guardrails{p.outside ? ` (${p.outside})` : ""}, so the manager cannot apply it: back on the strategy page, press "Apply on-chain" with your wallet.</div>
             )}
             {p.txs && (
               <div className="pt-2 text-xs">
@@ -42,8 +42,8 @@ export default async function Approved({ searchParams }: { searchParams: Promise
             )}
           </div></Bezel>
         )}
-        {q.error && <p className="mt-4 text-sm text-bad">{q.error}. The records were not changed.</p>}
-        <div className="mt-8"><Pill href="/app" variant="ghost">Back to dashboard</Pill></div>
+        {q.error && <p className="mt-4 text-sm text-bad">{q.error.replace(/^[a-z_]+: /, "")}. {q.purpose === "bind" ? "Nothing was bound." : "The records were not changed."}</p>}
+        <div className="mt-8"><Pill href={q.strategy ? `/app/${q.strategy}` : "/app"} variant="ghost">{q.strategy ? "Back to the strategy" : "Back to dashboard"}</Pill></div>
       </main>
     </>
   );

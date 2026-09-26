@@ -386,7 +386,7 @@ honest flow of the largest admissible size leaves the LP whole after the next ar
 | 30 bp | 60 bp | 20 bp | 8 bp |
 | 100 bp | 200 bp | 66 bp | 28 bp |
 
-The deployed strategy uses `fee = 30 bp, N = 4, delta = 20 bp`. The INR/JPY examples elsewhere in this
+The reference strategy shipped with `fee = 30 bp, N = 4, delta = 20 bp`; the manager moves N and delta with volatility inside the guardrails, so the live values drift from these. The INR/JPY examples elsewhere in this
 document keep `N = 4, delta = 0.5%` for legible numbers; under the bound that pair needs a fee of at
 least 75 bp.
 
@@ -697,7 +697,7 @@ contracts refuse any triple that breaks it.
 | Purpose | lambda | N | delta | fee | Interpretation |
 | --- | ---: | ---: | ---: | ---: | --- |
 | Conservative start | 0.5 | 2 | 0.2% | 0.3% | Virtual depth is roughly the original total depth; wide room under the bound |
-| Deployed strategy | 0.5 | 4 | 0.2% | 0.3% | Strong slippage contrast; delta sits exactly at the bound |
+| Reference strategy at launch | 0.5 | 4 | 0.2% | 0.3% | Strong slippage contrast; delta sits exactly at the bound |
 | Ordinary AMM comparison | 1.0 | 1 | any | any | No partial activation or virtual-depth benefit |
 
 These are test configurations, not claims that the values are economically optimal.

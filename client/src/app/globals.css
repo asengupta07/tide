@@ -10,7 +10,7 @@
   --line-2: rgba(255, 255, 255, 0.14);
   --fg: #e7ecf1;
   --fg-2: #aab4c0;
-  --fg-3: #6f7a88;
+  --fg-3: #8a94a3;
   --accent: #58c9b6;
   --accent-2: #2f8f80;
   --accent-ink: #062521;
@@ -352,7 +352,7 @@ body::after {
 }
 
 @media (pointer: coarse) {
-  button,
+  button:not(.touch-exempt),
   input[type="checkbox"] {
     min-height: 2.75rem;
   }

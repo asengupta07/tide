@@ -220,7 +220,7 @@ async function main() {
     ["delta", process.env.TIDE_DELTA_BPS ?? "20"],
     ["fee", process.env.TIDE_FEE_BPS ?? "30"],
     ["strategyHash", state.strategyHash],
-    ["venue", "aqua:sepolia"],
+    ["venue", "aqua"],
     ["description", "Tide partially-active AMM strategy, ETH/USDC. Parameters governed by manager.tide.eth"],
   ];
   const current = await Promise.all(records.map(([k]) => readText(pc, STRATEGY_NAME, k).catch(() => "")));
@@ -238,7 +238,7 @@ async function main() {
   // agent name: ENSIP-26 records
   const appUrl = process.env.PUBLIC_APP_URL ?? "https://localhost:3000";
   const agentRecords: [string, string][] = [
-    ["agent-context", `Tide manager agent. Proposes lambda/N/delta for ${STRATEGY_NAME} from the activeness frontier; writes only after a fresh World ID authentication by the owner. Scoped EAC role: setText(lambda|N|delta) on the strategy resolver.`],
+    ["agent-context", `Tide manager agent. Moves lambda/N/delta for ${STRATEGY_NAME} from the activeness frontier and realised volatility, on its own inside the owner's on-chain guardrails; beyond them only after a fresh World ID authentication by the owner. Scoped EAC role: setText(lambda|N|delta) on the strategy resolver.`],
     ["agent-endpoint[web]", `${appUrl}/agent`],
     ["agent-endpoint[a2a]", `${appUrl}/api/agent`],
     ["strategy", STRATEGY_NAME],

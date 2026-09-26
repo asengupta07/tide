@@ -5,6 +5,32 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
 
 ## Sep 27, 2026
 
+**Audit fixes**
+- Contracts: `TideParams` keys are claimed only through the venues (`TideApp.init` checks the maker,
+  `TideHook` claims its PoolId at initialize for an explicit owner), closing key squatting; hook burns 1000
+  dead shares on the first deposit; `setBounds` rejects cooldown 0; `withinBounds` takes delta and applies
+  the fee bound; dead `TidePrepared` event removed; `TideResplit`/`TideTopUp` fields named in fill order.
+  48 tests. Gas re-measured swap-only: 57,402 plain, 77,234 first fill, 76,241 later (about +19k, not +35k).
+- Backend: `propose`, `strategy/create`, `bind` and the new `agent/approval` need the owner wallet's
+  signature (`lib/auth.ts`); `tick` needs `AGENT_TICK_SECRET`; `/api/state` no longer exposes approval URLs
+  or OIDC state; delta/N overrides clamped to the fee bound; on-chain write before ENS with receipt checks;
+  `markApplied` verifies status, sender and target; one pending proposal per strategy; provider URLs
+  scrubbed from errors and logs; fills scanned from `deployBlock` in the deployments file and cached
+  incrementally; the scheduler survives one failing strategy and runs autopilot for unbound owners inside
+  the guardrails; step-up tokens must carry `auth_time`; discovery issuer pinned.
+- UI: guardrails editor keeps focus (field moved out of render), edited in percent and minutes with
+  validation and a mined receipt before "Saved"; what-if slider no longer snaps back; approve and bind go
+  through signed JSON calls instead of raw redirects; no `tx/undefined` links; stale-data badge; approval
+  window shown; visitor wording; approved page returns to the strategy; wizard signs the naming request,
+  inits through `TideApp`, approves exact amounts, validates amounts, labels its controls; touch targets
+  no longer inflate the block-animation bars; tertiary text contrast raised.
+- Copy and docs: per-change World ID wording replaced by guardrails wording everywhere (landing, dashboard,
+  README headline, whitepaper abstract, ENS agent record, brief note); stale gas and test counts; broken
+  file:line pointers replaced by symbol names; `FEEDBACK.md` function name; planning notes marked
+  superseded; `.env.example` pruned to what the code reads.
+- Redeployed: params `0x3DC8…9C58`, router `0x4D11…7776`, app `0xbCB2…A832`, hook `0xD0AE…Ea88`, pool
+  `0xeba8…e883`, strategy hash `0x660a…612d`; fill `0x6066…6d77`, hook swap `0x2183…3909`.
+
 - **MongoDB for all off-chain state.** `client/src/lib/db.ts` (one client per process, indexes on first use);
   `store.ts` and `registry.ts` are async over six collections: `strategies`, `proposals`, `authRequests`
   (TTL one hour, deleted on use), `bound`, `log`, `ens`. Agent, scheduler, routes, approved page and the

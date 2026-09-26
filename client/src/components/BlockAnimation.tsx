@@ -100,7 +100,7 @@ export function BlockAnimation() {
               key={ph.key}
               onClick={() => setI(k)}
               aria-label={ph.title}
-              className="h-1 flex-1 overflow-hidden rounded-full bg-white/10"
+              className="touch-exempt h-1 flex-1 overflow-hidden rounded-full bg-white/10"
             >
               <motion.span className="block h-full bg-accent" initial={false} animate={{ transform: k <= i ? "scaleX(1)" : "scaleX(0)" }} style={{ transformOrigin: "left" }} transition={{ duration: 0.4, ease }} />
             </button>

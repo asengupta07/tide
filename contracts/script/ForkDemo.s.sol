@@ -69,6 +69,7 @@ contract ForkDemo is Script {
         TideParams params = new TideParams(IAqua(AQUA));
         TideRouter router = new TideRouter(AQUA, WETH, MAKER);
         TideApp app = new TideApp(IAqua(AQUA), address(router), params);
+        params.setApp(address(app));
         DemoResolver resolver = new DemoResolver(IAqua(AQUA), address(router));
         vm.stopBroadcast();
 
@@ -83,7 +84,7 @@ contract ForkDemo is Script {
         bytes32 orderHash = router.hash(order);
 
         vm.startBroadcast(MAKER);
-        params.init(orderHash, 5000, 4, 20, 30, MANAGER);
+        app.init(cfg, 5000, 4, 20, 30, MANAGER);
         IERC20(WETH).approve(AQUA, type(uint256).max);
         IERC20(USDC).approve(AQUA, type(uint256).max);
         address[] memory tokens = new address[](2);

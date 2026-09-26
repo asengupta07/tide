@@ -41,7 +41,7 @@ export default function Strategies() {
             <h2 className="mb-4 text-sm font-medium text-fg-2">Yours</h2>
             {mine.length === 0 ? (
               <div className="rounded-3xl border border-dashed border-white/10 p-8 text-sm text-fg-3">
-                Nothing under {short(address)} yet. <Link className="text-accent" href="/app/new">Ship one</Link>: pick a name, set λ, N and δ, ship on Aqua. Four signatures.
+                Nothing under {short(address)} yet. <Link className="text-accent" href="/app/new">Ship one</Link>: pick a name, set the four knobs, ship on Aqua. A few signatures, nothing leaves your wallet.
               </div>
             ) : (
               <Grid rows={mine} />

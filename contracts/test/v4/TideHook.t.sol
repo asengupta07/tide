@@ -78,8 +78,9 @@ contract TideHookTest is Test {
                     | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG
             ) ^ (0x71de << 144)
         );
-        deployCodeTo("TideHook.sol:TideHook", abi.encode(manager, params), flags);
+        deployCodeTo("TideHook.sol:TideHook", abi.encode(manager, params, address(this)), flags);
         hook = TideHook(payable(flags));
+        params.setHook(address(hook));
 
         key = PoolKey(currency0, currency1, LPFeeLibrary.DYNAMIC_FEE_FLAG, 60, IHooks(address(hook)));
         poolId = key.toId();
@@ -88,7 +89,7 @@ contract TideHookTest is Test {
         MockERC20(Currency.unwrap(currency0)).approve(address(hook), type(uint256).max);
         MockERC20(Currency.unwrap(currency1)).approve(address(hook), type(uint256).max);
 
-        params.init(PoolId.unwrap(poolId), LAMBDA, N, DELTA, FEE, manager_);
+        params.setManager(PoolId.unwrap(poolId), manager_); // the hook claimed the key for us at initialize
 
         vm.roll(1000);
         _add(BAL_0, BAL_1);
@@ -286,8 +287,13 @@ contract TideHookTest is Test {
         hook.removeLiquidity(
             BaseCustomAccounting.RemoveLiquidityParams(shares / 2, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0))
         );
-        assertApproxEqAbs(key.currency0.balanceOf(address(this)) - b0, BAL_0 / 2, 1, "half of reserves back");
+        // MINIMUM_SHARES sit with the dead address, so half of the LP's shares is a hair under half the reserves
+        uint256 expected = (shares / 2) * BAL_0 / (shares + 1000);
+        assertApproxEqAbs(key.currency0.balanceOf(address(this)) - b0, expected, 1, "half of reserves back");
+        assertEq(
+            hook.balanceOf(0x000000000000000000000000000000000000dEaD), 1000, "dead shares burned on first deposit"
+        );
         (uint256 t0,) = hook.reserves();
-        assertApproxEqAbs(t0, BAL_0 / 2, 1);
+        assertApproxEqAbs(t0, BAL_0 - expected, 1);
     }
 }

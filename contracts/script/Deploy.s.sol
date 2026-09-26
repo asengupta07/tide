@@ -22,6 +22,7 @@ contract Deploy is Script {
         TideParams params = new TideParams(IAqua(AQUA));
         TideRouter router = new TideRouter(AQUA, weth, msg.sender);
         TideApp app = new TideApp(IAqua(AQUA), address(router), params);
+        params.setApp(address(app));
         vm.stopBroadcast();
 
         console.log("chainId   ", block.chainid);
@@ -35,6 +36,7 @@ contract Deploy is Script {
         vm.serializeAddress(json, "weth", weth);
         vm.serializeAddress(json, "tideParams", address(params));
         vm.serializeAddress(json, "tideRouter", address(router));
+        vm.serializeUint(json, "deployBlock", block.number); // the dashboard scans fills from here
         string memory out = vm.serializeAddress(json, "tideApp", address(app));
         vm.writeJson(out, string.concat("deployments/", vm.toString(block.chainid), ".json"));
     }
