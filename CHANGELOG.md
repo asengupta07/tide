@@ -7,31 +7,12 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
 
 **Example strategies and templates**
 - `pnpm seed:examples` (`client/scripts/seed-examples.ts`): from the owner wallet, creates and funds three preset
-  strategies on Sepolia and publishes every owner strategy on Explore as a live listing and a reusable template.
-  Idempotent. Now live: `calm-eth-usdc` (λ 75%, N 2, δ 30 bp, guardrails 50 to 90%), `storm-eth-usdc`
-  (λ 25%, N 8, δ 8 bp, guardrails 10 to 50%), `retail-link-usdc` (reference settings on LINK/USDC), plus
-  listings for `eth-usdc` and `link-usdc-tide`. Each holds 0.1 WETH + 300 USDC or 5 LINK + 90 USDC.
-
-**Trader entry and terminal**
-- `/trade` is now a dedicated trader-facing entry page with a real live quote and route comparison.
-  Execution lives at `/trade/market`, a compact terminal that keeps route liquidity, candles, price impact,
-  recent fills, curve parameters, and the auto-routed order ticket visible together. Existing strategy links
-  preserve their target through the new terminal URL. Dithered route waves, live water texture, execution
-  bounds, and a terminal-map treatment give the entry page a stronger visual hierarchy.
-- The order ticket now separates the executable full-inventory comparison from Tide's follow-on lane. It
-  derives the live maximum size inside each strategy's delta guard, shows the modeled output and impact
-  advantage, and offers a one-click demo size that remains eligible as the best route changes.
-- A reusable Sepolia activity seeder discovers every independent funded WETH/USDC strategy and sends tiny,
-  alternating fills in same-block waves. The live demo was seeded with 34 new successful swaps; the three
-  LPs now expose 17, 13, and 10 verifiable fills in the terminal. Dense chart annotations are grouped by
-  candle and direction into compact count markers instead of overlapping one label per transaction.
-- Rewrote the trading experience in plain language: percentages replace basis points, route and
-  price-impact labels explain what traders actually get, and the demo-size shortcut is gone.
-- Tightened the Tide advantage into a compact, scannable callout with one output figure and clear
-  eligibility details instead of the awkward split headline.
-- Added real multi-market trading: the terminal now groups liquidity and routes by token pair, formats
-  token decimals dynamically, and charts the selected asset. LINK/USDC launched with two independent
-  Sepolia LPs and twelve successful on-chain fills alongside the existing WETH/USDC market.
+  strategies on Sepolia, brings existing ones to their preset (`set`, `setFee`, `setBounds`, ENS records) and
+  publishes every owner strategy on Explore as a live listing and a template whose copy is generated from its
+  numbers. Idempotent. Presets: `calm-eth-usdc` (λ 75%, N 2, δ 10 bp, fee 10 bp, rails 50 to 90%, 10 points
+  per 6 h), `storm-eth-usdc` (λ 25%, N 8, δ 12 bp, fee 50 bp, rails 10 to 50%, 25 points per 30 min),
+  `retail-link-usdc` (defaults on LINK/USDC); listings for `eth-usdc` and `link-usdc-tide` as they run.
+  Each holds 0.1 WETH + 300 USDC or 5 LINK + 90 USDC.
 
 **Whitepaper v0.3**
 - New "Worked example" section: one block of the reference parameters on 1 WETH / 3,000 USDC with an

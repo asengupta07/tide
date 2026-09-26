@@ -16,7 +16,7 @@ import { packetToBytes } from "viem/ens";
 
 import { ADDR, erc20Abi, aquaAbi, tideAppAbi, tideParamsAbi, resolverAbi, ORDER_TUPLE } from "../src/lib/chain";
 import { TOKENS, sortedTokens, marketForTokens, type TokenMeta } from "../src/lib/tokens";
-import { normalizeKey } from "../src/lib/ens/client";
+import { normalizeKey, readText, setTextCalldata } from "../src/lib/ens/client";
 import { GOVERNED_KEYS } from "../src/lib/ens/config";
 import { getStrategy, PARENT, type Strategy } from "../src/lib/registry";
 import { ownerMessage } from "../src/lib/auth";
@@ -53,14 +53,14 @@ const PRESETS: Preset[] = [
     quote: TOKENS.USDC,
     lambda: 7500,
     N: 2,
-    delta: 30,
-    fee: 30,
-    bounds: { lambdaMin: 5000, lambdaMax: 9000, nMax: 4, maxStepBps: 2500, cooldown: 3600 },
+    delta: 10,
+    fee: 10,
+    bounds: { lambdaMin: 5000, lambdaMax: 9000, nMax: 2, maxStepBps: 1000, cooldown: 21_600 },
     amounts: { base: "0.1", quote: "300" },
     title: "Calm market, ETH/USDC",
-    description: "Shows three quarters of the inventory each block and keeps the deep curve shallow. Built for quiet markets: more fees per block, little to lose to arbitrage. The manager may move visibility between 50% and 90%.",
+    description: "Cheap and wide open: a 10 bp fee, three quarters of the inventory visible each block, a shallow deep curve. Built for quiet pairs where there is little for arbitrage to take and volume is what pays.",
     templateTitle: "Calm market",
-    templateDescription: "For pairs that move under 40% a year. 75% visible per block, a 2x deep curve within 0.3%, 30 bp fee. Guardrails keep the manager between 50% and 90% visibility with at most a 25 point step an hour.",
+    templateDescription: "For pairs that move under 40% a year.",
   },
   {
     label: "storm-eth-usdc",
@@ -68,14 +68,14 @@ const PRESETS: Preset[] = [
     quote: TOKENS.USDC,
     lambda: 2500,
     N: 8,
-    delta: 8,
-    fee: 30,
-    bounds: { lambdaMin: 1000, lambdaMax: 5000, nMax: 8, maxStepBps: 2500, cooldown: 3600 },
+    delta: 12,
+    fee: 50,
+    bounds: { lambdaMin: 1000, lambdaMax: 5000, nMax: 8, maxStepBps: 2500, cooldown: 1800 },
     amounts: { base: "0.1", quote: "300" },
     title: "Volatile market, ETH/USDC",
-    description: "Shows a quarter of the inventory each block, so the first trader of a block reaches little, and serves everyone after them on a curve eight times deeper inside a tight 8 bp band. Built for fast markets.",
+    description: "Defensive: a 50 bp fee, only a quarter of the inventory visible each block so the first trader reaches little, and everyone after them on a curve eight times deeper. Built for fast pairs where arbitrage is the main cost.",
     templateTitle: "Volatile market",
-    templateDescription: "For pairs that move over 80% a year. 25% visible per block, an 8x deep curve within 0.08%, 30 bp fee. Guardrails keep the manager between 10% and 50% visibility.",
+    templateDescription: "For pairs that move over 80% a year.",
   },
   {
     label: "retail-link-usdc",
@@ -88,9 +88,9 @@ const PRESETS: Preset[] = [
     bounds: { lambdaMin: 1000, lambdaMax: 9000, nMax: 8, maxStepBps: 2500, cooldown: 3600 },
     amounts: { base: "5", quote: "90" },
     title: "Balanced, LINK/USDC",
-    description: "The reference settings on a second pair: half visible per block, a 4x deep curve within 0.2%, 30 bp fee. Follow-on trades inside the band pay about a quarter of the impact a plain pool would charge.",
+    description: "The default settings on a second pair: half visible per block, a 4x deep curve, 30 bp fee. Follow-on trades inside the band pay about a quarter of the impact a plain pool would charge.",
     templateTitle: "Balanced",
-    templateDescription: "The default that ships with Tide. 50% visible per block, a 4x deep curve within 0.2%, 30 bp fee. The manager may roam the whole 10% to 90% range, one 25 point step an hour.",
+    templateDescription: "The default that ships with Tide, a middle ground for pairs you have no view on.",
   },
 ];
 
@@ -100,17 +100,29 @@ const EXISTING: Record<string, Pick<Preset, "title" | "description" | "templateT
     title: "Reference strategy, ETH/USDC",
     description: "The strategy the whitepaper and the demo use. The manager has been moving its visibility with realised volatility since launch; every change is an ENS record and an on-chain parameter write.",
     templateTitle: "Reference",
-    templateDescription: "Whatever the reference strategy runs right now, as a starting point. Half visible per block, a 4x deep curve, 30 bp fee, default guardrails.",
+    templateDescription: "Whatever the reference strategy runs right now, as the manager left it.",
     bounds: { lambdaMin: 1000, lambdaMax: 9000, nMax: 8, maxStepBps: 2500, cooldown: 3600 },
   },
   "link-usdc-tide": {
     title: "LINK/USDC, manager off",
     description: "Same maths on LINK with the manager disconnected: the owner sets visibility by hand. Useful to compare against the managed LINK strategy.",
     templateTitle: "Hands-on",
-    templateDescription: "No manager. 75% visible per block, a 4x deep curve within 0.2%, 30 bp fee. You change the settings yourself from the dashboard.",
+    templateDescription: "No manager: you change the settings yourself from the dashboard.",
     bounds: { lambdaMin: 1000, lambdaMax: 9000, nMax: 8, maxStepBps: 2500, cooldown: 3600 },
   },
 };
+
+const pct = (bps: number) => `${+(bps / 100).toFixed(2)}%`;
+const span = (s: number) => (s % 3600 === 0 ? `${s / 3600} h` : `${Math.round(s / 60)} min`);
+
+/** The numbers, spelled out the same way for every template so the differences are visible at a glance. */
+function describe(lead: string, c: TemplateConfig, managed = true) {
+  const b = c.bounds;
+  const rails = managed
+    ? ` The manager may move visibility between ${pct(b.lambdaMin)} and ${pct(b.lambdaMax)}, at most ${b.maxStepBps / 100} points every ${span(b.cooldown)}, depth up to ${b.nMax}×.`
+    : "";
+  return `${lead} ${pct(c.lambda)} visible per block, a ${c.N}× deep curve within ${pct(c.delta)}, ${c.fee} bp fee.${rails}`;
+}
 
 const wait = async (h: Hex, label: string) => {
   const rc = await pc.waitForTransactionReceipt({ hash: h });
@@ -179,6 +191,7 @@ async function fundAndShip(p: Preset, s: Strategy) {
     );
     await wait(await owner.writeContract({ address: ADDR.tideParams, abi: tideParamsAbi, functionName: "setBounds", args: [s.orderHash as Hex, p.bounds] }), "setBounds");
   }
+  else await syncParams(p, s);
   const [shipped] = (await pc.readContract({ address: ADDR.aqua, abi: aquaAbi, functionName: "rawBalances", args: [me, ADDR.tideRouter, s.orderHash as Hex, tokenA] })) as [bigint, number];
   if (shipped > 0n) {
     console.log(`  already shipped`);
@@ -201,6 +214,33 @@ async function fundAndShip(p: Preset, s: Strategy) {
   await wait(await owner.writeContract({ address: s.resolver as Address, abi: resolverAbi, functionName: "multicall", args: [calls] }), "delegate lambda, N, delta to the manager");
 }
 
+/** Bring an existing strategy to its preset: on-chain params, fee, guardrails and the ENS records. */
+async function syncParams(p: Preset, s: Strategy) {
+  const key = s.orderHash as Hex;
+  const cur = (await pc.readContract({ address: ADDR.tideParams, abi: tideParamsAbi, functionName: "params", args: [key] })) as { lambdaBps: number; n: number; deltaBps: number; feeBps: number };
+  const paramsOff = cur.lambdaBps !== p.lambda || cur.n !== p.N || cur.deltaBps !== p.delta;
+  const feeOff = cur.feeBps !== p.fee;
+  // the fee bound is checked on every write, so raise the fee before the params and lower it after
+  const setFee = async () => wait(await owner.writeContract({ address: ADDR.tideParams, abi: tideParamsAbi, functionName: "setFee", args: [key, p.fee] }), `setFee ${p.fee}`);
+  const set = async () => wait(await owner.writeContract({ address: ADDR.tideParams, abi: tideParamsAbi, functionName: "set", args: [key, p.lambda, p.N, p.delta] }), `set ${p.lambda}/${p.N}/${p.delta}`);
+  if (feeOff && p.fee > cur.feeBps) await setFee();
+  if (paramsOff) await set();
+  if (feeOff && p.fee < cur.feeBps) await setFee();
+  const b = (await pc.readContract({ address: ADDR.tideParams, abi: tideParamsAbi, functionName: "bounds", args: [key] })) as { lambdaMin: number; lambdaMax: number; nMax: number; maxStepBps: number; cooldown: number };
+  if (b.lambdaMin !== p.bounds.lambdaMin || b.lambdaMax !== p.bounds.lambdaMax || b.nMax !== p.bounds.nMax || b.maxStepBps !== p.bounds.maxStepBps || b.cooldown !== p.bounds.cooldown) {
+    await wait(await owner.writeContract({ address: ADDR.tideParams, abi: tideParamsAbi, functionName: "setBounds", args: [key, p.bounds] }), "setBounds");
+  }
+  const want: [string, string][] = [["lambda", String(p.lambda)], ["N", String(p.N)], ["delta", String(p.delta)], ["fee", String(p.fee)]];
+  const stale: [string, string][] = [];
+  for (const [k, v] of want) if ((await readText(pc, s.name, k)) !== v) stale.push([k, v]);
+  if (stale.length) {
+    await wait(
+      await owner.writeContract({ address: s.resolver as Address, abi: resolverAbi, functionName: "multicall", args: [stale.map(([k, v]) => setTextCalldata(s.name, k, v))] }),
+      `ENS records ${stale.map(([k]) => k).join(", ")}`,
+    );
+  }
+}
+
 async function publish(s: Strategy, input: PublicationInput) {
   const rows = (await api(`/api/strategy/${encodeURIComponent(s.name)}/sharing`)) as { kind: string; revision: number }[];
   const revision = rows.find((r) => r.kind === input.kind)?.revision ?? 0;
@@ -209,9 +249,9 @@ async function publish(s: Strategy, input: PublicationInput) {
   console.log(`  published ${input.kind} "${input.title}" (revision ${revision + 1})`);
 }
 
-async function publishBoth(s: Strategy, meta: (typeof EXISTING)[string], config: TemplateConfig) {
+async function publishBoth(s: Strategy, meta: (typeof EXISTING)[string], config: TemplateConfig, managed = true) {
   await publish(s, { kind: "strategy", published: true, title: meta.title, description: meta.description });
-  await publish(s, { kind: "template", published: true, title: meta.templateTitle, description: meta.templateDescription, config });
+  await publish(s, { kind: "template", published: true, title: meta.templateTitle, description: describe(meta.templateDescription, config, managed), config });
 }
 
 async function main() {
@@ -230,7 +270,7 @@ async function main() {
     const rec = (await api(`/api/state?strategy=${encodeURIComponent(s.name)}`)) as { records: { lambda: number; N: number; delta: number; fee?: number }; onchain?: { fee?: number } };
     const fee = rec.onchain?.fee ?? rec.records.fee ?? 30;
     console.log(`${s.name}: records lambda ${rec.records.lambda} N ${rec.records.N} delta ${rec.records.delta} fee ${fee}`);
-    await publishBoth(s, meta, { lambda: rec.records.lambda, N: rec.records.N, delta: rec.records.delta, fee, bounds: meta.bounds });
+    await publishBoth(s, meta, { lambda: rec.records.lambda, N: rec.records.N, delta: rec.records.delta, fee, bounds: meta.bounds }, label !== "link-usdc-tide");
   }
   console.log("\ndone: open /app/explore");
 }
