@@ -42,7 +42,7 @@ the N-curve inside δ, every block). Fixed by a flat fee on tokenIn stored in `T
 venues) and the invariant `(N − 1)·δ ≤ 2·fee` enforced at init/set/setFee; the manager now proposes δ
 too (three one-block moves, capped by the bound). Everything redeployed (new router, params, app, hook,
 strategy hash); `MATHEMATICS_MODEL.md` § 8 has the derivation and worked example. World client `Tide manager`
-registered via the World ID MCP (sandbox needs an HTTPS callback: `pnpm dev:https`, see README); live
+registered via the World ID MCP (sandbox needs an HTTPS callback: `pnpm dev` (HTTPS by default), see README); live
 approve path proven (proposal 3509d7d32778, ENS + TideParams txs in README). Open: team/socials in README,
 video, public deployment of `client/` for the ENS live-demo link (new hostname = new World client + re-bind).
 

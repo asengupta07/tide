@@ -16,7 +16,7 @@ and `contracts/deployments/`. How to redeploy and what to touch afterwards: `doc
   (`request_oidc_client_registration`, approved in the portal). `client_secret_post`, redirect
   `https://localhost:3000/api/world/callback`, sector `localhost`.
 - Sandbox refuses `http://localhost` callbacks (bare `invalid_request`). Local dev is now HTTPS:
-  `pnpm dev:https` with a mkcert certificate in `client/certificates/` (gitignored). `.env.example`,
+  `pnpm dev` (HTTPS by default, `dev:http` for plain) with a mkcert certificate in `client/certificates/` (gitignored). `.env.example`,
   `.claude/launch.json`, README updated.
 - First secret was lost before saving; a second one was issued (secrets overlap) and revocation of the
   first staged. Nothing re-registered.

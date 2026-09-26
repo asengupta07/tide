@@ -26,12 +26,12 @@ variables. `source .env` alone is not enough in a script; use `set -a; source .e
 ```bash
 cd client && pnpm install
 mkcert -key-file certificates/localhost-key.pem -cert-file certificates/localhost.pem localhost 127.0.0.1 ::1
-pnpm dev:https      # https://localhost:3000
+pnpm dev            # https://localhost:3000 (pnpm dev:http for plain http; the World callback then fails with ERR_SSL_PROTOCOL_ERROR)
 ```
 
 HTTPS is required because the World ID sandbox only accepts HTTPS callbacks (§5). `next dev
 --experimental-https` alone tries `mkcert -install`, which needs the machine password, and silently
-falls back to HTTP when it fails; passing the key and cert explicitly (what `dev:https` does) avoids that.
+falls back to HTTP when it fails; passing the key and cert explicitly (what `dev` does) avoids that.
 Run `mkcert -install` once if you want the browser to trust the certificate. The mkcert binary Next
 downloads lives at `~/Library/Caches/mkcert/`.
 

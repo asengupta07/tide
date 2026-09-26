@@ -75,7 +75,7 @@ App (landing, strategies, wizard, per-strategy dashboard) and agent:
 ```bash
 cd client && pnpm install
 mkcert -key-file certificates/localhost-key.pem -cert-file certificates/localhost.pem localhost 127.0.0.1 ::1   # once; `mkcert -install` too if you want the browser to trust it
-pnpm dev:https                                  # https://localhost:3000; the World ID sandbox only accepts HTTPS callbacks
+pnpm dev                                        # https://localhost:3000; the World ID sandbox only accepts HTTPS callbacks (pnpm dev:http for plain http)
 # /app/new: name it (<label>.tide.eth to your wallet, own resolver, records seeded), approve, TideParams.init,
 #           Aqua.ship, optional one-multicall delegation to manager.tide.eth. Four signatures.
 pnpm tsx --env-file=../.env scripts/e2e-new-strategy.ts  # same flow with a throwaway wallet, end to end
